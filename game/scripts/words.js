@@ -1,4 +1,4 @@
-function generateGlobalJson(){
+export function generateGlobalJson(){
 
 	const keys = abstract_getWords().en
 	const languages = [`en`, `ru`, `de`, `ptbr`, `it`, `es`, `fr`, `nl`, `cz`, `pl`, `jp`, `kr`, `sch`, `tch`, `thai`, `hu`, `lv`, `ro`]
@@ -116,7 +116,7 @@ function generateGlobalJson(){
 
 }
 
-function getAllJson(){
+export function getAllJson(){
 
 	const data = abstract_getWords()
 	let counter = 0
@@ -142,7 +142,7 @@ function getAllJson(){
 	// document.body.removeChild(a);
 }
 
-function generateTranslationJson(l){
+export function generateTranslationJson(l){
 
 	const data = abstract_getWords().en
 	const translation = abstract_getWords()[l ? l : `en`]
@@ -215,7 +215,7 @@ function generateTranslationJson(l){
 
 }
 
-function getLanguageObjectFromString(string){
+export function getLanguageObjectFromString(string){
 
 	const data = string.split(`\n`)
 
@@ -268,7 +268,7 @@ function getLanguageObjectFromString(string){
 	return out
 }
 
-function _getLanguageObjectFromData(data){
+export function _getLanguageObjectFromData(data){
 
 	let index = 0
 	const order = abstract_getWords().en
@@ -317,7 +317,7 @@ function _getLanguageObjectFromData(data){
 	return out
 }
 
-function getLanguageObject(json){
+export function getLanguageObject(json){
 
 	let index = 0
 	const order = abstract_getWords().en
@@ -369,7 +369,7 @@ function getLanguageObject(json){
 
 }
 
-function abstract_getWords(){return {
+export function abstract_getWords(){return {
 
 		en: {
 			splash: {

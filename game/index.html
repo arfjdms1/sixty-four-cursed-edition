@@ -4,14 +4,6 @@
         <meta charset="utf-8" />
         <title>Sixty Four</title>
         <link rel="stylesheet" href="./font/montserrat.css" type="text/css" charset="utf-8" />
-        <script type="text/javascript" src="scripts/bezier.js"></script>
-        <script type="text/javascript" src="scripts/ui.js?v=3"></script>
-        <script type="text/javascript" src="scripts/sprites.js?v=3"></script>
-        <script type="text/javascript" src="scripts/stuff.js?v=4"></script>
-        <script type="text/javascript" src="scripts/words.js?v=4"></script>
-        <script type="text/javascript" src="scripts/codex.js?v=3"></script>
-        <script type="text/javascript" src="scripts/game.js?v=6"></script>
-        <!-- <script type="text/javascript" src="scripts/post.js?v=3"></script> -->
     <style>
 
         /*@font-face {
@@ -1364,26 +1356,6 @@
 
 <canvas class="canvas"></canvas>
 <div class="shop"></div>
-<script type="text/javascript">
-
-        let game
-        window.onload = _=>{
-                try {
-                        const spaceport = require(`electron`).ipcRenderer
-                        if (spaceport){
-                                window.onerror = (ev, so, li, co, er)=>{
-                                        spaceport.send(`gameError`, er)
-                                }
-                                spaceport.on(`hereYouGoSir`, (e,d)=>{
-                                        game = new Game(document.querySelector(`.canvas`), d)
-                                })
-                                spaceport.send(`getMyStuff`, `please`)
-                        }
-                } catch (e){
-                        game = new Game(document.querySelector(`.canvas`))
-                }
-        }
-
-</script>
+<script type="module" src="./scripts/main.js"></script>
 </body>
 </html>

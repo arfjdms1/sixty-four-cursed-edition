@@ -1,4 +1,4 @@
-class Bezier {
+export class Bezier {
 
 	constructor(p){
 

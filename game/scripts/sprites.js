@@ -1,4 +1,4 @@
-class Sprite {
+export class Sprite {
 
 	constructor(args){
 
@@ -114,7 +114,7 @@ class Sprite {
 
 }
 
-class GLSprite {
+export class GLSprite {
 
 	constructor(master, args){
 
@@ -191,4 +191,4 @@ class GLSprite {
 
 	}
 
-}	
+}

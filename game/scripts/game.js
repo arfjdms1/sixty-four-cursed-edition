@@ -1,4 +1,22 @@
-class VFX {
+import { Bezier } from './bezier.js'
+import { abstract_getCodex } from './codex.js'
+import { Sprite } from './sprites.js'
+import {
+	Auxpump,
+	Auxpump2,
+	Cube,
+	Entropic,
+	Entropic2a,
+	Gradient,
+	Hollow,
+	Pump,
+	Silo,
+	Vessel,
+} from './stuff.js'
+import { Achiever, Cloud, Explainer, Messenger, Shop, Splash } from './ui.js'
+import { abstract_getWords } from './words.js'
+
+export class VFX {
 
 	constructor(master, payload){
 
@@ -28,7 +46,7 @@ class VFX {
 
 }
 
-class Exhaust extends VFX {
+export class Exhaust extends VFX {
 
 	constructor(master, payload){
 
@@ -72,7 +90,7 @@ class Exhaust extends VFX {
 
 }
 
-class ResourceExplosion extends VFX {
+export class ResourceExplosion extends VFX {
 
 	constructor(master, payload){
 
@@ -158,7 +176,7 @@ class ResourceExplosion extends VFX {
 
 }
 
-class ResourceSpark extends VFX {
+export class ResourceSpark extends VFX {
 
 	constructor(master, payload){
 
@@ -251,7 +269,7 @@ class ResourceSpark extends VFX {
 
 }
 
-class ResourceTransfer extends VFX {
+export class ResourceTransfer extends VFX {
 
 	constructor(master, payload){
 
@@ -381,7 +399,7 @@ class ResourceTransfer extends VFX {
 
 }
 
-class ChasmTransfer extends VFX {
+export class ChasmTransfer extends VFX {
 
 	constructor(master, payload){
 
@@ -468,7 +486,7 @@ class ChasmTransfer extends VFX {
 
 }
 
-class Lightning extends VFX {
+export class Lightning extends VFX {
 
 	constructor(master, payload){
 
@@ -531,7 +549,7 @@ class Lightning extends VFX {
 
 }
 
-class Game {
+export class Game {
 
 	constructor(canvas, preload){
 
@@ -548,7 +566,8 @@ class Game {
 		this.backups = []
 
 		try {
-			this.spaceport = require(`electron`).ipcRenderer
+			if (typeof window.require !== `function`) throw new ReferenceError(`require is not defined`)
+			this.spaceport = window.require(`electron`).ipcRenderer
 		} catch(e){
 			this.spaceport = {send:_=>false, isPlaceholder: true}
 		}
@@ -678,7 +697,7 @@ class Game {
 		this.setListeners()
 
 		this.updateLoop()
-		this.clock = new Worker(`scripts/clock.js`)
+		this.clock = new Worker(new URL('./clock.js', import.meta.url))
 		this.clock.addEventListener(`message`, m=>{
 			this.updateLoop()
 		})

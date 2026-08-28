@@ -1,4 +1,4 @@
-import { cpSync, rmSync } from 'node:fs'
+import { cpSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'vite'
@@ -7,28 +7,25 @@ const projectRoot = fileURLToPath(new URL('.', import.meta.url))
 const gameRoot = resolve(projectRoot, 'game')
 const distRoot = resolve(projectRoot, 'dist')
 
-/** Copy the legacy browser game unchanged into dist after Vite's no-op build. */
-function copyLegacyGame() {
+/** Preserve document-relative URLs used to load images, audio, and fonts at runtime. */
+function copyStaticAssets() {
   return {
-    name: 'copy-legacy-game',
+    name: 'copy-static-assets',
     closeBundle() {
-      for (const entry of ['index.html', 'scripts', 'img', 'sfx', 'font']) {
+      for (const entry of ['img', 'sfx', 'font']) {
         cpSync(resolve(gameRoot, entry), resolve(distRoot, entry), { recursive: true })
       }
-      rmSync(resolve(distRoot, 'assets'), { recursive: true, force: true })
     },
   }
 }
 
 export default defineConfig({
+  base: './',
   root: gameRoot,
   publicDir: false,
   build: {
     outDir: distRoot,
     emptyOutDir: true,
-    rollupOptions: {
-      input: resolve(projectRoot, 'vite-empty-entry.js'),
-    },
   },
   server: {
     host: '127.0.0.1',
@@ -40,5 +37,5 @@ export default defineConfig({
     port: 6464,
     strictPort: true,
   },
-  plugins: [copyLegacyGame()],
+  plugins: [copyStaticAssets()],
 })

@@ -1,4 +1,8 @@
-class Entity {
+import { Bezier } from './bezier.js'
+import { Sprite } from './sprites.js'
+import { Cloud } from './ui.js'
+
+export class Entity {
 
 	constructor(master){
 		this.master = master
@@ -151,7 +155,7 @@ class Entity {
 
 }
 
-class Strange extends Entity{
+export class Strange extends Entity{
 
 	constructor(master){
 		super(master)
@@ -193,7 +197,7 @@ class Strange extends Entity{
 
 }
 
-class Strange1 extends Entity{
+export class Strange1 extends Entity{
 
 	constructor(master){
 		super(master)
@@ -326,7 +330,7 @@ class Strange1 extends Entity{
 
 }
 
-class Strange2 extends Strange1{
+export class Strange2 extends Strange1{
 
 	constructor(master){
 		super(master)
@@ -353,7 +357,7 @@ class Strange2 extends Strange1{
 
 }
 
-class Strange3 extends Strange2{
+export class Strange3 extends Strange2{
 
 	constructor(master){
 		super(master)
@@ -444,7 +448,7 @@ class Strange3 extends Strange2{
 
 }
 
-class Vault extends Entity{
+export class Vault extends Entity{
 
 	constructor(master){
 		super(master)
@@ -505,7 +509,7 @@ class Vault extends Entity{
 
 }
 
-class Doublechannel extends Entity{
+export class Doublechannel extends Entity{
 
 	constructor(master){
 		super(master)
@@ -535,7 +539,7 @@ class Doublechannel extends Entity{
 
 }
 
-class Consumer extends Entity{
+export class Consumer extends Entity{
 
 	constructor(master){
 		super(master)
@@ -673,7 +677,7 @@ class Consumer extends Entity{
 
 }
 
-class Preheater extends Entity{
+export class Preheater extends Entity{
 
 	constructor(master){
 		super(master)
@@ -767,7 +771,7 @@ class Preheater extends Entity{
 
 }
 
-class Doublechannel2 extends Doublechannel{
+export class Doublechannel2 extends Doublechannel{
 
 	constructor(master){
 		super(master)
@@ -797,7 +801,7 @@ class Doublechannel2 extends Doublechannel{
 
 }
 
-class Auxpump extends Entity{
+export class Auxpump extends Entity{
 
 	constructor(master){
 		super(master)
@@ -888,7 +892,7 @@ class Auxpump extends Entity{
 
 }
 
-class Auxpump2 extends Auxpump{
+export class Auxpump2 extends Auxpump{
 
 	constructor(master){
 		super(master)
@@ -940,7 +944,7 @@ class Auxpump2 extends Auxpump{
 
 }
 
-class Valve extends Entity{
+export class Valve extends Entity{
 
 	constructor(master){
 		super(master)
@@ -1026,7 +1030,7 @@ class Valve extends Entity{
 
 }
 
-class Injector extends Entity{
+export class Injector extends Entity{
 
 	constructor(master){
 		super(master)
@@ -1133,7 +1137,7 @@ class Injector extends Entity{
 
 }
 
-class Entropic extends Entity{
+export class Entropic extends Entity{
 
 	constructor(master){
 		super(master)
@@ -1252,7 +1256,7 @@ class Entropic extends Entity{
 
 }
 
-class Entropic2 extends Entropic{
+export class Entropic2 extends Entropic{
 
 	constructor(master){
 		super(master)
@@ -1308,7 +1312,7 @@ class Entropic2 extends Entropic{
 
 }
 
-class Entropic2a extends Entropic{
+export class Entropic2a extends Entropic{
 
 	constructor(master){
 		super(master)
@@ -1392,7 +1396,7 @@ class Entropic2a extends Entropic{
 
 }
 
-class Entropic3 extends Entity{
+export class Entropic3 extends Entity{
 
 	constructor(master){
 		super(master)
@@ -1514,7 +1518,7 @@ class Entropic3 extends Entity{
 
 }
 
-class Destabilizer extends Entity{
+export class Destabilizer extends Entity{
 
 	constructor(master){
 		super(master)
@@ -1610,7 +1614,7 @@ class Destabilizer extends Entity{
 
 }
 
-class Destabilizer2 extends Destabilizer{
+export class Destabilizer2 extends Destabilizer{
 
 	constructor(master){
 		super(master)
@@ -1660,7 +1664,7 @@ class Destabilizer2 extends Destabilizer{
 
 }
 
-class Destabilizer2a extends Destabilizer{
+export class Destabilizer2a extends Destabilizer{
 
 	constructor(master){
 		super(master)
@@ -1718,7 +1722,7 @@ class Destabilizer2a extends Destabilizer{
 
 }
 
-class Converter32 extends Entity{
+export class Converter32 extends Entity{
 
 	constructor(master){
 		super(master)
@@ -1859,7 +1863,7 @@ class Converter32 extends Entity{
 
 }
 
-class Converter13 extends Entity{
+export class Converter13 extends Entity{
 
 	constructor(master){
 		super(master)
@@ -1992,7 +1996,7 @@ class Converter13 extends Entity{
 
 }
 
-class Converter41 extends Entity{
+export class Converter41 extends Entity{
 
 	constructor(master){
 		super(master)
@@ -2119,7 +2123,7 @@ class Converter41 extends Entity{
 	}
 }
 
-class Converter76 extends Entity{
+export class Converter76 extends Entity{
 
 	constructor(master){
 		super(master)
@@ -2235,7 +2239,7 @@ class Converter76 extends Entity{
 	}
 }
 
-class Converter64 extends Entity{
+export class Converter64 extends Entity{
 
 	constructor(master){
 		super(master)
@@ -2362,7 +2366,7 @@ class Converter64 extends Entity{
 	}
 }
 
-class Reflector extends Entity{
+export class Reflector extends Entity{
 
 	constructor(master){
 		super(master)
@@ -2403,7 +2407,7 @@ class Reflector extends Entity{
 	}
 }
 
-class Generaldecay extends Entity{
+export class Generaldecay extends Entity{
 
 	constructor(master){
 		super(master)
@@ -2473,7 +2477,7 @@ class Generaldecay extends Entity{
 	}
 }
 
-class Cube extends Entity{
+export class Cube extends Entity{
 
 	constructor(master, misc){
 
@@ -2798,7 +2802,7 @@ class Cube extends Entity{
 
 }
 
-class Pump extends Entity{
+export class Pump extends Entity{
 
 	constructor(master){
 		super(master)
@@ -3374,7 +3378,7 @@ class Pump extends Entity{
 
 }
 
-class Pump2 extends Pump{
+export class Pump2 extends Pump{
 
 	constructor(master){
 		super(master)
@@ -3563,7 +3567,7 @@ class Pump2 extends Pump{
 
 }
 
-class Mega1 extends Entity{
+export class Mega1 extends Entity{
 
 	constructor(master){
 		super(master)
@@ -3605,7 +3609,7 @@ class Mega1 extends Entity{
 
 }
 
-class Mega1a extends Entity{
+export class Mega1a extends Entity{
 
 	constructor(master){
 		super(master)
@@ -3646,7 +3650,7 @@ class Mega1a extends Entity{
 
 }
 
-class Mega1b extends Entity{
+export class Mega1b extends Entity{
 
 	constructor(master){
 		super(master)
@@ -3688,7 +3692,7 @@ class Mega1b extends Entity{
 
 }
 
-class Mega2 extends Entity{
+export class Mega2 extends Entity{
 
 	constructor(master){
 		super(master)
@@ -3736,7 +3740,7 @@ class Mega2 extends Entity{
 
 }
 
-class Mega3 extends Entity{
+export class Mega3 extends Entity{
 
 	constructor(master){
 		super(master)
@@ -3782,7 +3786,7 @@ class Mega3 extends Entity{
 
 }
 
-class Eye extends Entity{
+export class Eye extends Entity{
 
 	constructor(master){
 		super(master)
@@ -3823,7 +3827,7 @@ class Eye extends Entity{
 
 }
 
-class Clicker1 extends Entity{
+export class Clicker1 extends Entity{
 
 	constructor(master){
 		super(master)
@@ -3864,7 +3868,7 @@ class Clicker1 extends Entity{
 	}
 
 }
-class Clicker2 extends Clicker1{
+export class Clicker2 extends Clicker1{
 
 	constructor(master){
 		super(master)
@@ -3893,7 +3897,7 @@ class Clicker2 extends Clicker1{
 	}
 
 }
-class Clicker3 extends Clicker1{
+export class Clicker3 extends Clicker1{
 
 	constructor(master){
 		super(master)
@@ -3923,7 +3927,7 @@ class Clicker3 extends Clicker1{
 
 }
 
-class Cookie extends Entity{
+export class Cookie extends Entity{
 
 	constructor(master){
 		super(master)
@@ -3956,7 +3960,7 @@ class Cookie extends Entity{
 
 }
 
-class Pinhole extends Entity{
+export class Pinhole extends Entity{
 
 	constructor(master){
 		super(master)
@@ -4094,7 +4098,7 @@ class Pinhole extends Entity{
 
 }
 
-class Gradient extends Entity{
+export class Gradient extends Entity{
 
 	constructor(master){
 		super(master)
@@ -4247,7 +4251,7 @@ class Gradient extends Entity{
 
 }
 
-class Chasm extends Entity{
+export class Chasm extends Entity{
 
 	constructor(master){
 		super(master)
@@ -4372,7 +4376,7 @@ class Chasm extends Entity{
 
 }
 
-class Conductor extends Entity{
+export class Conductor extends Entity{
 
 	constructor(master){
 		super(master)
@@ -4442,7 +4446,7 @@ class Conductor extends Entity{
 
 }
 
-class Voidsculpture extends Entity{
+export class Voidsculpture extends Entity{
 
 	constructor(master){
 		super(master)
@@ -4693,7 +4697,7 @@ class Voidsculpture extends Entity{
 
 }
 
-class Hollow extends Entity{
+export class Hollow extends Entity{
 
 	constructor(master, owner){
 		super(master)
@@ -4789,7 +4793,7 @@ class Hollow extends Entity{
 
 }
 
-class Flower extends Entity{
+export class Flower extends Entity{
 
 	constructor(master, owner){
 		super(master)
@@ -4839,7 +4843,7 @@ class Flower extends Entity{
 
 }
 
-class Fruit extends Flower{
+export class Fruit extends Flower{
 
 	constructor(master, owner){
 		super(master)
@@ -4963,7 +4967,7 @@ class Fruit extends Flower{
 
 }
 
-class Vessel extends Entity{
+export class Vessel extends Entity{
 
 	constructor(master){
 		super(master)
@@ -5041,7 +5045,7 @@ class Vessel extends Entity{
 
 }
 
-class Vessel2 extends Vessel{
+export class Vessel2 extends Vessel{
 
 	constructor(master){
 		super(master)
@@ -5067,7 +5071,7 @@ class Vessel2 extends Vessel{
 
 }
 
-class Silo extends Entity{
+export class Silo extends Entity{
 
 	constructor(master){
 		super(master)
@@ -5232,7 +5236,7 @@ class Silo extends Entity{
 
 }
 
-class Silo2 extends Silo{
+export class Silo2 extends Silo{
 
 	constructor(master){
 		super(master)
@@ -5295,7 +5299,7 @@ class Silo2 extends Silo{
 
 }
 
-class Waypoint extends Entity{
+export class Waypoint extends Entity{
 
 	constructor(master, owner){
 		super(master)
@@ -5445,7 +5449,7 @@ class Waypoint extends Entity{
 
 }
 
-class Annihilator extends Entity{
+export class Annihilator extends Entity{
 
 	constructor(master){
 		super(master)
@@ -5574,7 +5578,7 @@ class Annihilator extends Entity{
 
 }
 
-class Surge extends Entity{
+export class Surge extends Entity{
 
 	constructor(master, args){
 		super(master)
@@ -5782,7 +5786,7 @@ class Surge extends Entity{
 
 }
 
-class Stabilizer extends Entity{
+export class Stabilizer extends Entity{
 
 	constructor(master){
 		super(master)
@@ -6093,7 +6097,7 @@ class Stabilizer extends Entity{
 
 }
 
-class Stabilizer2 extends Stabilizer{
+export class Stabilizer2 extends Stabilizer{
 
 	constructor(master){
 		super(master)
@@ -6119,7 +6123,7 @@ class Stabilizer2 extends Stabilizer{
 
 }
 
-class Stabilizer3 extends Stabilizer{
+export class Stabilizer3 extends Stabilizer{
 
 	constructor(master){
 		super(master)

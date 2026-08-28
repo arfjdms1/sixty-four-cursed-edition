@@ -1,4 +1,6 @@
-class Achiever {
+import { abstract_getWords } from './words.js'
+
+export class Achiever {
 
 	constructor(master){
 
@@ -93,7 +95,7 @@ class Achiever {
 	}
 
 }
-class Messenger {
+export class Messenger {
 
 	constructor(master){
 
@@ -247,7 +249,7 @@ class Messenger {
 
 }
 
-class Splash {
+export class Splash {
 	constructor(master){
 		this.master = master
 
@@ -685,7 +687,7 @@ class Splash {
 	}
 }
 
-class Cloud {
+export class Cloud {
 
 	constructor(master){
 		this.master = master
@@ -1032,7 +1034,7 @@ class Cloud {
 
 }
 
-class Shop {
+export class Shop {
 
 	constructor(container, master){
 
@@ -1414,7 +1416,7 @@ class Shop {
 
 }
 
-class Explainer {
+export class Explainer {
 
 	constructor(master, next = 0){
 
