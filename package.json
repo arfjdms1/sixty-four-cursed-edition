@@ -1,0 +1,14 @@
+{
+  "name": "sixtyfour",
+  "version": "1.0.0",
+  "description": "press and hold",
+  "main": "main.js",
+  "author": "Oleg Danilov <jesterpost@gmail.com> (https://sunandstuff.com/sixtyfour/)",
+  "homepage": "https://sunandstuff.com/sixtyfour/",
+  "license": "ISC",
+  "dependencies": {
+    "electron-squirrel-startup": "^1.0.0",
+    "steamworks.js": "^0.3.1",
+    "trackjs-node": "1.0.1"
+  }
+}
