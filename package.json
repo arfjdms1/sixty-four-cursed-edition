@@ -6,9 +6,17 @@
   "author": "Oleg Danilov <jesterpost@gmail.com> (https://sunandstuff.com/sixtyfour/)",
   "homepage": "https://sunandstuff.com/sixtyfour/",
   "license": "ISC",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
   "dependencies": {
     "electron-squirrel-startup": "^1.0.0",
     "steamworks.js": "^0.3.1",
     "trackjs-node": "1.0.1"
+  },
+  "devDependencies": {
+    "vite": "^6.2.0"
   }
 }
