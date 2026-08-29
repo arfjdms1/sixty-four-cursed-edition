@@ -1,14 +1,37 @@
-// @ts-nocheck
-// Deferred: translations intentionally have incomplete and dynamically indexed shapes.
+export type LanguageCode = 'en' | 'ru' | 'de' | 'nl' | 'fr' | 'ptbr' | 'it' | 'es' | 'cz' | 'pl' | 'jp' | 'kr' | 'sch' | 'tch' | 'thai' | 'hu' | 'lv' | 'ro'
+
+export interface TranslationEntry {
+	[field: string]: string | undefined
+	name: string
+	description: string
+	remdescription?: string
+}
+
+type TranslationSection = Record<string, string> | string[] | TranslationEntry[] | Record<string, TranslationEntry>
+
+export interface LanguagePack {
+	[section: string]: TranslationSection
+	splash: Record<string, string>
+	achievements: TranslationEntry[]
+	resources: string[]
+	entities: Record<string, TranslationEntry>
+	messages: string[]
+	credits: string[]
+	explainer: string[]
+	random: Record<string, string>
+}
+
+export type Translations = Record<LanguageCode, LanguagePack> & Record<string, LanguagePack>
+
 export function generateGlobalJson(){
 
 	const keys = abstract_getWords().en
-	const languages = [`en`, `ru`, `de`, `ptbr`, `it`, `es`, `fr`, `nl`, `cz`, `pl`, `jp`, `kr`, `sch`, `tch`, `thai`, `hu`, `lv`, `ro`]
+	const languages: LanguageCode[] = [`en`, `ru`, `de`, `ptbr`, `it`, `es`, `fr`, `nl`, `cz`, `pl`, `jp`, `kr`, `sch`, `tch`, `thai`, `hu`, `lv`, `ro`]
 	const translations = abstract_getWords()
 
-	const json = {}
-	const index = []
-	const entries = []
+	const json: Record<string, Record<string, string>> = {}
+	const index: string[] = []
+	const entries: TranslationEntry[] = []
 
 	let id = 0
 
@@ -16,23 +39,23 @@ export function generateGlobalJson(){
 
 
 
-		if (keys[i].length){
+		if ((keys[i] as TranslationEntry[]).length){
 
-			for (let j = 0; j < keys[i].length; j++){
+			for (let j = 0; j < (keys[i] as TranslationEntry[]).length; j++){
 
-				if (keys[i][j].name && keys[i][j].description){
+				if ((keys[i] as TranslationEntry[])[j].name && (keys[i] as TranslationEntry[])[j].description){
 
 					
-					const entry1 = {}
-					json[keys[i][j].name] = entry1
+					const entry1: Record<string, string> = {}
+					json[(keys[i] as TranslationEntry[])[j].name] = entry1
 					for (let k in translations){
-						entry1[k] = translations[k][i][j].name
+						entry1[k] = (translations[k][i] as TranslationEntry[])[j].name
 					}
 
-					const entry2 = {}
-					json[keys[i][j].description] = entry2
+					const entry2: Record<string, string> = {}
+					json[(keys[i] as TranslationEntry[])[j].description] = entry2
 					for (let k in translations){
-						entry2[k] = translations[k][i][j].description
+						entry2[k] = (translations[k][i] as TranslationEntry[])[j].description
 					}
 					// console.log(keys[i][j].name)
 					// console.log(keys[i][j].description)
@@ -47,7 +70,7 @@ export function generateGlobalJson(){
 
 			for (let j in keys[i]){
 
-				if (keys[i][j].name && keys[i][j].description){
+				if ((keys[i] as Record<string, TranslationEntry>)[j].name && (keys[i] as Record<string, TranslationEntry>)[j].description){
 
 					// console.log(keys[i][j].name)
 					// console.log(keys[i][j].description)
@@ -133,7 +156,7 @@ export function getAllJson(){
 		  type: `application/json`
 		}))
 		a.setAttribute(`download`, `sf_translation_${i}.json`)
-		setTimeout(_=>{a.click()},counter * 200)
+		setTimeout((_event: unknown)=>{a.click()},counter * 200)
 
 	}
 
@@ -144,13 +167,13 @@ export function getAllJson(){
 	// document.body.removeChild(a);
 }
 
-export function generateTranslationJson(l){
+export function generateTranslationJson(l?: string){
 
 	const data = abstract_getWords().en
 	const translation = abstract_getWords()[l ? l : `en`]
 
-	const index = []
-	const translatedIndex = []
+	const index: string[] = []
+	const translatedIndex: Array<string | undefined> = []
 
 	const creditSkip = [31,49]
 
@@ -206,7 +229,7 @@ export function generateTranslationJson(l){
 	let string = ``
 	string += `{\n`
 	for (let i = 0; i < index.length; i++){
-		string += translatedIndex[i] ? `"${index[i].replace(mask, escape)}" : "${l ? translatedIndex[i].replace(mask, escape) : ""}",\n` : `"${index[i].replace(mask, escape)}" : "",\n`
+		string += translatedIndex[i] ? `"${index[i].replace(mask, escape)}" : "${l ? translatedIndex[i]!.replace(mask, escape) : ""}",\n` : `"${index[i].replace(mask, escape)}" : "",\n`
 	}
 	string = string.slice(0,-2)
 	// string += `"Dive into the world of Sixty Four, where you transform simple machines into a thriving factory. Each advancement brings new challenges and a deeper understanding of an extraordinary universe." : "",\n`
@@ -217,7 +240,7 @@ export function generateTranslationJson(l){
 
 }
 
-export function getLanguageObjectFromString(string){
+export function getLanguageObjectFromString(string: string): LanguagePack {
 
 	const data = string.split(`\n`)
 
@@ -226,7 +249,7 @@ export function getLanguageObjectFromString(string){
 	// const map = generateTranslationJson().index
 	// console.log(map)
 
-	const out = {}
+	const out = {} as LanguagePack
 
 	out.splash = {}
 	for (let i in order.splash){
@@ -234,7 +257,7 @@ export function getLanguageObjectFromString(string){
 	}
 	out.achievements = []
 	for (let i = 0; i < order.achievements.length; i++){
-		const achievement = {}
+		const achievement = {} as TranslationEntry
 		achievement.name = data[index++]
 		achievement.description = data[index++]
 		out.achievements.push(achievement)
@@ -245,7 +268,7 @@ export function getLanguageObjectFromString(string){
 	}
 	out.entities = {}
 	for (let i in order.entities){
-		const entity = {}
+		const entity = {} as TranslationEntry
 		entity.name = data[index++]
 		entity.description = data[index++]
 		out.entities[i] = entity
@@ -270,12 +293,12 @@ export function getLanguageObjectFromString(string){
 	return out
 }
 
-export function _getLanguageObjectFromData(data){
+export function _getLanguageObjectFromData(data: Record<string, string>): LanguagePack {
 
 	let index = 0
 	const order = abstract_getWords().en
 
-	const out = {}
+	const out = {} as LanguagePack
 
 	out.splash = {}
 	for (let i in order.splash){
@@ -283,7 +306,7 @@ export function _getLanguageObjectFromData(data){
 	}
 	out.achievements = []
 	for (let i = 0; i < order.achievements.length; i++){
-		const achievement = {}
+		const achievement = {} as TranslationEntry
 		achievement.name = data[order.achievements[i].name]
 		achievement.description = data[order.achievements[i].description]
 		out.achievements.push(achievement)
@@ -294,7 +317,7 @@ export function _getLanguageObjectFromData(data){
 	}
 	out.entities = {}
 	for (let i in order.entities){
-		const entity = {}
+		const entity = {} as TranslationEntry
 		entity.name = data[order.entities[i].name]
 		entity.description = data[order.entities[i].description]
 		out.entities[i] = entity
@@ -319,14 +342,14 @@ export function _getLanguageObjectFromData(data){
 	return out
 }
 
-export function getLanguageObject(json){
+export function getLanguageObject(json: Record<string, string>): LanguagePack {
 
 	let index = 0
 	const order = abstract_getWords().en
 	const data = json//JSON.parse(json)
 	const map = generateTranslationJson().index
 
-	const out = {}
+	const out = {} as LanguagePack
 
 	out.splash = {}
 	for (let i in order.splash){
@@ -334,7 +357,7 @@ export function getLanguageObject(json){
 	}
 	out.achievements = []
 	for (let i = 0; i < order.achievements.length; i++){
-		const achievement = {}
+		const achievement = {} as TranslationEntry
 		achievement.name = data[map[index++]]
 		achievement.description = data[map[index++]]
 		out.achievements.push(achievement)
@@ -345,7 +368,7 @@ export function getLanguageObject(json){
 	}
 	out.entities = {}
 	for (let i in order.entities){
-		const entity = {}
+		const entity = {} as TranslationEntry
 		entity.name = data[map[index++]]
 		entity.description = data[map[index++]]
 		out.entities[i] = entity
@@ -371,7 +394,7 @@ export function getLanguageObject(json){
 
 }
 
-export function abstract_getWords(){return {
+export function abstract_getWords(): Translations {return {
 
 		en: {
 			splash: {
