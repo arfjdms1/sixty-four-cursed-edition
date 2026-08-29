@@ -1,10 +1,217 @@
-// @ts-nocheck
-// Deferred: UI classes consume broad dynamic Game hosts and late-created DOM fields.
 import { abstract_getWords } from './words.js'
+import type { LanguageCode, LanguagePack } from './words.js'
+import type { ColorTriplet, ResourceAmounts, Vec2 } from '../types/core.js'
+import type { GameSpaceport } from '../types/platform.js'
+import type { SaveBackup } from '../types/save.js'
+
+type AchievementState = boolean | 0 | 1
+type MessageEventState = boolean | null
+
+interface AchievementDefinition {
+	steamid: string
+	src: string
+	condition: (master: AchievementConditionHost) => unknown
+}
+
+interface MessageEventDefinition {
+	condition: (master: MessageConditionHost) => unknown
+	chain: number[]
+	fired?: boolean
+}
+
+interface ResourceDefinition {
+	triplet: ColorTriplet
+}
+
+interface EntityDefinition {
+	price: number[]
+	priceExponent?: number
+	canPurchase?: boolean
+	merge?: boolean
+	isUpgradeTo?: string
+	shouldUnlock?: (master: ShopUnlockHost) => unknown
+}
+
+interface AchievementConditionHost {
+	resources: ResourceAmounts
+	entitiesInGame: Record<string, number | undefined>
+	stats: {
+		darkVisited: number
+		absoluteResourcesCount: number
+		totalPlayTime: number
+		totalCubeClicks: number
+		machinesBuild: number
+		machinesSold: number
+		strangeRockPoked: number
+		maxDepth: number
+		timesTeleported: number
+		timeSinceLastDelete: number
+		excavatorWasBuilt: boolean
+	}
+	gameIsLocked?: boolean
+	perpetum?: boolean
+	pinhole?: unknown
+	cookie?: unknown
+	rbrtimeup?: boolean
+	got64kmphAchievement?: boolean
+}
+
+interface MessageConditionHost {
+	splash: { isShown: boolean }
+	entitiesInGame: Record<string, number | undefined>
+	stuff: Array<{ state?: number }>
+	resources: ResourceAmounts
+	stats: { maxDepth: number, timeEvents: number }
+	plane: 0 | 1
+	bridge: boolean
+	preventSaving?: boolean
+	lastDialogue?: boolean
+}
+
+interface ShopUnlockHost {
+	resources: ResourceAmounts
+	entitiesInGame: Record<string, number | undefined>
+	chasm?: unknown
+}
+
+interface AchieverHost extends AchievementConditionHost {
+	codex: { achievements: AchievementDefinition[] }
+	words: Pick<LanguagePack, 'achievements'>
+	splash: { updateGlory: () => void }
+	updateSteamAchievement: (id: string, value: boolean) => void
+}
+
+interface MessengerHost extends MessageConditionHost {
+	codex: {
+		messages: {
+			events: MessageEventDefinition[]
+			origins: Array<0 | 1>
+		}
+	}
+	words: Pick<LanguagePack, 'messages'>
+}
+
+interface SplashHost {
+	isMute: boolean
+	steamId: string | number
+	words: LanguagePack
+	version: string
+	actx?: AudioContext
+	preventSaving?: boolean
+	spaceport: GameSpaceport
+	languageId: number
+	languages: LanguageCode[]
+	codex: { achievements: AchievementDefinition[] }
+	backups: SaveBackup[]
+	achiever?: { fired: AchievementState[] }
+	mute: (mute: boolean) => void
+	initAudio: () => void
+	updateGlobalVolume: (volume: number) => void
+	exportSave: () => void | Promise<void>
+	loadSaveFromClipboard: () => void | Promise<void>
+	changeLanguage: (id: number) => void
+	saveGame: () => unknown
+	togglePhotofobia: () => void
+	toggleChill: () => void
+	restoreBackup: (id: number) => void
+}
+
+interface CloudHost {
+	resources: ResourceAmounts
+	codex: { resources: ResourceDefinition[] }
+	eraserType: 0 | 1 | 2
+	makeReadable: (value: number) => string | number
+	getRealPrice: (name: string, selling?: boolean) => number[]
+}
+
+interface ShopHost extends ShopUnlockHost {
+	pinhole?: unknown
+	codex: { entities: Record<string, EntityDefinition> }
+	words: LanguagePack
+	unlockedEntities: Record<string, boolean | undefined>
+	onlyones: Record<string, boolean | undefined>
+	entitiesInGame: Record<string, number | undefined>
+	eraserType: 0 | 1 | 2
+	getRealPrice: (name: string, selling?: boolean) => number[]
+	makeReadable: (value: number) => string | number
+	pickupItem: (name: string) => void
+	processMousemove: () => void
+}
+
+interface ExplainerHost {
+	entitiesInGame: Record<string, number | undefined>
+	messenger: { firedEvents: MessageEventState[] }
+	resources: ResourceAmounts
+	itemInHand?: unknown
+	altActive?: boolean
+	hoveredEntity?: unknown
+	pressedQOnBlank?: boolean
+	pressedQOnMachine?: boolean
+	translation: Vec2
+	splash: { isShown: boolean }
+	words: Pick<LanguagePack, 'explainer'>
+	steamId: string | number
+}
+
+interface AchievementQueueItem {
+	id: number
+	condition: AchievementDefinition['condition']
+}
+
+interface MessageQueueItem {
+	timer: number
+	element: HTMLDivElement
+	id: number
+}
+
+interface SplashAchievementElements {
+	cell: HTMLDivElement
+	img: HTMLDivElement
+	name: HTMLDivElement
+	desc: HTMLDivElement
+}
+
+type CloudTextValue = string | number
+type CloudCheck =
+	| { element: HTMLDivElement, f: () => number, effect: 'width' }
+	| { element: HTMLDivElement, f: () => unknown, effect: 'opacity' }
+	| { element: HTMLDivElement, f: () => CloudTextValue, effect: 'text' }
+	| { element: HTMLDivElement, f: () => string, effect: 'class' }
+
+interface ShopItemParams {
+	vessel: HTMLDivElement
+	name: string
+	description: string
+	price: number[]
+	priceExponent: number
+	id: string
+}
+
+interface ShopItem {
+	html: HTMLDivElement
+	pack: HTMLDivElement | false
+	priceHtml: HTMLDivElement
+	price: number[]
+	priceExponent: number
+	name: string
+	counter: HTMLDivElement
+	existed: HTMLDivElement
+	priceElements?: HTMLElement[]
+}
+
+interface TutorialStep {
+	showIf: (master: ExplainerHost, timer: number) => unknown
+	hideIf: (master: ExplainerHost, timer: number) => unknown
+}
 
 export class Achiever {
+	declare master: AchieverHost
+	declare data: AchievementDefinition[]
+	declare element: HTMLDivElement
+	declare fired: AchievementState[]
+	declare queue: AchievementQueueItem[]
 
-	constructor(master){
+	constructor(master: AchieverHost){
 
 		this.master = master
 		this.data = this.master.codex.achievements
@@ -17,7 +224,7 @@ export class Achiever {
 
 	}
 
-	fireAchievement(id){
+	fireAchievement(id: number){
 		this.fired[id] = true
 
 		const vessel = document.createElement(`div`)
@@ -41,7 +248,7 @@ export class Achiever {
 		text.append(description)
 
 		this.element.append(vessel)
-		setTimeout(_=>{
+		setTimeout((_event: unknown)=>{
 			this.element.removeChild(vessel)
 		},10000)
 
@@ -52,12 +259,12 @@ export class Achiever {
 
 	}
 
-	sneakAchievement(id){
+	sneakAchievement(id: number){
 		this.fired[id] = true
 		this.master.splash.updateGlory()
 	}
 
-	setState(achievedList = new Array(this.data.length).fill(false)){
+	setState(achievedList: AchievementState[] = new Array<AchievementState>(this.data.length).fill(false)){
 
 		this.fired = achievedList
 		this.queue = []
@@ -80,7 +287,7 @@ export class Achiever {
 
 	}
 
-	update(dt){
+	update(_dt: number){
 
 		for (let i = 0; i < this.queue.length; i++){
 
@@ -98,8 +305,20 @@ export class Achiever {
 
 }
 export class Messenger {
+	declare master: MessengerHost
+	declare events: MessageEventDefinition[]
+	declare origins: Array<0 | 1>
+	declare element: HTMLDivElement
+	declare chatIcon: HTMLDivElement
+	declare chatCounter: HTMLDivElement
+	declare messagesShown: 0 | 1
+	declare unreadCounter: number
+	declare shownMessages: number[]
+	declare firedEvents: MessageEventState[]
+	declare messageQueue: MessageQueueItem[]
+	declare eventIdQueue: number[]
 
-	constructor(master){
+	constructor(master: MessengerHost){
 
 		this.master = master
 		// this.data = this.master.codex.messages
@@ -145,7 +364,7 @@ export class Messenger {
 
 	}
 
-	update(dt){
+	update(dt: number){
 
 		for (let i = 0; i < this.eventIdQueue.length; i++){
 
@@ -168,13 +387,13 @@ export class Messenger {
 			if (m.timer <= 0){
 
 				this.element.append(m.element)
-				setTimeout(_=>{m.element.classList.remove(`unpopped`)}, 10)
+				setTimeout((_event: unknown)=>{m.element.classList.remove(`unpopped`)}, 10)
 				this.messageQueue.shift()
 				this.element.scrollTo({ top: this.element.scrollHeight, behavior: 'smooth' })
 				if (!this.messagesShown) {
 					this.unreadCounter++
 					this.chatCounter.style.display = `block`
-					this.chatCounter.innerHTML = this.unreadCounter
+					this.chatCounter.innerHTML = String(this.unreadCounter)
 				}
 
 			}
@@ -182,7 +401,7 @@ export class Messenger {
 
 	}
 
-	setState(fired = [], list = [], shown = 1){
+	setState(fired: MessageEventState[] = [], list: number[] = [], shown: 0 | 1 = 1){
 
 		this.shownMessages = list
 		this.firedEvents = fired
@@ -210,7 +429,7 @@ export class Messenger {
 			}
 		}
 
-		setTimeout(_=>{this.element.scrollTo({ top: this.element.scrollHeight, behavior: 'smooth' })}, 100)
+		setTimeout((_event: unknown)=>{this.element.scrollTo({ top: this.element.scrollHeight, behavior: 'smooth' })}, 100)
 
 		if (shown){
 			this.showMessages()
@@ -220,7 +439,7 @@ export class Messenger {
 
 	}
 
-	initChain(chain=[]){
+	initChain(chain: number[] = []){
 
 		for (let i = 0; i < chain.length; i++){
 
@@ -252,7 +471,30 @@ export class Messenger {
 }
 
 export class Splash {
-	constructor(master){
+	declare master: SplashHost
+	declare gameIsMute: boolean
+	declare isShown: boolean
+	declare element: HTMLDivElement
+	declare items: HTMLDivElement[]
+	declare glory: HTMLDivElement
+	declare selected: boolean
+	declare selectedId: number
+	declare texts: LanguagePack['splash']
+	declare sf: HTMLDivElement
+	declare playElement: HTMLDivElement
+	declare muteElement: HTMLDivElement
+	declare soundBar: HTMLDivElement
+	declare soundSlider: HTMLDivElement
+	declare resetProgressbar: HTMLDivElement
+	declare chill: HTMLDivElement
+	declare backupLabels: HTMLDivElement[]
+	declare backupElements: HTMLDivElement[]
+	declare gloryButton: HTMLDivElement
+	declare deGloryButton: HTMLDivElement
+	declare achievements: SplashAchievementElements[]
+	declare words: LanguagePack | undefined
+
+	constructor(master: SplashHost){
 		this.master = master
 
 		this.gameIsMute = this.master.isMute
@@ -271,7 +513,7 @@ export class Splash {
 		this.init()
 	}
 
-	fireNotification(t,el = this.element, up, leftFlag, time = 16000){
+	fireNotification(t: string, el: HTMLElement = this.element, up?: boolean, leftFlag?: boolean, time = 16000){
 
 		const n = document.createElement(`div`)
 		n.classList.add(`splashNotification`)
@@ -279,7 +521,7 @@ export class Splash {
 		if (up) n.classList.add(`splashNotificationUp`)
 		n.innerHTML = t
 		el.append(n)
-		setTimeout(_=>{n.remove()}, time)
+		setTimeout((_event: unknown)=>{n.remove()}, time)
 		n.onanimationend = _=>{
 			n.remove()
 		}
@@ -308,7 +550,7 @@ export class Splash {
 		this.selected = false
 	}
 
-	setPhotofobia(v){
+	setPhotofobia(v: boolean){
 
 		if (v){
 			this.element.classList.add(`photofobia`)
@@ -340,14 +582,14 @@ export class Splash {
 		this.glory.style.left = `100%`
 	}
 
-	updateMute(mute){
+	updateMute(mute: boolean){
 		this.gameIsMute = mute
 		this.muteElement.innerHTML = this.gameIsMute ? this.texts.soundoff : this.texts.soundon
 		if (!this.gameIsMute) this.muteElement.append(this.soundBar)
-		localStorage.setItem(`abstractv03_mute${this.master.steamId}`, this.gameIsMute)
+		localStorage.setItem(`abstractv03_mute${this.master.steamId}`, String(this.gameIsMute))
 	}
 
-	init(o){
+	init(o?: { selectedId?: number, selected?: boolean }){
 
 		this.texts = this.master.words.splash
 
@@ -489,12 +731,12 @@ export class Splash {
 		}
 
 		this.soundBar.onmousedown = e=>{
-			const v = e.offsetX / e.target.offsetWidth
+			const v = e.offsetX / (e.target as HTMLElement).offsetWidth
 			this.master.updateGlobalVolume(v)
 		}
 		this.soundBar.onmousemove = e=>{
 			if (e.buttons){
-				const v = e.offsetX / e.target.offsetWidth
+				const v = e.offsetX / (e.target as HTMLElement).offsetWidth
 				this.master.updateGlobalVolume(v)
 			}
 		}
@@ -512,7 +754,7 @@ export class Splash {
 				localStorage.removeItem(`abstractv03${this.master.steamId}`)
 				localStorage.removeItem(`abstractv03_helpIsNeeded${this.master.steamId}`)
 
-				setTimeout(_=>{location.reload()},400)
+				setTimeout((_event: unknown)=>{location.reload()},400)
 			}
 		}
 		reset.onmouseup = _=>{
@@ -535,7 +777,8 @@ export class Splash {
 
 		exp.onclick = _=>{
 			this.master.exportSave()
-			this.fireNotification(this.master.preventSaving ? this.words.random.toolate : this.master.words.random.paste, exp, true)
+			// Keep the legacy failure path when export is attempted after saving is disabled.
+			this.fireNotification(this.master.preventSaving ? (this.words as LanguagePack).random.toolate : this.master.words.random.paste, exp, true)
 		}
 		imp.onclick = _=>{
 			this.master.loadSaveFromClipboard()
@@ -579,7 +822,7 @@ export class Splash {
 		this.glory.append(this.deGloryButton)
 
 		this.gloryButton.onclick = _=>{
-			this.glory.style.left = 0
+			this.glory.style.left = String(0)
 			this.deGloryButton.style.display = `block`
 		}
 
@@ -594,7 +837,7 @@ export class Splash {
 
 			const cell = document.createElement(`div`)
 			cell.classList.add(`ablock`)
-			cell.style.opacity = .3
+			cell.style.opacity = String(.3)
 			this.glory.append(cell)
 
 			const img = document.createElement(`div`)
@@ -677,7 +920,7 @@ export class Splash {
 			const a = this.achievements[i]
 			if (this.master.achiever?.fired[i]){
 
-				a.cell.style.opacity = 1
+				a.cell.style.opacity = String(1)
 				a.img.style.backgroundImage = `url('${this.master.codex.achievements[i].src}')`
 				a.name.innerHTML = this.master.words.achievements[i].name
 				a.desc.innerHTML = this.master.words.achievements[i].description
@@ -690,8 +933,13 @@ export class Splash {
 }
 
 export class Cloud {
+	declare master: CloudHost
+	declare updatables: unknown[]
+	declare element: HTMLDivElement
+	declare resourceChecks: false | unknown[]
+	declare checks: CloudCheck[]
 
-	constructor(master){
+	constructor(master: CloudHost){
 		this.master = master
 		this.updatables = []
 		this.element = document.createElement(`div`)
@@ -704,14 +952,14 @@ export class Cloud {
 		this.element.classList.add(`dark`)
 	}
 
-	addName(name){
+	addName(name: string){
 		const el = document.createElement(`div`)
 		el.classList.add(`entityName`)
 		el.innerHTML = name
 		this.element.append(el)
 	}
 
-	addDynamicText(check = (_=>0)){
+	addDynamicText(check: (() => CloudTextValue) | false | null = (_value?: unknown)=>0){
 		const el = document.createElement(`div`)
 		el.classList.add(`hintDepth`)
 		this.element.append(el)
@@ -725,14 +973,14 @@ export class Cloud {
 		}
 	}
 
-	addDescription(d){
+	addDescription(d: string){
 		const el = document.createElement(`div`)
 		el.classList.add(`hintDescription`)
 		el.innerHTML = d
 		this.element.append(el)
 	}
 
-	addQEString(q,e){
+	addQEString(q: boolean, e: boolean){
 
 		const el = document.createElement(`div`)
 		el.classList.add(`hintQE`)
@@ -753,13 +1001,13 @@ export class Cloud {
 
 	}
 
-	addLine(d){
+	addLine(_d?: unknown){
 		const el = document.createElement(`div`)
 		el.classList.add(`hintLine`)
 		this.element.append(el)
 	}
 
-	addProgress(check){
+	addProgress(check: (() => number) | false | null){
 		const back = document.createElement(`div`)
 		back.classList.add(`hintProgressBarBack`)
 		const bar = document.createElement(`div`)
@@ -775,7 +1023,7 @@ export class Cloud {
 			})
 		}
 	}
-	addGradeAndProgress(grade, type, check){
+	addGradeAndProgress(grade: number, type: number, check: (() => number) | false | null){
 
 		const wrap = document.createElement(`div`)
 		wrap.classList.add(`gradeWrap`)
@@ -805,7 +1053,7 @@ export class Cloud {
 		}
 	}
 
-	addResourceList(r){
+	addResourceList(r: number[]){
 
 		this.resourceChecks = []
 
@@ -823,7 +1071,7 @@ export class Cloud {
 				// this.resourceChecks.push({id: i, element: chunk, value: r[i]})
 				this.checks.push({
 					element: chunk,
-					f: _=>this.master.resources[i]>=r[i],
+					f: (_value?: unknown)=>this.master.resources[i]>=r[i],
 					effect: `opacity`
 				})
 
@@ -834,7 +1082,7 @@ export class Cloud {
 				const resourceString = document.createElement(`div`)
 				resourceString.classList.add(`hintResourceString`)
 				chunk.append(resourceString)
-				resourceString.innerHTML = this.master.makeReadable(Math.ceil(r[i]))//Math.ceil(r[i])
+				resourceString.innerHTML = String(this.master.makeReadable(Math.ceil(r[i])))//Math.ceil(r[i])
 
 			}
 
@@ -844,7 +1092,7 @@ export class Cloud {
 
 	}
 
-	addConvertersOutput(r,f = _=>false){
+	addConvertersOutput(r: number[], f: (() => number[] | false) = (_value?: unknown)=>false){
 
 		this.resourceChecks = []
 
@@ -868,7 +1116,7 @@ export class Cloud {
 				// this.resourceChecks.push({id: i, element: chunk, value: r[i]})
 				this.checks.push({
 					element: chunk,
-					f: _=>this.master.resources[i]>=r[i],
+					f: (_value?: unknown)=>this.master.resources[i]>=r[i],
 					effect: `opacity`
 				})
 
@@ -879,7 +1127,7 @@ export class Cloud {
 				const resourceString = document.createElement(`div`)
 				resourceString.classList.add(`hintResourceString`)
 				chunk.append(resourceString)
-				resourceString.innerHTML = this.master.makeReadable(Math.ceil(r[i]))//Math.ceil(r[i])
+				resourceString.innerHTML = String(this.master.makeReadable(Math.ceil(r[i])))//Math.ceil(r[i])
 
 			}
 
@@ -901,11 +1149,11 @@ export class Cloud {
 					const resourceString = document.createElement(`div`)
 					resourceString.classList.add(`hintResourceString`)
 					chunk.append(resourceString)
-					resourceString.innerHTML = this.master.makeReadable(Math.ceil(r[i]))//Math.ceil(r[i])
+					resourceString.innerHTML = String(this.master.makeReadable(Math.ceil(r[i])))//Math.ceil(r[i])
 
 					this.checks.push({
 						element: resourceString,
-						f: _=> this.master.makeReadable(f()[i]),
+						f: (_value?: unknown)=> this.master.makeReadable((f() as number[])[i]),
 						effect: `text`
 					})
 
@@ -937,7 +1185,7 @@ export class Cloud {
 
 		this.checks.push({
 			element: wrap,
-			f: _=> this.master.eraserType === 2 ? `ref_hell` : this.master.eraserType === 1 ? `ref_beta` : `ref_qanetite`,
+			f: (_value?: unknown)=> this.master.eraserType === 2 ? `ref_hell` : this.master.eraserType === 1 ? `ref_beta` : `ref_qanetite`,
 			effect: `class`
 		})
 
@@ -972,7 +1220,7 @@ export class Cloud {
 
 	}
 
-	addRefundList(name){
+	addRefundList(name: string){
 
 		const initPrice = this.master.getRealPrice(name, true)
 		const wrap = document.createElement(`div`)
@@ -997,7 +1245,7 @@ export class Cloud {
 
 				this.checks.push({
 					element: resourceString,
-					f: _=>{
+					f: (_value?: unknown)=>{
 						const p = this.master.getRealPrice(name, true)
 						return `+` + this.master.makeReadable(Math.floor(p[i]))
 					},
@@ -1022,9 +1270,9 @@ export class Cloud {
 				if (c.effect === `width`){
 					c.element.style.width = c.f() * 100 + `%`
 				} else if (c.effect === `opacity`){
-					c.element.style.opacity = c.f() ? 1 : .3
+					c.element.style.opacity = c.f() ? String(1) : String(.3)
 				} else if (c.effect === `text`){
-					c.element.innerHTML = c.f()
+					c.element.innerHTML = String(c.f())
 				} else if (c.effect === `class`){
 					c.element.className = c.f()
 				}
@@ -1037,8 +1285,17 @@ export class Cloud {
 }
 
 export class Shop {
+	declare master: ShopHost
+	declare vessel: HTMLDivElement
+	declare selected: boolean
+	declare selectedId: number
+	declare shopToggle: HTMLDivElement
+	declare gamePadHint: HTMLDivElement
+	declare items: ShopItem[]
+	declare darkitems: ShopItem[]
+	declare existed: Record<string, boolean | undefined>
 
-	constructor(container, master){
+	constructor(container: HTMLDivElement, master: ShopHost){
 
 		this.master = master
 		this.vessel = container
@@ -1066,7 +1323,7 @@ export class Shop {
 
 	}
 
-	centerItem(name){
+	centerItem(name: string){
 
 		for (let i = 0; i < this.items.length; i++){
 			if (name === this.items[i].name) {
@@ -1130,7 +1387,7 @@ export class Shop {
 		this.items[this.selectedId].html.classList.remove(`selected`)
 	}
 
-	setExisted(v){
+	setExisted(v: Record<string, boolean | undefined>){
 		this.existed = v
 		this.updateElements()
 	}
@@ -1150,7 +1407,7 @@ export class Shop {
 		this.vessel.innerHTML = ``
 		this.shopToggle.style.display = this.master.pinhole ? `none` : `block`
 
-		let pack = false
+		let pack: HTMLDivElement | false = false
 		for (let i in this.master.codex.entities){
 			const e = this.master.codex.entities[i]
 			if (e.canPurchase){
@@ -1198,7 +1455,7 @@ export class Shop {
 
 	}
 
-	switchPlane(p){
+	switchPlane(p: number){
 
 		if (p === 1) {
 			this.initdark()
@@ -1210,7 +1467,7 @@ export class Shop {
 
 	checkLoop(){
 
-		setTimeout(_=>{this.checkLoop()}, 100)
+		setTimeout((_event: unknown)=>{this.checkLoop()}, 100)
 		this.check()
 
 	}
@@ -1223,12 +1480,12 @@ export class Shop {
 
 			let unlocked = this.master.unlockedEntities[this.items[i].name] || false
 			if (!unlocked) {
-				unlocked = (this.master.codex.entities[this.items[i].name].shouldUnlock && this.master.codex.entities[this.items[i].name].shouldUnlock(this.master)) ? true : false
+				unlocked = (this.master.codex.entities[this.items[i].name].shouldUnlock && this.master.codex.entities[this.items[i].name].shouldUnlock!(this.master)) ? true : false
 				if (unlocked) this.master.unlockedEntities[this.items[i].name] = true
 			}
 			
 			let afford = true
-			const matrix = []
+			const matrix: number[] = []
 			const price = this.master.getRealPrice(this.items[i].name)
 			for (let j = 0; j < price.length; j++){
 				if (price[j]){
@@ -1247,12 +1504,12 @@ export class Shop {
 				this.items[i].html.classList.add(`disabled`)
 				if (this.items[i].priceElements){
 
-					for (let j = 0; j < this.items[i].priceElements.length; j++){
+					for (let j = 0; j < this.items[i].priceElements!.length; j++){
 
 						if (matrix[j]){
-							this.items[i].priceElements[j].classList.add(`available`)
+							this.items[i].priceElements![j].classList.add(`available`)
 						} else {
-							this.items[i].priceElements[j].classList.remove(`available`)
+							this.items[i].priceElements![j].classList.remove(`available`)
 						}
 
 					}
@@ -1262,7 +1519,7 @@ export class Shop {
 
 			if (unlocked) {
 				this.items[i].html.classList.remove(`hidden`)
-				if (this.items[i].pack) this.items[i].pack.classList.add(`visible`)
+				if (this.items[i].pack) (this.items[i].pack as HTMLDivElement).classList.add(`visible`)
 			}
 
 			if (this.master.onlyones[this.items[i].name]){
@@ -1298,7 +1555,7 @@ export class Shop {
 		// console.timeLog(`shopUpdate`)
 	}
 
-	addItem(params){
+	addItem(params: ShopItemParams){
 
 		const item = document.createElement(`div`)
 		item.classList.add(`shopItem`, `hidden`)
@@ -1369,7 +1626,7 @@ export class Shop {
 		}
 	}
 
-	updateExisted(item){
+	updateExisted(item: ShopItem){
 		if (this.master.entitiesInGame[item.name]) this.existed[item.name] = true
 
 		item.existed.style.display = this.existed[item.name] ? `none` : `block`
@@ -1380,7 +1637,7 @@ export class Shop {
 		}
 	}
 
-	updatePrice(item){
+	updatePrice(item: ShopItem){
 
 		// const quantity = (this.master.entitiesInGame[item.name] || 0)
 
@@ -1397,7 +1654,7 @@ export class Shop {
 				rico.classList.add(`rico`, `r${i}`)
 				const string = document.createElement(`span`)
 				string.className = `priceString`
-				string.innerHTML = this.master.makeReadable( Math.ceil(realPrice[i]) )
+				string.innerHTML = String(this.master.makeReadable( Math.ceil(realPrice[i]) ))
 
 				nobr.append(rico, string)
 				item.priceHtml.append(nobr)
@@ -1412,17 +1669,24 @@ export class Shop {
 
 	}
 
-	updateCounter(item){
-		item.counter.innerHTML = this.master.entitiesInGame[item.name] || ``
+	updateCounter(item: ShopItem){
+		item.counter.innerHTML = String(this.master.entitiesInGame[item.name] || ``)
 	}
 
 }
 
 export class Explainer {
+	declare finished: true | undefined
+	declare master: ExplainerHost
+	declare stuff: TutorialStep[]
+	declare next: number
+	declare state: 0 | 1
+	declare timer: number
+	declare element: HTMLDivElement
 
-	constructor(master, next = 0){
+	constructor(master: ExplainerHost, next: number | string | null = 0){
 
-		if (+next === -1){
+		if (+(next as number | string) === -1){
 			this.finished = true
 		}
 
@@ -1432,7 +1696,7 @@ export class Explainer {
 
 			{
 				showIf: (m,t)=>(t > 30000),
-				hideIf: (m,t)=>(m.entitiesInGame.cube > 0)
+				hideIf: (m,t)=>(Number(m.entitiesInGame.cube) > 0)
 			},
 			{
 				showIf: (m,t)=>(m.messenger.firedEvents[1] && t > 2000),
@@ -1459,7 +1723,7 @@ export class Explainer {
 				hideIf: (m,t)=>(m.translation[0] || m.translation[1])
 			}
 		]
-		this.next = +next
+		this.next = +(next as number | string)
 		this.state = 0 //0 not shown, 1 is shown
 		this.timer = 0
 
@@ -1469,7 +1733,7 @@ export class Explainer {
 
 	}
 
-	update(dt){
+	update(dt: number){
 
 		if (!this.master.splash.isShown){
 
@@ -1499,9 +1763,9 @@ export class Explainer {
 					if (!this.stuff[this.next]){
 						this.element.remove()
 						this.finished = true
-						localStorage.setItem(`abstractv03_helpIsNeeded${this.master.steamId}`, -1)
+						localStorage.setItem(`abstractv03_helpIsNeeded${this.master.steamId}`, String(-1))
 					} else {
-						localStorage.setItem(`abstractv03_helpIsNeeded${this.master.steamId}`, this.next)
+						localStorage.setItem(`abstractv03_helpIsNeeded${this.master.steamId}`, String(this.next))
 					}
 
 				}
