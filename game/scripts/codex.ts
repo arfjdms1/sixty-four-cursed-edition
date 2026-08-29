@@ -1,5 +1,4 @@
-// @ts-nocheck
-// Deferred: codex predicates depend on the full dynamic Game and entity surface.
+import type { ColorTriplet, ResourceAmounts } from '../types/core.js'
 import {
 	Annihilator,
 	Auxpump,
@@ -61,7 +60,162 @@ import {
 	Waypoint,
 } from './stuff.js'
 
-export function abstract_getCodex(){return {
+export interface ResourceChance {
+	type: number
+	mean?: number
+	stdev?: number
+	base?: number
+	from?: number
+	to?: number
+}
+
+export interface ResourceProbability {
+	point: number
+	spread: number
+	value: number
+	span?: number
+}
+
+export interface CodexResource {
+	name: string
+	sfx: string
+	triplet: ColorTriplet
+	surgeTriplet?: ColorTriplet
+	chances?: ResourceChance[]
+	probabilities?: ResourceProbability[]
+	mean?: number
+	stdev?: number
+	base?: number
+}
+
+export interface CodexConditionHost {
+	resources: ResourceAmounts | number[]
+	entitiesInGame: Record<string, number>
+	stuff: Array<{ state?: number }>
+	stats: {
+		darkVisited: number
+		absoluteResourcesCount: number
+		totalPlayTime: number
+		totalCubeClicks: number
+		machinesBuild: number
+		machinesSold: number
+		strangeRockPoked: number
+		maxDepth: number
+		timesTeleported: number
+		timeSinceLastDelete: number
+		excavatorWasBuilt: boolean
+		timeEvents: number
+	}
+	splash: { isShown: boolean }
+	plane: 0 | 1
+	bridge: boolean
+	preventSaving?: boolean
+	lastDialogue?: boolean
+	gameIsLocked?: boolean
+	perpetum?: boolean
+	pinhole?: unknown
+	cookie?: unknown
+	rbrtimeup?: boolean
+	got64kmphAchievement?: boolean
+	chasm?: unknown
+}
+
+export type EntityConstructor =
+	| typeof Annihilator
+	| typeof Auxpump
+	| typeof Auxpump2
+	| typeof Chasm
+	| typeof Clicker1
+	| typeof Clicker2
+	| typeof Clicker3
+	| typeof Conductor
+	| typeof Consumer
+	| typeof Converter13
+	| typeof Converter32
+	| typeof Converter41
+	| typeof Converter64
+	| typeof Converter76
+	| typeof Cookie
+	| typeof Cube
+	| typeof Destabilizer
+	| typeof Destabilizer2
+	| typeof Destabilizer2a
+	| typeof Doublechannel
+	| typeof Doublechannel2
+	| typeof Entropic
+	| typeof Entropic2
+	| typeof Entropic2a
+	| typeof Entropic3
+	| typeof Eye
+	| typeof Flower
+	| typeof Fruit
+	| typeof Generaldecay
+	| typeof Gradient
+	| typeof Hollow
+	| typeof Injector
+	| typeof Mega1
+	| typeof Mega1a
+	| typeof Mega1b
+	| typeof Mega2
+	| typeof Mega3
+	| typeof Pinhole
+	| typeof Preheater
+	| typeof Pump
+	| typeof Pump2
+	| typeof Reflector
+	| typeof Silo
+	| typeof Silo2
+	| typeof Stabilizer
+	| typeof Stabilizer2
+	| typeof Stabilizer3
+	| typeof Strange
+	| typeof Strange1
+	| typeof Strange2
+	| typeof Strange3
+	| typeof Surge
+	| typeof Valve
+	| typeof Vault
+	| typeof Vessel
+	| typeof Vessel2
+	| typeof Voidsculpture
+	| typeof Waypoint
+
+export interface CodexEntity {
+	class?: EntityConstructor
+	price: number[]
+	priceExponent?: number
+	canPurchase?: boolean
+	isUpgradeTo?: string
+	onlyone?: boolean
+	affected?: Record<string, boolean>
+	shouldUnlock?: (game: CodexConditionHost) => unknown
+	merge?: boolean
+}
+
+export interface CodexMessageEvent {
+	condition: (game: CodexConditionHost) => unknown
+	chain: number[]
+	fired?: boolean
+}
+
+export interface CodexAchievement {
+	steamid: string
+	src: string
+	condition: (game: CodexConditionHost) => unknown
+}
+
+export interface CodexData {
+	resources: CodexResource[]
+	entities: Record<string, CodexEntity>
+	messages: {
+		origins: Array<0 | 1>
+		events: CodexMessageEvent[]
+	}
+	achievements: CodexAchievement[]
+	preload: string[]
+}
+
+export function abstract_getCodex(): CodexData {return {
 	resources: [
 		{
 			name: `Charonite`,
