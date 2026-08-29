@@ -18,6 +18,8 @@ import type { SaveHost } from './save/types.js'
 import { AudioSystem } from './audio/AudioSystem.js'
 import type { AudioHost } from './audio/types.js'
 import { EffectSystem } from './effects/EffectSystem.js'
+import { InputSystem } from './input/InputSystem.js'
+import type { InputHost, MouseState } from './input/types.js'
 import { VFX } from './effects/VFX.js'
 import { Exhaust } from './effects/Exhaust.js'
 import { ResourceExplosion } from './effects/ResourceExplosion.js'
@@ -36,7 +38,7 @@ export { VFX, Exhaust, ResourceExplosion, ResourceSpark, ResourceTransfer, Chasm
 
 export interface Game extends GameRuntimeState {}
 
-export class Game implements SaveHost, AudioHost, EffectHost {
+export class Game implements SaveHost, AudioHost, EffectHost, InputHost {
 
 	constructor(canvas: HTMLCanvasElement, preload: GameStartupPayload){
 
@@ -53,6 +55,7 @@ export class Game implements SaveHost, AudioHost, EffectHost {
 		this.saves = new SaveSystem(this)
 		this.audio = new AudioSystem(this)
 		this.effects = new EffectSystem(this)
+		this.input = new InputSystem(this)
 
 		try {
 			if (typeof window.require !== `function`) throw new ReferenceError(`require is not defined`)
@@ -73,19 +76,6 @@ export class Game implements SaveHost, AudioHost, EffectHost {
 
 		this.time = {lt: performance.now(), dt: 0, realDt: 0}
 		this.renderTime = {lt: performance.now(), dt: 0}
-		this.mouse = {
-			xy: [0,0],
-			offsetxy: [0,0],
-			cursorVisible: true,
-			state: 0,
-			positionChanged: false,
-			lastOffset: [0,0],
-			lastTouch: [0,0],
-			automate: false,
-			maxTimer: 150,
-			timer: 150
-		}
-		this.gamepadButtons = []
 		this.chillMode = false
 		this.version = `1.1.0`
 
@@ -1088,17 +1078,7 @@ export class Game implements SaveHost, AudioHost, EffectHost {
 	}
 
 	updateMouseData(x: number, y: number){
-
-		this.mouse.offsetxy[0] = x
-		this.mouse.offsetxy[1] = y
-		this.mouse.xy[0] = x * this.pixelRatio
-		this.mouse.xy[1] = y * this.pixelRatio
-
-		const distance2 = (x - this.mouse.lastOffset[0]) ** 2 + (y - this.mouse.lastOffset[1]) ** 2
-		this.mouse.lastOffset[0] = x
-		this.mouse.lastOffset[1] = y
-		if (distance2 > 1) this.mouse.positionChanged = true
-
+		this.input.updateMouseData(x, y)
 	}
 
 	processMousemove(e?: PointerInput, dxy?: Vec2){
@@ -1454,204 +1434,64 @@ export class Game implements SaveHost, AudioHost, EffectHost {
 		}
 	}
 
+	get mouse(): MouseState {
+		return this.input.mouse
+	}
+	set mouse(val: MouseState) {
+		this.input.mouse = val
+	}
+
+	get gamepadButtons(): Array<number | boolean> {
+		return this.input.gamepadButtons
+	}
+	set gamepadButtons(val: Array<number | boolean>) {
+		this.input.gamepadButtons = val
+	}
+
+	get gamepadControl(): boolean | undefined {
+		return this.input.gamepadControl
+	}
+	set gamepadControl(val: boolean | undefined) {
+		this.input.gamepadControl = val
+	}
+
+	get thereWasZoomAction(): boolean | undefined {
+		return this.input.thereWasZoomAction
+	}
+	set thereWasZoomAction(val: boolean | undefined) {
+		this.input.thereWasZoomAction = val
+	}
+
+	get keyboardMovementHappening(): number | undefined {
+		return this.input.keyboardMovementHappening
+	}
+	set keyboardMovementHappening(val: number | undefined) {
+		this.input.keyboardMovementHappening = val
+	}
+
+	get zoomWhenShiftPressed(): number | undefined {
+		return this.input.zoomWhenShiftPressed
+	}
+	set zoomWhenShiftPressed(val: number | undefined) {
+		this.input.zoomWhenShiftPressed = val
+	}
+
+	get shiftPressed(): boolean | undefined {
+		return this.input.shiftPressed
+	}
+	set shiftPressed(val: boolean | undefined) {
+		this.input.shiftPressed = val
+	}
+
+	get resizeAnimationFrame(): number | undefined {
+		return this.input.resizeAnimationFrame
+	}
+	set resizeAnimationFrame(val: number | undefined) {
+		this.input.resizeAnimationFrame = val
+	}
+
 	setListeners(){
-
-		if (!this.spaceport.isPlaceholder){
-			this.spaceport.on(`windowState`, (e,d)=>{
-					console.log(d)
-                    if (d === `blur`) this.doOnBlur()
-                    if (d === `focus`) this.doOnFocus()
-            })
-		}
-
-		addEventListener(`resize`, _=>{
-
-			cancelAnimationFrame(this.resizeAnimationFrame)
-			this.resizeAnimationFrame = requestAnimationFrame(_=>{this.initScreenSize()})
-			// console.log(`init canvas`)
-		})
-
-		addEventListener(`gamepadconnected`, _=>{
-			// console.log(_.gamepad)
-			this.shop.gamePadHint.classList.add(`gamePadPresent`)
-		})
-		addEventListener(`gamepaddisconnected`, _=>{
-			this.shop.gamePadHint.classList.remove(`gamePadPresent`)
-			this.splash.show()
-			this.splash.selected = false
-		})
-
-		addEventListener(`blur`, e=>{
-			this.doOnBlur()
-		})
-		addEventListener(`focus`, e=>{
-			this.doOnFocus()
-		})
-
-		addEventListener(`keydown`, (e: KeyboardEvent)=>{
-
-			this.gamepadControl = false
-			this.thereWasZoomAction = true
-
-			if (e.keyCode === 27){
-				if (this.itemInHand) {
-					delete this.itemInHand
-					delete this.transportedEntity
-				} else {
-					this.toggleSplash()
-				}
-				
-			} else if (e.keyCode === 81){
-				this.processQ()
-				
-			} else if (e.keyCode === 18){
-				e.preventDefault()
-				this.altActive = true
-				document.body.classList.add(`altHolded`)
-			} else if (e.keyCode === 69){
-				this.processE()
-			} else if (e.keyCode === 87 || e.keyCode === 38){
-				this.translationMap[0] = 1
-			} else if (e.keyCode === 68 || e.keyCode === 39){
-				this.translationMap[1] = 1
-			} else if (e.keyCode === 83 || e.keyCode === 40){
-				this.translationMap[2] = 1
-			} else if (e.keyCode === 65 || e.keyCode === 37){
-				this.translationMap[3] = 1
-			} else if (e.keyCode === 16 || e.keyCode === 17){
-				if (!this.zoomWhenShiftPressed) {
-					this.zoomWhenShiftPressed = this.zoom
-					delete this.thereWasZoomAction
-				}
-				this.shiftPressed = true
-				
-			}
-
-		})
-		addEventListener(`keyup`, (e: KeyboardEvent)=>{
-			if (e.keyCode === 87 || e.keyCode === 38){
-				this.translationMap[0] = 0
-				if (this.keyboardMovementHappening === 87) delete this.keyboardMovementHappening
-			} else if (e.keyCode === 68 || e.keyCode === 39){
-				this.translationMap[1] = 0
-				if (this.keyboardMovementHappening === 87) delete this.keyboardMovementHappening
-			} else if (e.keyCode === 83 || e.keyCode === 40){
-				this.translationMap[2] = 0
-				if (this.keyboardMovementHappening === 87) delete this.keyboardMovementHappening
-			} else if (e.keyCode === 65 || e.keyCode === 37){
-				this.translationMap[3] = 0
-				if (this.keyboardMovementHappening === 87) delete this.keyboardMovementHappening
-			} else if (e.keyCode === 18){
-				this.altActive = false
-				document.body.classList.remove(`altHolded`)
-			} else if (e.keyCode === 16 || e.keyCode === 17){
-				this.shiftPressed = false
-				if (!this.thereWasZoomAction){
-					this.zoom = 1
-				}
-				delete this.zoomWhenShiftPressed
-			}
-		})
-
-		this.canvas.addEventListener(`click`, e=>{
-			
-			this.processClick()
-			
-		})
-
-		this.canvas.addEventListener(`mousemove`, e=>{
-			this.processMousemove(e)
-		})
-
-		this.canvas.addEventListener(`touchstart`, e=>{
-			if (e.target === this.canvas) e.preventDefault()
-			this.mouse.lastTouch[0] = e.touches[0].clientX
-			this.mouse.lastTouch[1] = e.touches[0].clientY
-			this.processMousemove(e.touches[0])
-			this.mouse.positionChanged = false
-			// this.processMousedown(e)
-		})
-
-		this.canvas.addEventListener(`touchend`, e=>{
-			if (e.target === this.canvas) e.preventDefault()
-			// this.mouse.lastTouch[0] = e.touches[0].clientX
-			// this.mouse.lastTouch[1] = e.touches[0].clientY
-			if (!this.mouse.positionChanged){
-				this.processMousedown(e)
-			}
-
-			this.processMousemove(e.touches[0])
-		})
-
-		this.canvas.addEventListener(`touchmove`, e=>{
-			if (e.target === this.canvas) e.preventDefault()
-			if (e.touches.length === 2){
-			const delta: Vec2 = [
-					(e.touches[0].clientX - this.mouse.lastTouch[0]) * this.pixelRatio,
-					(e.touches[0].clientY - this.mouse.lastTouch[1]) * this.pixelRatio,
-				]
-				this.processMousemove(e.touches[0], delta)
-			} else {
-				this.processMousemove(e.touches[0])
-			}
-			this.mouse.lastTouch[0] = e.touches[0].clientX
-			this.mouse.lastTouch[1] = e.touches[0].clientY
-
-			console.log(this.mouse.lastTouch[0])
-			
-		})
-
-		this.canvas.addEventListener(`mousedown`, e=>{
-
-			this.processMousedown(e)
-
-		})
-
-		this.canvas.addEventListener(`mouseup`, e=>{
-
-			if (!this.mouse.positionChanged && e.button === 2 && this.itemInHand){
-				delete this.itemInHand
-				delete this.transportedEntity
-			}
-
-			this.processMouseup()
-
-		})
-
-		this.canvas.addEventListener(`mouseenter`, e=>{
-			this.mouse.cursorVisible = true
-		})
-		this.canvas.addEventListener(`mouseout`, e=>{
-			this.processMouseout()
-		})
-
-		this.canvas.addEventListener('wheel', e=>{
-			e.preventDefault()
-
-			if (this.shiftPressed){
-
-				if (!this.thereWasZoomAction) this.thereWasZoomAction = true
-
-				const delta: Vec2 = [
-					(e as WheelEvent & { wheelDeltaX: number }).wheelDeltaX * (this.isWindows ? .2 : .5),
-					(e as WheelEvent & { wheelDeltaY: number }).wheelDeltaY * (this.isWindows ? .2 : .5)
-				]
-
-				this.zoomInOut(Math.abs(delta[1]) > Math.abs(delta[0]) ? delta[1] : delta[0])
-
-			} else {
-
-				const delta: Vec2 = [
-					(e as WheelEvent & { wheelDeltaX: number }).wheelDeltaX * (this.isWindows ? .2 : .5) / this.zoom,
-					(e as WheelEvent & { wheelDeltaY: number }).wheelDeltaY * (this.isWindows ? .2 : .5) / this.zoom
-				]
-
-				this.processMousemove(e, delta)
-
-			}
-			
-		})
-
+		this.input.setListeners()
 	}
 
 	getHitCoordinates(xy: Vec2): Vec2 {
@@ -1659,18 +1499,14 @@ export class Game implements SaveHost, AudioHost, EffectHost {
 	}
 
 	checkHitBox(uv: Vec2, hb: [number, number, number, number]){
-
 		if (uv[0] > hb[0] && uv[0] < hb[2] && uv[1] > hb[1] && uv[1] < hb[3]) return true
 		return false
 	}
 
 	updateAnalytics(dt: number){
-
 		const a = this.analytics
-
 		a.frameTimer -= dt
 		if (a.frameTimer < 0){
-
 			a.frameTimer = a.measuringFrame + a.frameTimer
 			a.frames.push(a.frame)
 			a.instant = a.frame
@@ -1682,7 +1518,6 @@ export class Game implements SaveHost, AudioHost, EffectHost {
 				if (a.graphs[i].data.length > a.dataSize) a.graphs[i].data.shift()
 			}
 
-
 			a.frame = [[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0]]
 			if (a.frames.length > a.frameCount) a.frames.shift()
 
@@ -1691,24 +1526,17 @@ export class Game implements SaveHost, AudioHost, EffectHost {
 			for (let i = 0; i < a.frames.length; i++){
 				const norm = a.frames.length / (i + 1) * this.analytics.frames.length / 2
 				for (let j = 0; j < a.frames[i].length; j++){
-
 					a.average[j][0] += a.frames[i][j][0] / norm
 					a.average[j][1] += a.frames[i][j][1] / norm
-
 				}
 			}
-
 		}
-
 	}
 
 	updateLoop(){
-
-		// setTimeout(_=>{this.updateLoop()}, 10)
-
 		//Service updates
 		const now = performance.now()
-		this.time.dt = (now - this.time.lt)//ccc
+		this.time.dt = (now - this.time.lt)
 		this.time.realDt = this.time.dt
 		const realDt = this.time.dt
 		this.time.lt = now
@@ -1738,7 +1566,6 @@ export class Game implements SaveHost, AudioHost, EffectHost {
 		this.updateResourcePops(this.time.dt)
 		this.updateAutoClicker(this.time.dt)
 		this.updateSurge(this.time.dt)
-		// this.updateResourceInteractions(this.time.dt)
 		this.updateAnalytics(this.time.dt)
 
 		if (this.entitiesInGame.pinhole > 0){
@@ -1746,249 +1573,14 @@ export class Game implements SaveHost, AudioHost, EffectHost {
 		}
 
 		this.clock?.postMessage(true)
-
 	}
 
-	// updateMusic(t){
-	// 	const m = this.music
-
-	// 	if (m.nextIn < t){
-
-	// 		const duration = this.sfx.samples[`testMusic`].data.duration * 1000
-	// 		m.nextIn = performance.now() + duration + Math.random() * 60000
-
-	// 		if (m.playing) this.stopSound(m.playing)
-	// 		m.playing = this.startSound(`testMusic`)
-
-	// 	}
-	// }
-
 	updateAutoClicker(dt: number){
-
-		if (!this.mouse.automate || !this.mouse.state || !this.hoveredEntity || !(this.hoveredEntity instanceof Cube || this.hoveredEntity instanceof Hollow)) return
-		//cube, hollow cube
-
-		this.mouse.timer -= dt
-		if (this.mouse.timer <= 0){
-
-			this.mouse.timer = this.mouse.maxTimer// + (Math.random() * this.mouse.maxTimer * .5 - this.mouse.maxTimer * .25)
-			this.processMousedown()
-
-		}
-
+		this.input.updateAutoClicker(dt)
 	}
 
 	updateGamepad(dt: number){
-
-		const gamepad = navigator.getGamepads()[0]
-		if (!gamepad || gamepad.id.toLowerCase().includes("wheel") || gamepad.id.toLowerCase().includes("driving")) return
-
-		// Check mapping
-		// for (let i = 0; i < gamepad.buttons.length; i++){
-		// 	if (gamepad.buttons[i].pressed) console.log(i)
-		// }
-
-		//Move - achievements - dialogue
-		const deadzone = .25
-		const freezone = .75
-		if (gamepad.axes && gamepad.axes[0] !== undefined && Math.abs(gamepad.axes[0]) > deadzone){
-			this.gamepadControl = true
-			this.translationMap[gamepad.axes[0] > 0 ? 1 : 3] = (Math.abs(gamepad.axes[0]) - deadzone) / freezone * 1.6
-			this.mouse.positionChanged = true
-		} else {
-			if (this.gamepadControl) this.translationMap[1] = this.translationMap[3] = 0
-		}
-
-		if (gamepad.axes && gamepad.axes[1] !== undefined && Math.abs(gamepad.axes[1]) > deadzone){
-			if (this.altActive){
-				this.messenger.element.scrollBy(0, dt * gamepad.axes[1])
-			} else if (this.splash.isShown){
-				this.splash.glory.scrollBy(0, dt * gamepad.axes[1])
-			} else {
-				this.gamepadControl = true
-				this.translationMap[gamepad.axes[1] > 0 ? 2 : 0] = (Math.abs(gamepad.axes[1]) - deadzone) / freezone * 1.6
-				this.mouse.positionChanged = true	
-			}
-
-		} else {
-			if (this.gamepadControl) this.translationMap[2] = this.translationMap[0] = 0
-		}
-
-		//Mouse
-		if (gamepad.axes && gamepad.axes[2] !== undefined && gamepad.axes[3] !== undefined && Math.abs(gamepad.axes[2]) > deadzone || Math.abs(gamepad.axes[3]) > deadzone){
-			const x = Math.min(this.w / this.pixelRatio, Math.max(0, this.mouse.offsetxy[0] + (Math.max(0, Math.abs(gamepad.axes[2]) - deadzone)) * Math.sign(gamepad.axes[2]) / freezone * dt * this.pixelRatio * .4))
-			const y = Math.min(this.h / this.pixelRatio, Math.max(0, this.mouse.offsetxy[1] + (Math.max(0, Math.abs(gamepad.axes[3]) - deadzone)) * Math.sign(gamepad.axes[3]) / freezone * dt * this.pixelRatio * .4))
-			this.updateMouseData(x,y)
-			this.processMousemove()
-		}
-		
-		//Main action
-		const mainAction = (v: number | boolean)=>{
-			if (this.splash.isShown){
-				if (v) {
-					if (this.splash.selected && this.splash.items[this.splash.selectedId].onmousedown) (this.splash.items[this.splash.selectedId].onmousedown as (() => unknown))()
-					if (this.splash.selected) this.splash.items[this.splash.selectedId].click()
-				} else {
-					if (this.splash.selected && this.splash.items[this.splash.selectedId].onmouseup) (this.splash.items[this.splash.selectedId].onmouseup as (() => unknown))()
-				}
-			} else if (this.shop.selected){
-				const id = this.shop.items[this.shop.selectedId].name
-				if (this.canAfford(id)) {
-					this.pickupItem(id)
-					this.processMousemove()
-				}
-				this.shop.deselectItem()
-			} else {
-				if (v) {
-					this.processMousedown()
-				} else {
-					if (!this.mouse.positionChanged) {
-						this.processClick()
-					}
-					this.processMouseup()
-				}
-			}
-		}
-
-		const isValidButton = (id: number, prop: keyof GamepadButton = `value`) => gamepad.buttons[id] && gamepad.buttons[id][prop] !== undefined && gamepad.buttons[id][prop] !== this.gamepadButtons[id]
-
-		// console.log(this.shop.selected)
-
-		if (isValidButton(0)){
-			mainAction(gamepad.buttons[0].value)
-			this.gamepadButtons[0] = gamepad.buttons[0].value
-		}
-		if (isValidButton(7,`pressed`)){
-			mainAction(gamepad.buttons[7].pressed)
-			this.gamepadButtons[7] = gamepad.buttons[7].pressed
-		}
-
-		//E
-		if (isValidButton(2)){
-			if (gamepad.buttons[2].value) this.processE()
-			this.gamepadButtons[2] = gamepad.buttons[2].value
-		}
-
-
-		//Cancel
-		if (isValidButton(1)){
-			if (gamepad.buttons[1].value) this.processQ()
-			this.gamepadButtons[1] = gamepad.buttons[1].value
-		}
-
-		//Chat
-		if (isValidButton(10)){
-			if (gamepad.buttons[10].value) this.messenger.chatIcon.click()
-			this.gamepadButtons[10] = gamepad.buttons[10].value
-		}
-
-		//Shop and menu
-		if (isValidButton(12)){
-			if (gamepad.buttons[12].value) {
-				if (this.splash.isShown){
-					if (this.splash.selected){
-						this.splash.selectPreviousItem()
-					} else {
-						this.splash.selectItem()
-					}
-				} else if (this.shop.selected){
-					this.shop.selectPreviousItem()
-				} else {
-					this.shop.selectItem()
-				}
-				
-			}
-			this.gamepadButtons[12] = gamepad.buttons[12].value
-		}
-
-		if (isValidButton(13)){
-			if (gamepad.buttons[13].value) {
-				if (this.splash.isShown){
-					if (this.splash.selected){
-						this.splash.selectNextItem()
-					} else {
-						this.splash.selectItem()
-					}
-				} else if (this.shop.selected){
-					this.shop.selectNextItem()
-				} else {
-					this.shop.selectItem()
-				}
-				
-			}
-			this.gamepadButtons[13] = gamepad.buttons[13].value
-		}
-
-		if (isValidButton(14)){
-			if (gamepad.buttons[14].value) {
-				if (this.splash.isShown){
-					if (this.splash.items[this.splash.selectedId] === this.splash.muteElement){
-						this.updateGlobalVolume(this.globalSoundVolume - .1)
-					} else {
-						this.splash.deGloryButton.click()	
-					}
-				} else if (this.shop.selected){
-					this.shop.deselectItem()
-				} else {
-					this.shop.selectItem()
-				}
-				
-			}
-			this.gamepadButtons[14] = gamepad.buttons[14].value
-		}
-
-		if (isValidButton(15)){
-			if (gamepad.buttons[15].value) {
-				if (this.splash.isShown){
-					if (this.splash.items[this.splash.selectedId] === this.splash.muteElement){
-						this.updateGlobalVolume(this.globalSoundVolume + .1)
-					} else {
-						this.splash.gloryButton.click()
-					}
-				} else if (this.shop.selected){
-					const id = this.shop.items[this.shop.selectedId].name
-					if (this.canAfford(id)) {
-						this.pickupItem(id)
-						this.processMousemove()
-					}
-					this.shop.deselectItem()
-				} else {
-					this.shop.selectItem()
-				}
-				
-			}
-			this.gamepadButtons[15] = gamepad.buttons[15].value
-		}
-
-		//Flashlight
-		if (isValidButton(8)){
-			if (gamepad.buttons[8].value) {
-				this.togglePhotofobia()
-				
-			}
-			this.gamepadButtons[8] = gamepad.buttons[8].value
-		}
-
-		//Menu
-		if (isValidButton(9)){
-			if (gamepad.buttons[9].value) {
-				this.toggleSplash()
-			}
-			this.gamepadButtons[9] = gamepad.buttons[9].value
-		}
-
-		//Alt
-		if (isValidButton(6,`pressed`)){
-			if (gamepad.buttons[6].pressed) {
-				this.altActive = true
-				document.body.classList.add(`altHolded`)
-			} else {
-				this.altActive = false
-				document.body.classList.remove(`altHolded`)
-			}
-			this.gamepadButtons[6] = gamepad.buttons[6].pressed
-		}
-
+		this.input.updateGamepad(dt)
 	}
 
 	measureRates(){

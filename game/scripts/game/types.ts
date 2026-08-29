@@ -10,9 +10,11 @@ import type { SaveBackup, SaveStats, SlowdownState } from '../../types/save.js'
 import type { SaveSystem } from '../save/SaveSystem.js'
 import type { AudioSystem } from '../audio/AudioSystem.js'
 import type { EffectSystem } from '../effects/EffectSystem.js'
+import type { InputSystem } from '../input/InputSystem.js'
+import type { MouseState, PointerInput } from '../input/types.js'
 import type { PlayingSound, SoundState, DecodedAudioSample as AudioSample } from '../audio/types.js'
 
-export type { PlayingSound, SoundState, AudioSample }
+export type { PlayingSound, SoundState, AudioSample, MouseState, PointerInput }
 
 export interface GameEntity extends Entity {
 	eraser?: boolean
@@ -76,6 +78,7 @@ export interface GameRuntimeState {
 	saves: SaveSystem
 	audio: AudioSystem
 	effects: EffectSystem
+	input: InputSystem
 	backups: SaveBackup[]
 	spaceport: GameSpaceport
 	pixelRatio: number
@@ -194,7 +197,7 @@ export interface GameRuntimeState {
 	pressedQOnMachine?: boolean
 	actx?: AudioContext
 	sfx?: SoundState
-	resizeAnimationFrame: number
+	resizeAnimationFrame?: number
 	gamepadControl?: boolean
 	thereWasZoomAction?: boolean
 	keyboardMovementHappening?: number
@@ -215,16 +218,6 @@ export interface GameRuntimeState {
 	gradient?: GameEntity
 	pinhole?: GameEntity
 	generaldecay?: GameEntity & { consume(resources: number[]): void }
-}
-
-export interface PointerInput {
-	offsetX?: number
-	offsetY?: number
-	clientX?: number
-	clientY?: number
-	buttons?: number
-	movementX?: number
-	movementY?: number
 }
 
 declare global {
