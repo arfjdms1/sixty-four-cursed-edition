@@ -16,6 +16,7 @@ export interface SpriteArgs {
 	sequences?: number[] | number[][]
 	intervals: number | number[]
 	origins: Vec2 | Vec2[]
+	mask?: number[]
 }
 
 export class Sprite {

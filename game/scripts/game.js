@@ -3,18 +3,16 @@
 import { Bezier } from './bezier.js'
 import { abstract_getCodex } from './codex.js'
 import { Sprite } from './sprites.js'
-import {
-	Auxpump,
-	Auxpump2,
-	Cube,
-	Entropic,
-	Entropic2a,
-	Gradient,
-	Hollow,
-	Pump,
-	Silo,
-	Vessel,
-} from './stuff.js'
+import { Auxpump } from './entities/Auxpump.js'
+import { Auxpump2 } from './entities/Auxpump2.js'
+import { Cube } from './entities/Cube.js'
+import { Entropic } from './entities/Entropic.js'
+import { Entropic2a } from './entities/Entropic2a.js'
+import { Gradient } from './entities/Gradient.js'
+import { Hollow } from './entities/Hollow.js'
+import { Pump } from './entities/Pump.js'
+import { Silo } from './entities/Silo.js'
+import { Vessel } from './entities/Vessel.js'
 import { Achiever, Cloud, Explainer, Messenger, Shop, Splash } from './ui.js'
 import { abstract_getWords } from './words.js'
 
