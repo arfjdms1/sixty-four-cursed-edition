@@ -11,6 +11,7 @@ import type { SaveSystem } from '../save/SaveSystem.js'
 import type { AudioSystem } from '../audio/AudioSystem.js'
 import type { EffectSystem } from '../effects/EffectSystem.js'
 import type { InputSystem } from '../input/InputSystem.js'
+import type { RenderSystem } from '../rendering/RenderSystem.js'
 import type { MouseState, PointerInput } from '../input/types.js'
 import type { PlayingSound, SoundState, DecodedAudioSample as AudioSample } from '../audio/types.js'
 
@@ -79,6 +80,7 @@ export interface GameRuntimeState {
 	audio: AudioSystem
 	effects: EffectSystem
 	input: InputSystem
+	renderer: RenderSystem
 	backups: SaveBackup[]
 	spaceport: GameSpaceport
 	pixelRatio: number

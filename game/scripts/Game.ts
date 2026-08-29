@@ -20,6 +20,8 @@ import type { AudioHost } from './audio/types.js'
 import { EffectSystem } from './effects/EffectSystem.js'
 import { InputSystem } from './input/InputSystem.js'
 import type { InputHost, MouseState } from './input/types.js'
+import { RenderSystem } from './rendering/RenderSystem.js'
+import type { RenderHost } from './rendering/types.js'
 import { VFX } from './effects/VFX.js'
 import { Exhaust } from './effects/Exhaust.js'
 import { ResourceExplosion } from './effects/ResourceExplosion.js'
@@ -38,7 +40,7 @@ export { VFX, Exhaust, ResourceExplosion, ResourceSpark, ResourceTransfer, Chasm
 
 export interface Game extends GameRuntimeState {}
 
-export class Game implements SaveHost, AudioHost, EffectHost, InputHost {
+export class Game implements SaveHost, AudioHost, EffectHost, InputHost, RenderHost {
 
 	constructor(canvas: HTMLCanvasElement, preload: GameStartupPayload){
 
@@ -56,6 +58,7 @@ export class Game implements SaveHost, AudioHost, EffectHost, InputHost {
 		this.audio = new AudioSystem(this)
 		this.effects = new EffectSystem(this)
 		this.input = new InputSystem(this)
+		this.renderer = new RenderSystem(this)
 
 		try {
 			if (typeof window.require !== `function`) throw new ReferenceError(`require is not defined`)
@@ -319,28 +322,7 @@ export class Game implements SaveHost, AudioHost, EffectHost, InputHost {
 	}
 
 	initScreenSize(){
-		this.w = this.canvas.width = this.canvas.offsetWidth * this.pixelRatio
-		this.h = this.canvas.height = this.canvas.offsetHeight * this.pixelRatio
-		this.w2 = this.w / 2
-		this.h2 = this.h / 2
-		this.solidUnit = this.h * .1
-		// this.unit = this.h * .1
-		this.screenUnit = this.h * .1
-		this.regularFont = `600 ` + this.screenUnit * .16 + `px Montserrat, sans-serif`
-		this.smallFont = `600 ` + this.screenUnit * .12 + `px Montserrat, sans-serif`
-		this.microFont = this.screenUnit * .09 + `px Montserrat, sans-serif`
-		this.bigFont = this.screenUnit * .3 + `px Verdana, sans-serif`
-		this.setResourceHomes()
-
-		this.flashlight = this.ctx.createRadialGradient(this.w2, this.h2, this.h2/4, this.w2, this.h2, this.w2)
-		this.flashlight.addColorStop(0, `#1120`)
-		this.flashlight.addColorStop(1, `#1129`)
-
-		const dx = this.pixelRatio * 4
-		for (let i = 0; i < this.analytics.graphs.length; i++){
-			this.analytics.graphs[i].canvas.width = dx * this.analytics.dataSize + dx * 16//this.w2 / 2
-			this.analytics.graphs[i].canvas.height = this.analytics.graphs[i].canvas.width * .5//this.h2/3
-		}
+		this.renderer.initScreenSize()
 	}
 
 	watchCredits(){
@@ -637,12 +619,7 @@ export class Game implements SaveHost, AudioHost, EffectHost, InputHost {
 	}
 
 	setResourceHomes(){
-
-		this.resourceHomes = []
-		for (let i = 0; i < this.resources.length; i++){
-			this.resourceHomes.push([this.screenUnit * (i+1) * .8, this.screenUnit])
-		}
-
+		this.renderer.setResourceHomes()
 	}
 
 	//SAVE
@@ -1495,7 +1472,7 @@ export class Game implements SaveHost, AudioHost, EffectHost, InputHost {
 	}
 
 	getHitCoordinates(xy: Vec2): Vec2 {
-		return [(xy[0] * this.pixelRatio - this.w2 + this.translation[0]) / this.unit, (xy[1] * this.pixelRatio - this.h2 + this.translation[1]) / this.unit]
+		return this.renderer.getHitCoordinates(xy)
 	}
 
 	checkHitBox(uv: Vec2, hb: [number, number, number, number]){
@@ -1779,7 +1756,7 @@ export class Game implements SaveHost, AudioHost, EffectHost, InputHost {
 
 	renderloop(){
 
-		requestAnimationFrame(_=>{this.renderloop()})
+		requestAnimationFrame((_: unknown)=>{this.renderloop()})
 
 		this.unit = this.solidUnit * this.zoom
 
@@ -1791,770 +1768,52 @@ export class Game implements SaveHost, AudioHost, EffectHost, InputHost {
 
 			if (this.slowdown.state) this.renderTime.dt *= (1 * (1 - this.slowdown.f) + this.slowdown.multiplyer * this.slowdown.f)
 
-			if (this.plane === 1){
-				this.ctx.fillStyle = `#000`
-				this.ctx.fillRect(0, 0, this.w, this.h)
-			} else {
-				this.ctx.fillStyle = `#FFF`
-				this.ctx.fillRect(0, 0, this.w, this.h)
-			}
-			
-			this.ctx.save()
-			this.ctx.translate(this.w2, this.h2)
-			
-			//HIGHLIGHT
-			this.renderConductors(this.renderTime.dt)
-			this.ctx.translate(-this.w2, -this.h2)
-			this.renderChasmVFX()
-			this.ctx.translate(this.w2, this.h2)
-			this.renderEntities(this.renderTime.dt)
-
-			if (this.altActive && !this.plane) {
-				this.ctx.fillStyle = `#FFFC`
-				this.ctx.fillRect(-this.w2, -this.h2, this.w, this.h)
-
-				if (this.hoveredEntity && !(this.hoveredEntity instanceof Cube)){
-					this.renderSOI(this.hoveredEntity)
-					this.hoveredEntity.render(0)
-					this.renderAffected(this.hoveredEntity.name)
-				}
-
-			}
-
-
-			if (this.itemInHand && this.hoveredCell){
-				this.renderAvailability()
-				this.renderSOI(this.hoveredCell)
-			}
-			if (this.hoveredCell) this.renderHoveredCell()
-			if (this.itemInHand && this.hoveredCell && !this.itemInHand.eraser){
-				
-				this.ctx.save()
-				this.ctx.globalAlpha = .5
-				this.itemInHand.render(0, this.hoveredCell)
-				this.ctx.restore()
-				this.renderAffected(this.itemInHand.name)
-
-			}
-
-			//Pinhole
-			if (this.pinhole){
-
-				const radius = this.unit * .01 + this.unit * 2 * this.pinhole.f
-				const da = .05
-				const time = performance.now() / 1000
-
-				const noise = (Math.sin(time * 37) * .6 + Math.sin(time * 1913.2) * .4) * this.unit * .08
-
-				const ctx = this.ctx
-				const xy = this.uvToXY(this.pinhole.position)
-				ctx.save()
-				ctx.translate(xy[0], xy[1] - this.unit)
-				ctx.fillStyle = this.plane ? `#FFF` : `#000`
-
-				ctx.beginPath()
-				ctx.arc(0,0,Math.max(0,radius + noise),0,Math.PI * 2)
-
-				ctx.closePath()
-
-				// ctx.clip()
-				// ctx.drawImage(this.spaceImage,-this.spaceImage.naturalWidth/2,-this.spaceImage.naturalHeight/2)
-
-				ctx.fill()
-				ctx.restore()
-
-			}
-
-			this.ctx.restore()
-
-			this.renderVFX()
-
-			if (!this.plane){
-
-				if (this.chasm) this.renderChasm()
-				this.renderResources()
-				if (!this.chillMode) this.renderHollowEvents()
-				this.renderSlowdown()
-
-			} else {
-
-				if (this.entitiesInGame.pinhole > 0){
-					this.renderResources()
-				} else {
-					this.renderDarkResources()
-				}
-				
-				if (!this.chillMode) this.renderDarkHollowEvents()
-
-			}
-			
-
-			if (this.mouse.cursorVisible) this.renderCursor()
-
-
-			//Hint position update
-			if (this.currentHint.element){
-
-				this.currentHint.element.style.left = this.mouse.offsetxy[0] + `px`
-				this.currentHint.element.style.top = this.mouse.offsetxy[1] + `px`
-
-			}
-
-			if (this.photofobia && this.flashlight && !this.plane){
-				this.ctx.fillStyle = this.flashlight
-				this.ctx.fillRect(0,0,this.w,this.h)
-			}
-
-			//TST
-			// this.ctx.fillStyle = `#000`
-			// this.ctx.font = this.regularFont
-			// this.ctx.textAlign = `left`
-			// for (let i = 0; i < 10; i++){
-			// 	this.ctx.fillText(Math.floor(this.gradient[i] * 100)/100,this.w * .05, this.h / 2 + devicePixelRatio * 18 * i)
-			// }
+			this.renderer.renderFrame(this.renderTime.dt)
 
 	}
 
 	renderSlowdown(){
-		if (this.slowdown.state) {
-
-			this.ctx.save()
-			
-			this.ctx.globalAlpha = this.slowdown.f
-			this.ctx.globalCompositeOperation = `multiply`
-
-			this.ctx.fillStyle = `#FFBB36`
-			this.ctx.fillRect(0,0,this.w,this.h)
-			
-			this.ctx.restore()
-
-			}
+		this.renderer.renderSlowdown()
 	}
 
 	renderHoveredCell(){
-
-		// const dx = .866 * this.unit
-		// const dy = .5 * this.unit
-
-		// this.ctx.save()
-		// const xy = this.uvToXY(this.hoveredCell)
-		// this.ctx.translate(xy[0], xy[1])
-
-		// this.ctx.strokeStyle = `#1123`
-		// this.ctx.lineWidth = this.pixelRatio
-		// this.ctx.setLineDash([this.pixelRatio * 2, this.pixelRatio * 2])
-		// this.ctx.beginPath()
-		// this.ctx.moveTo(0, -dy)
-		// this.ctx.lineTo(dx, 0)
-		// this.ctx.lineTo(0, dy)
-		// this.ctx.lineTo(-dx, 0)
-		// this.ctx.closePath()
-		// this.ctx.stroke()
-		// this.ctx.restore()
-
-		//NEW
-		if (this.hoveredEntity){
-			this.ctx.save()
-			const xy = this.uvToXY(this.hoveredEntity?.position || this.hoveredCell)
-			this.ctx.translate(xy[0], xy[1])
-
-			const mult = this.hoveredEntity?.entitySpan === 1 ? 3 : 1.1
-			const dx = .866 * this.unit * mult
-			const dy = .5 * this.unit * mult
-			const s = .2
-			const l = .8
-
-			this.ctx.strokeStyle = this.hoveredEntity ? `#112` : `#D0D4D8`
-			this.ctx.lineWidth = this.unit * (this.hoveredEntity ? .02 : .01)
-
-			if (!this.hoveredEntity){
-				this.ctx.beginPath()
-				this.ctx.moveTo(-dx * s, -dy * l)
-				this.ctx.lineTo(0, -dy)
-				this.ctx.lineTo(dx * s, -dy * l)
-				this.ctx.stroke()
-			}
-
-			this.ctx.beginPath()
-			this.ctx.moveTo(dx * l, -dy * s)
-			this.ctx.lineTo(dx, 0)
-			this.ctx.lineTo(dx * l, dy * s)
-			this.ctx.stroke()
-
-			this.ctx.beginPath()
-			this.ctx.moveTo(-dx * s, dy * l)
-			this.ctx.lineTo(0, dy)
-			this.ctx.lineTo(dx * s, dy * l)
-			this.ctx.stroke()
-
-			this.ctx.beginPath()
-			this.ctx.moveTo(-dx * l, -dy * s)
-			this.ctx.lineTo(-dx, 0)
-			this.ctx.lineTo(-dx * l, dy * s)
-			this.ctx.stroke()
-			
-			this.ctx.restore()
-		}
-
+		this.renderer.renderHoveredCell()
 	}
 
 	renderSOI(entity: GameEntity | Vec2){
-
-		// this.drawPrism(this.hoveredCell, 3, 0, [`#FF03`,`#FF03`,`#FF03`])
-
-		//NEW
-		this.ctx.save()
-		const xy = this.uvToXY((entity as GameEntity).position || entity as Vec2)
-		this.ctx.translate(xy[0], xy[1])
-
-		const dx = .866 * this.unit * 3
-		const dy = .5 * this.unit * 3
-		const s = .1
-		const l = .9
-
-		this.ctx.fillStyle = `#11112208`//`#E8A52316`
-		this.ctx.beginPath()
-		this.ctx.moveTo(0, -dy)
-		this.ctx.lineTo(dx, 0)
-		this.ctx.lineTo(0, dy)
-		this.ctx.lineTo(-dx, 0)
-		this.ctx.closePath()
-		this.ctx.fill()
-
-		this.ctx.strokeStyle = `#A5A5B4`//`#FF8F60`
-		this.ctx.lineWidth = this.unit * .02
-
-		this.ctx.beginPath()
-		this.ctx.moveTo(-dx * s, -dy * l)
-		this.ctx.lineTo(0, -dy)
-		this.ctx.lineTo(dx * s, -dy * l)
-		this.ctx.stroke()
-
-		this.ctx.beginPath()
-		this.ctx.moveTo(dx * l, -dy * s)
-		this.ctx.lineTo(dx, 0)
-		this.ctx.lineTo(dx * l, dy * s)
-		this.ctx.stroke()
-
-		this.ctx.beginPath()
-		this.ctx.moveTo(-dx * s, dy * l)
-		this.ctx.lineTo(0, dy)
-		this.ctx.lineTo(dx * s, dy * l)
-		this.ctx.stroke()
-
-		this.ctx.beginPath()
-		this.ctx.moveTo(-dx * l, -dy * s)
-		this.ctx.lineTo(-dx, 0)
-		this.ctx.lineTo(-dx * l, dy * s)
-		this.ctx.stroke()
-		
-		this.ctx.restore()
-
-
+		this.renderer.renderSOI(entity)
 	}
 
 	renderAffected(name: string){
-		const list = this.codex.entities[name].affected
-		if (list){
-			const color = `#53B976`
-			const n = []
-			const o = this.hoveredCell as Vec2
-			let hasAffected = false
-			const r = this.unit * .05
-			const xy0 = this.uvToXY(o)
-
-			for (let i = 0; i < 9; i++){
-				const du = -1 + i % 3
-				const dv = -1 + Math.floor(i / 3)
-				const m = this.stuffMap[`u${o[0] + du}v${o[1] + dv}`]
-				const conductorok = (name === `conductor` || m?.name === `conductor`) ? i%2 : 1
-
-				if (m && conductorok) n.push(m)
-			}
-
-			this.ctx.strokeStyle = color
-			this.ctx.lineWidth = r * .5
-
-			for (let i = 0; i < n.length; i++){
-
-				if (list[n[i].name]){
-
-					hasAffected = true
-					const xy = this.uvToXY(n[i].position)
-
-					this.ctx.beginPath()
-					this.ctx.moveTo(xy0[0], xy0[1])
-					// this.ctx.lineTo(xy[0], xy[1])
-					this.ctx.bezierCurveTo(xy0[0], xy0[1] + this.unit * .3, xy[0], xy[1] + this.unit * .3, xy[0], xy[1])
-					this.ctx.stroke()
-
-					this.ctx.fillStyle = color
-					this.ctx.beginPath()
-					this.ctx.arc(xy[0], xy[1], r, 0, Math.PI * 2)
-					this.ctx.closePath()
-					this.ctx.fill()
-					this.ctx.fillStyle = `#FFF`
-					this.ctx.beginPath()
-					this.ctx.arc(xy[0], xy[1], r - this.ctx.lineWidth, 0, Math.PI * 2)
-					this.ctx.closePath()
-					this.ctx.fill()
-
-				}
-
-			}
-
-			if (hasAffected){
-
-				this.ctx.fillStyle = color
-				this.ctx.beginPath()
-				this.ctx.arc(xy0[0], xy0[1], r, 0, Math.PI * 2)
-				this.ctx.closePath()
-				this.ctx.fill()
-				this.ctx.fillStyle = `#FFF`
-				this.ctx.beginPath()
-				this.ctx.arc(xy0[0], xy0[1], r - this.ctx.lineWidth, 0, Math.PI * 2)
-				this.ctx.closePath()
-				this.ctx.fill()
-
-			}
-
-		}
-
+		this.renderer.renderAffected(name)
 	}
 
 	renderCursor(){
-
-		if (!this.plane){
-			const hint = this.itemInHand?.eraser ? this.hoveredEntity?.getSellHint() : this.itemInHand ? this.itemInHandPriceTag : this.hoveredEntity?.getHint()
-			const canHit = this.hoveredEntity && this.hoveredEntity.canHit()
-
-			if (this.showUnfilled) this.renderUnfilled()
-
-			this.ctx.save()
-			this.ctx.translate(this.mouse.xy[0], this.mouse.xy[1])
-
-			const radius = this.pixelRatio * (canHit ? 12 : 6)
-			this.ctx.fillStyle = canHit ? `#000` : `#FFF`
-			this.ctx.beginPath()
-			this.ctx.arc(0, 0, radius, 0, Math.PI * 2)
-			this.ctx.closePath()
-			this.ctx.fill()
-			this.ctx.fillStyle = canHit ? `#FFF` : `#000`
-			this.ctx.beginPath()
-			this.ctx.arc(0, 0, radius * .8, 0, Math.PI * 2)
-			this.ctx.closePath()
-			this.ctx.fill()
-
-			if (hint){
-
-				hint.update()
-
-				if (hint.element !== this.currentHint.element){
-
-					if (this.currentHint.element) document.body.removeChild(this.currentHint.element)
-					this.currentHint.element = hint.element
-					this.currentHint.entity = this.hoveredEntity
-					document.body.appendChild(this.currentHint.element!)
-
-				}
-
-				if (this.itemInHand){
-					this.currentHint.element!.style.opacity = (this.canPlace ? 1 : .3) as unknown as string
-				}
-
-			}
-			if (!hint && this.currentHint.element){
-				this.removeHint()
-			}
-
-			this.ctx.restore()
-
-		} else if (this.plane === 1){
-
-			const hint = this.hoveredEntity?.getDarkHint()
-			const canHit = this.hoveredEntity?.canDarkHit()
-
-			this.ctx.save()
-			this.ctx.translate(this.mouse.xy[0], this.mouse.xy[1])
-
-			const radius = this.pixelRatio * (canHit ? 12 : 6)
-
-			this.ctx.fillStyle = `#FFF`
-			this.ctx.beginPath()
-			this.ctx.arc(0, 0, radius, 0, Math.PI * 2)
-			this.ctx.closePath()
-			this.ctx.fill()
-
-			if (hint){
-
-				hint.update()
-
-				if (hint.element !== this.currentHint.element){
-
-					if (this.currentHint.element) document.body.removeChild(this.currentHint.element)
-					this.currentHint.element = hint.element
-					this.currentHint.entity = this.hoveredEntity
-					document.body.appendChild(this.currentHint.element!)
-
-				}
-
-			}
-
-			if ((this.itemInHand || !hint) && this.currentHint.element){
-				this.removeHint()
-			}
-
-			this.ctx.restore()
-
-		}
-
-		//ARROW
-		if (this.distanceToOrigins > 80 && this.hoveredCell){
-			const origin = this.uvToXYUntranslated([0,0])
-			const vector = [origin[0] - this.mouse.xy[0], origin[1] - this.mouse.xy[1]]
-			const angle = Math.atan2(vector[1], vector[0])
-			this.ctx.save()
-			this.ctx.translate(this.mouse.xy[0], this.mouse.xy[1])
-			this.ctx.rotate(angle)
-			this.ctx.fillStyle = this.plane ? `#FFF` : `#000`
-			this.ctx.beginPath()
-			const u = this.unit / this.zoom
-			this.ctx.moveTo(-u*.1, -u * .1)
-			this.ctx.lineTo(u * .2, 0)
-			this.ctx.lineTo(-u*.1, u * .1)
-			this.ctx.lineTo(-u * .05, 0)
-			this.ctx.closePath()
-			this.ctx.fill()
-			this.ctx.restore()
-		}
-
-
+		this.renderer.renderCursor()
 	}
 
 	removeHint(){
-		if (this.currentHint.element) {
-			document.body.removeChild(this.currentHint.element)
-			this.currentHint.element = undefined
-			this.currentHint.entity = undefined
-		}
+		this.renderer.removeHint()
 	}
 
 	renderUnfilled(){
-		this.ctx.save()
-		const margin = this.pixelRatio * 16
-		const size = this.pixelRatio * 18
-		for (let i = 0; i < this.unfilledEntities.length; i++){
-			const coords = this.uvToXYUntranslated(this.unfilledEntities[i].position)
-			const vector = [this.mouse.xy[0] - coords[0], this.mouse.xy[1] - coords[1]]
-			const length = (vector[0] ** 2 + vector[1] ** 2) ** .5
-
-			if (length > this.unit * 6){
-				this.ctx.strokeStyle = `#112`
-				this.ctx.lineWidth = this.pixelRatio
-				vector[0] /= length
-				vector[1] /= length
-				this.ctx.beginPath()
-				this.ctx.moveTo(this.mouse.xy[0] - vector[0] * margin, this.mouse.xy[1] - vector[1] * margin)
-				this.ctx.lineTo(this.mouse.xy[0] - vector[0] * size, this.mouse.xy[1] - vector[1] * size)
-				this.ctx.stroke()
-
-			} else {
-				this.ctx.fillStyle = `#112`
-				this.ctx.strokeStyle = `#778`
-				this.ctx.lineWidth = this.pixelRatio / 2
-				this.ctx.beginPath()
-				this.ctx.moveTo(this.mouse.xy[0], this.mouse.xy[1])
-				this.ctx.lineTo(coords[0], coords[1])
-				this.ctx.stroke()
-
-				this.ctx.beginPath()
-				this.ctx.arc(coords[0], coords[1], this.pixelRatio * 2, 0, Math.PI * 2)
-				this.ctx.closePath()
-				this.ctx.fill()
-			}
-			
-		}
-		this.ctx.restore()
+		this.renderer.renderUnfilled()
 	}
 
 	renderAvailability(){
-
-		this.drawPrism(this.hoveredCell as Vec2, 1, 0, this.canPlace ? [`#0F06`,`#0F06`,`#0F06`] : [`#F006`,`#F006`,`#F006`])
-
-		// return ok //xxx
-
+		this.renderer.renderAvailability()
 	}
 
 	renderResources(){
-
-		this.ctx.textAlign = `center`
-		this.ctx.textBaseline = `middle`
-
-		const glow = this.ctx.createRadialGradient(0,0,0,0,0,this.screenUnit * .4)
-		glow.addColorStop(.5, `#FFFF`)
-		glow.addColorStop(1, `#FFF0`)
-
-		for (let i = 0; i < this.resources.length; i++){
-
-			if (this.resources[i]){
-
-				this.ctx.font = this.regularFont
-				const s = this.resourcePops[i] || 0
-				this.ctx.save()
-				this.ctx.translate(this.resourceHomes[i][0], this.resourceHomes[i][1])
-				this.ctx.scale(.8 + s, .8 + s)
-
-				this.ctx.fillStyle = glow
-				this.ctx.beginPath()
-				this.ctx.arc(0,0,this.screenUnit * .4,0,Math.PI * 2)
-				this.ctx.closePath()
-				this.ctx.fill()
-				
-				this.drawResourceInScreenCoordinates(i, [0,0])
-				this.ctx.restore()
-
-				let text = this.makeReadable(this.resources[i])
-				if (this.entitiesInGame.pinhole > 0){
-
-					const t = performance.now()
-					if (Math.sin(t/834) * .6 + Math.sin(t/27) * .4 > 0){
-						text = Math.random().toString(36).slice(2, 5)
-					} else {
-						const dict = [`U/D`,`C/S`,`T/B`,`E/νE`,`μ/νμ`,`τ/ντ`,`G/γ`,`Z/W`,`H`,`Δ/νΔ`]
-						text = dict[i]
-					}
-
-				}
-
-				const pad = this.screenUnit * .04
-				const x = this.resourceHomes[i][0]
-				const y = this.resourceHomes[i][1] - this.screenUnit * .4
-				this.ctx.fillStyle = `#FFF`
-				const measure = this.ctx.measureText(text as string)
-				
-				if (this.ctx.roundRect){
-					this.ctx.beginPath()
-					this.ctx.roundRect(x - measure.actualBoundingBoxLeft - pad, y - measure.actualBoundingBoxAscent - pad, measure.width + pad * 2, measure.actualBoundingBoxDescent + measure.actualBoundingBoxAscent + pad * 2, this.pixelRatio * 2)
-					this.ctx.closePath()
-					this.ctx.fill()
-				} else {
-					this.ctx.fillRect(x - measure.actualBoundingBoxLeft - pad, y - measure.actualBoundingBoxAscent - pad, measure.width + pad * 2, measure.actualBoundingBoxDescent + measure.actualBoundingBoxAscent + pad * 2)
-				}
-				
-
-				this.ctx.fillStyle = `#000`
-				this.ctx.fillText(text as string, this.resourceHomes[i][0], this.resourceHomes[i][1] - this.screenUnit * .4)
-
-				if (i === this.hoveredResource){
-
-					//Name
-					const shift = -this.screenUnit * .84
-					const nameMeasure = this.ctx.measureText(this.words.resources[i])
-					this.ctx.fillStyle = `#FFF`
-					if (this.ctx.roundRect){
-						this.ctx.beginPath()
-						this.ctx.roundRect(x - nameMeasure.actualBoundingBoxLeft - pad, y - nameMeasure.actualBoundingBoxAscent - pad - shift, nameMeasure.width + pad * 2, nameMeasure.actualBoundingBoxDescent + nameMeasure.actualBoundingBoxAscent + pad * 2, this.pixelRatio * 2)
-						this.ctx.closePath()
-						this.ctx.fill()
-					} else {
-						this.ctx.fillRect(x - nameMeasure.actualBoundingBoxLeft - pad, y - nameMeasure.actualBoundingBoxAscent - pad, nameMeasure.width + pad * 2, nameMeasure.actualBoundingBoxDescent + nameMeasure.actualBoundingBoxAscent + pad * 2)
-					}
-					this.ctx.fillStyle = this.codex.resources[i].triplet[2]
-					this.ctx.fillText(this.words.resources[i], this.resourceHomes[i][0], this.resourceHomes[i][1] - this.screenUnit * .4 - shift)
-
-					//Gradient instant
-					this.ctx.font = this.smallFont
-					if (this.entitiesInGame.mega1 > 0 || this.entitiesInGame.mega1a > 0 || this.entitiesInGame.mega1b > 0){
-						const shift2 = -this.screenUnit * 1.03
-						const value = this.analytics.average[i][0]
-						const average = `+ ${this.makeReadable(value)} / s`
-						const averageMeasure = this.ctx.measureText(average)
-						this.ctx.fillStyle = `#FFF`
-						if (this.ctx.roundRect){
-							this.ctx.beginPath()
-							this.ctx.roundRect(x - averageMeasure.actualBoundingBoxLeft - pad, y - averageMeasure.actualBoundingBoxAscent - pad - shift2, averageMeasure.width + pad * 2, averageMeasure.actualBoundingBoxDescent + averageMeasure.actualBoundingBoxAscent + pad * 2, this.pixelRatio * 2)
-							this.ctx.closePath()
-							this.ctx.fill()
-						} else {
-							this.ctx.fillRect(x - averageMeasure.actualBoundingBoxLeft - pad, y - averageMeasure.actualBoundingBoxAscent - pad, averageMeasure.width + pad * 2, averageMeasure.actualBoundingBoxDescent + averageMeasure.actualBoundingBoxAscent + pad * 2)
-						}
-						this.ctx.fillStyle = `#6ea56e`
-						this.ctx.fillText(average, this.resourceHomes[i][0], this.resourceHomes[i][1] - this.screenUnit * .4 - shift2)
-
-						const shift3 = -this.screenUnit * 1.2
-						const value2 = this.analytics.average[i][1]
-						const average2 = `– ${this.makeReadable(-value2)} / s`
-						const averageMeasure2 = this.ctx.measureText(average2)
-						this.ctx.fillStyle = `#FFF`
-						if (this.ctx.roundRect){
-							this.ctx.beginPath()
-							this.ctx.roundRect(x - averageMeasure2.actualBoundingBoxLeft - pad, y - averageMeasure2.actualBoundingBoxAscent - pad - shift3, averageMeasure2.width + pad * 2, averageMeasure2.actualBoundingBoxDescent + averageMeasure2.actualBoundingBoxAscent + pad * 2, this.pixelRatio * 2)
-							this.ctx.closePath()
-							this.ctx.fill()
-						} else {
-							this.ctx.fillRect(x - averageMeasure2.actualBoundingBoxLeft - pad, y - averageMeasure2.actualBoundingBoxAscent - pad, averageMeasure2.width + pad * 2, averageMeasure2.actualBoundingBoxDescent + averageMeasure2.actualBoundingBoxAscent + pad * 2)
-						}
-						this.ctx.fillStyle = `#C38C75`
-						this.ctx.fillText(average2, this.resourceHomes[i][0], this.resourceHomes[i][1] - this.screenUnit * .4 - shift3)
-					}
-
-					if (this.entitiesInGame.mega1b > 0){
-						//Graphs
-						const padding = this.pixelRatio * 16
-						const dx = this.pixelRatio * 4
-						const g = this.analytics.graphs[i]
-						// g.canvas.width = dx * this.analytics.dataSize + padding * 8//qqqqq
-						const width = g.canvas.width
-						//const dx = Math.floor((width - padding * 7) / this.analytics.dataSize)
-						const shortWidth = dx * this.analytics.dataSize
-						const height = g.canvas.height / 2
-						const ctx = g.ctx
-						ctx.clearRect(0,0,width,height*2)
-						ctx.fillStyle = `#FFFFFFF6`
-						ctx.beginPath()
-						ctx.roundRect(0,0,width,height*2, this.pixelRatio * 4)
-						ctx.closePath()
-						ctx.fill()
-						// ctx.fillRect(0,0,width,height*2)
-						// ctx.fillStyle = this.codex.resources[i].triplet[0]
-
-						let max = 0
-						let negative = false
-
-						for (let j = 0; j < g.data.length; j++){
-
-							if (g.data[j][0] > max){
-								max = g.data[j][0]
-								negative = false
-							}
-
-							if (-g.data[j][1] > max){
-								max = -g.data[j][1]
-								negative = true
-							}
-						}
-
-						const order = +Math.floor(max).toString().length
-						const delta = 10 ** (order - 1)
-						max = delta * (Math.floor(max / delta) + 1) //10 ** order
-
-						for (let j = 0; j < g.data.length; j++){
-							const hhPlus = Math.floor(g.data[j][0] / max * height)
-							const hhMinus = Math.floor(-g.data[j][1] / max * height)
-							ctx.globalAlpha = .4
-							ctx.fillStyle = `#C38C75`
-							ctx.fillRect(j*dx, height, dx, hhMinus)
-							ctx.fillStyle = `#6ea56e`
-							ctx.fillRect(j*dx, height - hhPlus, dx, hhPlus)
-							ctx.globalAlpha = 1
-							ctx.fillStyle = `#C38C75`
-							ctx.fillRect(j*dx, height + hhMinus, dx, this.pixelRatio)
-							ctx.fillStyle = `#6ea56e`
-							ctx.fillRect(j*dx, height - hhPlus, dx - this.pixelRatio, this.pixelRatio)
-						}
-
-						const lastPlus = Math.floor(this.analytics.frame[i][0] / (this.analytics.measuringFrame - this.analytics.frameTimer) * 1000 / max * height)
-						const lastMinus = Math.floor(-this.analytics.frame[i][1] / (this.analytics.measuringFrame - this.analytics.frameTimer) * 1000 / max * height)
-						ctx.globalAlpha = .4
-						ctx.fillStyle = `#C38C75`
-						ctx.fillRect(g.data.length*dx, height, dx, lastMinus)
-						ctx.fillStyle = `#6ea56e`
-						ctx.fillRect(g.data.length*dx, height - lastPlus, dx, lastPlus)
-						ctx.globalAlpha = 1
-						ctx.fillStyle = `#C38C75`
-						ctx.fillRect(g.data.length*dx, height + lastMinus, dx, this.pixelRatio)
-						ctx.fillStyle = `#6ea56e`
-						ctx.fillRect(g.data.length*dx, height - lastPlus, dx - this.pixelRatio, this.pixelRatio)
-
-						ctx.fillStyle = `#000`
-						ctx.font = height * .12 + `px Montserrat, sans-serif`//this.microFont
-						ctx.textBaseline = `middle`
-						ctx.textAlign = `left`
-
-						const maxDigit = +max.toString()[0]
-						const secondHalf = maxDigit < 2 || maxDigit > 5
-
-						for (let v = delta-max; v < max; v+=delta){
-
-							const digit = +Math.abs(v).toString()[0]
-							if (secondHalf && (digit % 2)) continue
-
-							const lh = height - (v / max) * height
-
-							ctx.globalAlpha = .1
-							ctx.fillRect(0, lh, shortWidth + dx, 1)
-
-							ctx.globalAlpha = 1
-							ctx.fillText(this.makeReadable(v) + ` / s`, shortWidth + padding, lh)
-
-						}
-
-
-						this.ctx.imageSmoothingEnabled = false
-						this.ctx.drawImage(g.canvas, Math.max(this.resourceHomes[0][0] / 2, this.resourceHomes[i][0] - width/2), this.resourceHomes[0][1] * 2)
-						this.ctx.imageSmoothingEnabled = true
-					}
-
-				}
-				
-
-			}
-
-		}
-
+		this.renderer.renderResources()
 	}
 
 	renderResourceBeds(){
-
-		this.ctx.fillStyle = `#FFF`
-		const r = this.unit * .5
-
-		for (let i = 0; i < this.resources.length; i++){
-
-			if (this.resources[i]){
-
-				this.ctx.beginPath()
-				this.ctx.arc(this.resourceHomes[i][0], this.resourceHomes[i][1], r, 0, Math.PI * 2)
-				this.ctx.closePath()
-				this.ctx.fill()
-
-				// this.ctx.save()
-				// this.ctx.translate(this.resourceHomes[i][0], this.resourceHomes[i][1])
-				// this.ctx.scale(.8 + s, .8 + s)
-				// this.drawResourceInScreenCoordinates(i, [0,0])
-				// this.ctx.restore()
-				// this.ctx.fillStyle = `#000`
-
-				
-
-			}
-
-		}
-
+		this.renderer.renderResourceBeds()
 	}
 
 	renderDarkResources(){
-
-		this.ctx.font = this.regularFont
-		this.ctx.textAlign = `center`
-		this.ctx.textBaseline = `middle`
-		
-
-		if (this.resources[9]){
-
-			const s = this.resourcePops[9] || 0
-			this.ctx.save()
-			this.ctx.translate(this.resourceHomes[0][0], this.resourceHomes[0][1])
-			this.ctx.scale(.8 + s, .8 + s)
-			this.drawResourceInScreenCoordinates(9, [0,0])
-			this.ctx.restore()
-			this.ctx.fillStyle = `#FFF`
-			this.ctx.fillText(this.makeReadable(this.resources[9]) as string, this.resourceHomes[0][0], this.resourceHomes[0][1] - this.screenUnit * .4)
-			
-		}
-
-		
-
+		this.renderer.renderDarkResources()
 	}
 
 	makeReadable(n: number){
@@ -2598,45 +1857,15 @@ export class Game implements SaveHost, AudioHost, EffectHost, InputHost {
 	}
 
 	isVisible(p: GameEntity){
-
-		const coords = this.uvToXYUntranslated(p.position)
-		const span = p.entitySpan * this.unit || 0
-		if (coords[0] + span < -this.unit || coords[0] - span > this.w + this.unit || coords[1] + span < -this.unit || coords[1] - span > this.h + this.unit + (p.entityHeight || 1) * this.unit) return false
-		return true
-
+		return this.renderer.isVisible(p)
 	}
 
 	renderConductors(dt: number){
-		if (!this.plane){
-
-			const c = Array.from(this.conductors)
-			for (let i = 0; i < c.length; i++){
-				if (this.isVisible(c[i])) c[i].render(dt)
-			}
-
-		}
+		this.renderer.renderConductors(dt)
 	}
 
 	renderEntities(dt: number){
-
-		if (!this.plane){
-
-			for (let i = 0; i < this.stuff.length; i++){
-
-				if (this.stuff[i].name !== `conductor` && this.isVisible(this.stuff[i])) this.stuff[i].render(dt)
-				
-			}
-
-		} else if (this.plane === 1){
-
-			for (let i = 0; i < this.stuff.length; i++){
-
-				if (this.isVisible(this.stuff[i])) this.stuff[i].darkrender(dt)
-
-			}
-
-		}
-
+		this.renderer.renderEntities(dt)
 	}
 
 	updateUnfilled(_dt = 0){
@@ -2693,122 +1922,31 @@ export class Game implements SaveHost, AudioHost, EffectHost, InputHost {
 	}
 
 	renderGrid(){
-
-		this.ctx.save()
-		this.ctx.strokeStyle = `#1129`
-		this.ctx.setLineDash([8,8])
-		for (let y = this.range.y[0]; y <= this.range.y[1]; y++){
-			this.ctx.beginPath()
-			const xy0 = this.uvToXY([this.range.x[0]+.5,y+.5])
-			this.ctx.moveTo(xy0[0], xy0[1])
-			const xy1 = this.uvToXY([this.range.x[1]+.5,y+.5])
-			this.ctx.lineTo(xy1[0], xy1[1])
-			this.ctx.stroke()
-		}
-		for (let x = this.range.x[0]; x <= this.range.x[1]; x++){
-			this.ctx.beginPath()
-			const xy0 = this.uvToXY([x+.5,this.range.y[0]+.5])
-			this.ctx.moveTo(xy0[0], xy0[1])
-			const xy1 = this.uvToXY([x+.5,this.range.y[1]+.5])
-			this.ctx.lineTo(xy1[0], xy1[1])
-			this.ctx.stroke()
-		}
-		this.ctx.restore()
-
-		//DEBUG
-		// if (this.selectedCell){
-		// 	this.drawCube([this.selectedCell[0] + .5, this.selectedCell[1] + .5], .1)
-		// }
-		
-
+		this.renderer.renderGrid(this.range)
 	}
 
 	drawResourceInScreenCoordinates(id: number, p: Vec2){
-
-		this.resourcesSprites[id].scale = .25/this.zoom
-		this.resourcesSprites[id].renderXY(p)
-		this.resourcesSprites[id].scale = .25
-
+		this.renderer.drawResourceInScreenCoordinates(id, p)
 	}
 
 	drawCube(position: Vec2, size: number, triplet?: ColorTriplet){
-
-		this.drawPrism([position[0]+size/2, position[1]+size/2], size, size, triplet)
-
+		this.renderer.drawCube(position, size, triplet)
 	}
 
 	drawPrism(position: Vec2, size: number, height: number, triplet?: ColorTriplet){
-
-		const colors = triplet ? triplet : [`#FFC759`, `#FFE86F`, `#FF8F60`]
-		height = height || 0
-
-		const hy = height * this.unit
-		const dx = size * .866 * this.unit
-		const dy = size * .5 * this.unit
-
-		this.ctx.save()
-		const xy = this.uvToXY(position)
-		this.ctx.translate(xy[0], xy[1])
-
-		if (height){
-			this.ctx.fillStyle = colors[0]
-			this.ctx.beginPath()
-			this.ctx.moveTo(0, -hy - dy)
-			this.ctx.lineTo(dx, -hy)
-			this.ctx.lineTo(dx, 0)
-			this.ctx.lineTo(0, dy)
-			this.ctx.lineTo(-dx, 0)
-			this.ctx.lineTo(-dx, -hy)
-			this.ctx.closePath()
-			this.ctx.fill()
-
-			this.ctx.fillStyle = colors[2]
-			this.ctx.beginPath()
-			this.ctx.moveTo(dx, -hy)
-			this.ctx.lineTo(dx, 0)
-			this.ctx.lineTo(0, dy)
-			this.ctx.lineTo(0, dy - hy)
-			this.ctx.closePath()
-			this.ctx.fill()
-		}
-
-		this.ctx.fillStyle = colors[1]
-		this.ctx.beginPath()
-		this.ctx.moveTo(0, -hy - dy)
-		this.ctx.lineTo(dx, -hy)
-		this.ctx.lineTo(0, dy - hy)
-		this.ctx.lineTo(-dx, -hy)
-		this.ctx.closePath()
-		this.ctx.fill()
-
-		this.ctx.restore()
-
+		this.renderer.drawPrism(position, size, height, triplet)
 	}
 
 	uvToXY(uv: Vec2): Vec2 {
-
-		return [ (uv[0] * 0.866 - uv[1] * .866) * this.unit - this.translation[0] * this.zoom, (uv[0] * .5 + uv[1] * .5) * this.unit - this.translation[1] * this.zoom]
-
+		return this.renderer.uvToXY(uv)
 	}
-	// getUntranslatedScreenXY(uv){
 
-	// 	return [ (uv[0] * 0.866 - uv[1] * .866) * this.unit, (uv[0] * .5 + uv[1] * .5) * this.unit]
-
-	// }
 	uvToXYUntranslated(uv: Vec2): Vec2 {
-
-		const xy = this.uvToXY(uv)
-		return [xy[0] + this.w2, xy[1] + this.h2]
-
+		return this.renderer.uvToXYUntranslated(uv)
 	}
 
 	xyToUV(xy: Vec2): Vec2 {
-
-		const centered = [xy[0]*this.pixelRatio - this.w2 + this.translation[0] * this.zoom, xy[1]*this.pixelRatio - this.h2 + this.translation[1] * this.zoom]
-		const fx = centered[0] / .866 * .5
-		const normalized: Vec2 = [(centered[1] + fx) / this.unit + .5, (centered[1] - fx) / this.unit + .5]
-		return normalized
-
+		return this.renderer.xyToUV(xy)
 	}
 
 	entityAtCoordinates(p: Vec2){
@@ -2900,46 +2038,7 @@ export class Game implements SaveHost, AudioHost, EffectHost, InputHost {
 	}
 
 	renderChasm(){
-
-		const chasmDeltas = [
-			[-this.unit * .3, 	-this.unit * 1.38],
-			[-this.unit * .19, 	-this.unit * 1.45],
-			[-this.unit * .085, -this.unit * 1.51],
-			[this.unit * .025, 	-this.unit * 1.57],
-			[this.unit * .13, 	-this.unit * 1.64],
-
-			[-this.unit * .13, 	-this.unit * 1.29],
-			[-this.unit * .02, 	-this.unit * 1.35],
-			[this.unit * .085, 	-this.unit * 1.41],
-			[this.unit * .195, 	-this.unit * 1.47],
-			[this.unit * .3, 	-this.unit * 1.54],
-		]
-
-		if (this.isVisible(this.chasm!)){
-
-			const cp = this.uvToXYUntranslated(this.chasm!.position)
-
-			for (let i = 0; i < this.resources.length; i++){
-
-				if (!this.resources[i]) continue
-
-				const delta = chasmDeltas[i] || [0,0]
-				const tilt = i < 5 ? -this.unit * .4 : this.unit
-				const rp = this.resourceHomes[i]
-				const cy = rp[1] + (cp[1] + delta[1] - rp[1]) * .7
-
-				this.ctx.strokeStyle = this.codex.resources[i].triplet[0]
-				this.ctx.lineWidth = this.unit * (.02 + .1 * this.resourcePops[i])
-
-				this.ctx.beginPath()
-				this.ctx.moveTo(rp[0], rp[1])
-				this.ctx.bezierCurveTo(rp[0], cy, cp[0] + delta[0] + tilt, cy, cp[0] + delta[0], cp[1] + delta[1])
-				this.ctx.stroke()
-
-			}
-
-		}
-
+		this.renderer.renderChasm()
 	}
 
 	updateVFX(dt: number){
@@ -3018,51 +2117,11 @@ export class Game implements SaveHost, AudioHost, EffectHost, InputHost {
 	}
 
 	renderHollowEvents(){
-
-		this.ctx.save()
-		for (let i = 0; i < this.hollowEvents.length; i++){
-
-			const e = this.hollowEvents[i]
-			this.ctx.globalAlpha = e.time / e.max
-
-			this.ctx.fillStyle = e.color
-			this.ctx.fillRect(0,0,this.w,this.h)
-
-			if (e.imageTime > 0){
-
-				this.ctx.globalAlpha = e.imageTime / e.maxImageTime
-				const size = this.unit * 6
-				this.ctx.drawImage(this.hollowImage, this.w2 - size / 2, this.h2 - size / 2, size, size)
-
-			}
-
-		}
-		this.ctx.restore()
-
+		this.renderer.renderHollowEvents()
 	}
 
 	renderDarkHollowEvents(){
-
-		this.ctx.save()
-		for (let i = 0; i < this.darkHollowEvents.length; i++){
-
-			const e = this.darkHollowEvents[i]
-			this.ctx.globalAlpha = e.time / e.max
-
-			this.ctx.fillStyle = e.color
-			this.ctx.fillRect(0,0,this.w,this.h)
-
-			if (e.imageTime > 0){
-
-				this.ctx.globalAlpha = e.imageTime / e.maxImageTime
-				const size = this.unit * 6
-				this.ctx.drawImage(this.hollowImage, this.w2 - size / 2, this.h2 - size / 2, size, size)
-
-			}
-
-		}
-		this.ctx.restore()
-
+		this.renderer.renderDarkHollowEvents()
 	}
 
 	initiateSlowdown(t: number, m: number){
