@@ -5,8 +5,8 @@ type SpriteGlobals = typeof import('../scripts/sprites.js')
 type CodexGlobals = typeof import('../scripts/codex.js')
 type UiGlobals = typeof import('../scripts/ui.js')
 type WordsGlobals = typeof import('../scripts/words.js')
-type GameGlobals = typeof import('../scripts/game.js')
-type RuntimeGame = import('../scripts/game.js').Game
+type GameGlobals = typeof import('../scripts/Game.js')
+type RuntimeGame = import('../scripts/Game.js').Game
 
 type EntityType = typeof import('../scripts/entities/Entity.js').Entity
 type AnnihilatorType = typeof import('../scripts/entities/Annihilator.js').Annihilator

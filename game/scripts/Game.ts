@@ -1,5 +1,3 @@
-// @ts-nocheck
-// Deferred: Game owns the dynamic entity, save, UI, audio, input, and platform state.
 import { Bezier } from './bezier.js'
 import { abstract_getCodex } from './codex.js'
 import { Sprite } from './sprites.js'
@@ -15,551 +13,35 @@ import { Silo } from './entities/Silo.js'
 import { Vessel } from './entities/Vessel.js'
 import { Achiever, Cloud, Explainer, Messenger, Shop, Splash } from './ui.js'
 import { abstract_getWords } from './words.js'
-
-export class VFX {
-
-	constructor(master, payload){
-
-		this.master = master
-		this.oncomplete = _=>{}
-		this.visibility = payload?.visibility || [1]
-
-	}
-
-	update(dt){
-
-		this.time += dt
-
-		if (this.time >= this.maxEndTime){
-			
-			this.oncomplete()
-			this.terminate = true
-
-		}
-
-	}
-
-	render(){
-
-	}
-	
-
-}
-
-export class Exhaust extends VFX {
-
-	constructor(master, payload){
-
-		super(master, payload)
-
-		this.time = 0
-		this.maxEndTime = 220
-		this.uv = payload?.uv || [0,0]
-		this.shift = [(Math.random() * 2 - 1) * this.master.unit * .2, (Math.random() * 2 - 1) * this.master.unit * .2]
-		this.maxRadius = (.6 + Math.random() * .8) * this.master.unit
-		this.color = payload?.color || `#EEE`
-
-	}
-
-	render(){
-
-		if (this.visibility[this.master.plane]){
-
-			const f = (this.time / this.maxEndTime)
-			const r1 = f ** .3 * this.maxRadius
-			const r2 = Math.max(0, (f - .3333) * 1.3) ** .4 * this.maxRadius
-			const p = this.master.uvToXYUntranslated(this.uv)
-
-			const ctx = this.master.ctx
-
-			ctx.fillStyle = this.color
-
-			ctx.beginPath()
-			ctx.arc(p[0], p[1], r1, 0, Math.PI * 2)
-			// ctx.closePath()
-
-			// ctx.beginPath()
-			ctx.arc(p[0], p[1], r2, 0, Math.PI * 2)
-			ctx.closePath()
-
-			ctx.fill(`evenodd`)
-
-		}
-
-	}
-
-}
-
-export class ResourceExplosion extends VFX {
-
-	constructor(master, payload){
-
-		super(master, payload)
-
-		//payload:
-		//resources, source
-
-		const force = (payload?.force || 9) * this.master.unit
-		const endRange = [100,600]
-		const paths = []
-		const resources = []
-		const endTimes = []
-
-		let maxEndTime = 0
-
-		for (let i = 0; i < payload.resources.length; i++){
-
-			const max = Math.min(payload.resources[i], this.master.renderLimitOfAKind)
-			const rp = payload?.source ? payload.source : this.master.resourceHomes[i]
-
-			for (let j = 0; j < max; j++){
-
-				const d = [force * (Math.random() * 2 - 1), force * (Math.random() * 2 - 1)]
-
-				const curve = new Bezier([[rp[0], rp[1]], [rp[0] + d[0], rp[1] + d[1]],[rp[0] + d[0], rp[1] + d[1]], [rp[0]+d[0], rp[1] + d[1]]])
-				const endTime = endRange[0] + Math.random() * [endRange[1] - endRange[0]]
-				paths.push(curve)
-				resources.push(i)
-				endTimes.push(endTime)
-				maxEndTime = Math.max(maxEndTime, endTime)
-				
-			}
-
-		}
-
-
-		this.resources = resources
-		this.paths = paths
-		this.endTimes = endTimes
-		this.maxEndTime = maxEndTime
-		this.time = 0
-
-	}
-
-	render(){
-
-		if (this.visibility[this.master.plane]){
-
-			for (let j = 0; j < this.resources.length; j++){
-
-				// if ((this.resources[j] !== 9 && !this.master.plane) || (this.resources[j] === 9 && this.master.plane === 1)){
-
-					const f = (this.time / this.endTimes[j]) ** .6
-					if (f <= 1){
-					
-						const from = Math.max(0, f - .05)
-						const to = Math.min(1, f + .05)
-						const q = this.quantities ? this.quantities[j] : 1
-
-						const b = this.paths[j]
-						this.master.ctx.strokeStyle = this.master.codex.resources[this.resources[j]].triplet[j%3]
-						this.master.ctx.lineCap = `round`
-						this.master.ctx.lineWidth = (.5 + (1-f) * .5) * this.master.pixelRatio * 4
-						this.master.ctx.beginPath()
-						const p0 = b.getXY(from)
-						this.master.ctx.moveTo(p0[0], p0[1])
-						for (let f = from + .02; f < to; f+=.02){
-							const p = b.getXY(f)
-							this.master.ctx.lineTo(p[0], p[1])
-						}
-						this.master.ctx.stroke()
-
-					}
-
-				// }
-				
-
-			}
-		}
-
-	}
-
-}
-
-export class ResourceSpark extends VFX {
-
-	constructor(master, payload){
-
-		super(master, payload)
-
-		//payload:
-		//resources, source
-
-		const multiplyer = 16
-		const force = this.master.unit * 2
-		const endRange = [60,300]
-		const paths = []
-		const resources = []
-		const endTimes = []
-
-		let maxEndTime = 0
-
-		for (let i = 0; i < payload.resources.length; i++){
-
-			const max = Math.min(payload.resources[i] * multiplyer, this.master.renderLimitOfAKind)
-			const rp = payload?.source ? payload.source : this.master.resourceHomes[i]
-
-			for (let j = 0; j < max; j++){
-
-				const d = [force * (Math.random() * 2 - 1), force * (Math.random() * 2 - 1)]
-				const offsetA = [force * (Math.random() * 2 - 1) * .2, force * (Math.random() * 2 - 1) * .2]
-				const offsetB = [force * (Math.random() * 2 - 1) * .2, force * (Math.random() * 2 - 1) * .2]
-
-				const curve = new Bezier([
-					[rp[0], rp[1]], 
-					[rp[0] + offsetA[0], rp[1] + offsetA[0]],
-					[rp[0] + d[0] + offsetB[0], rp[1] + d[1] + offsetB[1]], 
-					[rp[0] + d[0], rp[1] + d[1]]])
-				const endTime = endRange[0] + Math.random() * [endRange[1] - endRange[0]]
-				paths.push(curve)
-				resources.push(i)
-				endTimes.push(endTime)
-				maxEndTime = Math.max(maxEndTime, endTime)
-				
-			}
-
-		}
-
-		this.resources = resources
-		this.paths = paths
-		this.endTimes = endTimes
-		this.maxEndTime = maxEndTime
-		this.time = 0
-
-	}
-
-	render(){
-
-		if (this.visibility[this.master.plane]){
-
-			for (let j = 0; j < this.resources.length; j++){
-
-				
-
-					const f = (this.time / this.endTimes[j]) ** .6
-					if (f <= 1){
-					
-						const from = Math.max(0, f - .05)
-						const to = Math.min(1, f + .05)
-						const q = this.quantities ? this.quantities[j] : 1
-
-						const b = this.paths[j]
-						this.master.ctx.strokeStyle = this.master.codex.resources[this.resources[j]].triplet[j%3]
-						this.master.ctx.lineCap = `round`
-						this.master.ctx.lineWidth = (.5 + (1-f) * .5) * this.master.pixelRatio * 4
-						this.master.ctx.beginPath()
-						const p0 = b.getXY(from)
-						this.master.ctx.moveTo(p0[0], p0[1])
-						for (let f = from + .02; f < to; f+=.02){
-							const p = b.getXY(f)
-							this.master.ctx.lineTo(p[0], p[1])
-						}
-						this.master.ctx.stroke()
-
-					}
-
-				
-				
-
-			}
-
-		}
-
-	}
-
-}
-
-export class ResourceTransfer extends VFX {
-
-	constructor(master, payload){
-
-		super(master, payload)
-
-		//payload:
-		//force, resources, source, destination, skip analytics
-
-		const force = (payload?.force || 9) * this.master.unit
-		const endRange = this.master.resourceTransferType < 2 ? [900,1500] : [100,600]
-		const paths = []
-		const resources = []
-		const endTimes = []
-		const quantities = []
-		let maxEndTime = 0
-
-		if (this.master.resourceTransferType < 3){
-
-			for (let i = 0; i < payload.resources.length; i++){
-
-				if (payload.resources[i]){
-
-					const max = Math.min(payload.resources[i], this.master.renderLimitOfAKind)
-					const rd = payload?.destination ? payload.destination : this.master.resourceHomes[i]
-					const rp = payload?.source ? payload.source : this.master.resourceHomes[i]
-
-					for (let j = 0; j < max; j++){
-
-						const curve = new Bezier([
-							[rp[0], rp[1]], 
-							[rp[0] + force * (Math.random() * 2 - 1), rp[1] + force * (Math.random() * 2 - 1)],
-							[rd[0] + force * .1 * (Math.random() * 2 - 1), rd[1] + force * .1 * (Math.random() * 2 - 1)], 
-							[rd[0], rd[1]]
-						])
-						const endTime = endRange[0] + Math.random() * [endRange[1] - endRange[0]]
-						paths.push(curve)
-						resources.push(i)
-						quantities.push(1)
-						endTimes.push(endTime)
-						maxEndTime = Math.max(maxEndTime, endTime)
-						
-					}
-				}
-
-			}
-		} else {
-			for (let i = 0; i < payload.resources.length; i++){
-
-				if (payload.resources[i]){
-
-				const rd = payload?.destination ? payload.destination : this.master.resourceHomes[i]
-				const rp = payload?.source ? payload.source : this.master.resourceHomes[i]
-
-				const curve = new Bezier([
-					[rp[0], rp[1]], 
-					[rp[0] + force * (Math.random() * 2 - 1), rp[1] + force * (Math.random() * 2 - 1)],
-					[rd[0] + force * (Math.random() * 2 - 1), rd[1] + force * (Math.random() * 2 - 1)],
-					[rd[0], rd[1]]
-					])
-				const endTime = endRange[0] + Math.random() * (endRange[1] - endRange[0])
-				paths.push(curve)
-				resources.push(i)
-				quantities.push(payload.resources[i])
-				endTimes.push(endTime)
-				maxEndTime = Math.max(maxEndTime, endTime)
-					
-				}
-
-			}
-		}
-
-
-		this.resources = resources
-		this.quantities = quantities
-		this.paths = paths
-		this.endTimes = endTimes
-		this.maxEndTime = maxEndTime
-		this.oncomplete = payload?.f ? payload.f : _=>{this.master.addResourcesFromArray(payload.resources, payload.skip)}
-		this.time = 0
-		
-	}
-
-	render(){
-
-		if (this.visibility[this.master.plane]){
-
-			for (let j = 0; j < this.resources.length; j++){
-
-				
-				let f = (this.time / this.endTimes[j]) ** .6
-				if (f <= 1){
-
-					if (this.master.resourceTransferType === 0){
-
-						const coords = this.paths[j].getXY(f)
-						this.master.drawResourceInScreenCoordinates(this.resources[j], coords)
-
-					} else {
-				
-						const from = Math.max(0, f - .05)
-						const to = Math.min(1, f + .05)
-						const q = this.quantities ? this.quantities[j] : 1
-
-						const b = this.paths[j]
-						this.master.ctx.strokeStyle = this.master.codex.resources[this.resources[j]].triplet[j%3]
-						this.master.ctx.lineCap = `round`
-						this.master.ctx.lineWidth = (.5 + (1-f) * .5) * this.master.pixelRatio * 4 * (this.master.resourceTransferType < 3 ? 1 : .5 + 5 * Math.min(1, q / 256))
-						this.master.ctx.beginPath()
-						const p0 = b.getXY(from)
-						this.master.ctx.moveTo(p0[0], p0[1])
-						for (let f = from + .02; f < to; f+=.02){
-							const p = b.getXY(f)
-							this.master.ctx.lineTo(p[0], p[1])
-						}
-						this.master.ctx.stroke()
-
-					}
-
-				}
-				
-
-			}
-
-		}
-
-	}
-
-}
-
-export class ChasmTransfer extends VFX {
-
-	constructor(master, payload){
-
-		super(master, payload)
-
-		this.resources = payload.resources
-		this.maxEndTime = 100 + Math.random() * 200
-		this.path = payload.path
-		this.oncomplete = payload?.f ? payload.f : _=>{this.master.addResourcesFromArray(payload.resources)}
-		this.time = 0
-
-		// for (let i = 0; i < this.path.length; i++){
-		// 	this.path[i][0] += (Math.random() * 2 - 1) * this.master.unit * .2
-		// 	this.path[i][1] += (Math.random() * 2 - 1) * this.master.unit * .2
-		// }
-		
-	}
-
-	render(){
-
-		if (this.visibility[this.master.plane] && this.path.length > 1){
-
-			const deviance = .05
-			const delta = 2
-			const t = this.time / this.maxEndTime
-			const center = (this.path.length - 1) * t
-
-			const ctx = this.master.ctx
-
-			ctx.lineCap = `round`
-			ctx.lineWidth = Math.max(0, (1 - Math.abs(.5 - t) * 2)) ** 4 * this.master.pixelRatio * 8
-
-			let xyf, xyl
-			const idf = Math.max(Math.floor(center - delta), 0)
-			const fromStart = idf === 0
-			if (fromStart){
-				xyf = this.master.uvToXYUntranslated(this.path[idf])
-			} else {
-				const xyf0 = this.master.uvToXYUntranslated(this.path[idf])
-				const xyf1 = this.master.uvToXYUntranslated(this.path[idf + 1])
-				xyf = [xyf0[0] + (xyf1[0] - xyf0[0]) * (center % 1), xyf0[1] + (xyf1[1] - xyf0[1]) * (center % 1)]
-			}
-
-			const idl = Math.min(Math.floor(center + delta), this.path.length - 1)
-			const toEnd = idl === this.path.length - 1
-			if (toEnd){
-				xyl = this.master.uvToXYUntranslated(this.path[idl])
-			} else {
-				const xyl0 = this.master.uvToXYUntranslated(this.path[idl])
-				const xyl1 = this.master.uvToXYUntranslated(this.path[idl - 1])
-				xyl = [xyl0[0] + (xyl1[0] - xyl0[0]) * (center % 1), xyl0[1] + (xyl1[1] - xyl0[1]) * (center % 1)]
-			}
-
-			let dx0 = 0, dy0 = 0, dx1 = 0, dy1 = 0
-
-			if (fromStart){
-				dx0 = (Math.random() * 2 - 1) * this.master.unit * deviance * 2
-				dy0 = (Math.random() * 2 - 1) * this.master.unit * deviance * 2
-			}
-			if (toEnd){
-				dx1 = (Math.random() * 2 - 1) * this.master.unit * deviance * 2
-				dy1 = (Math.random() * 2 - 1) * this.master.unit * deviance * 2
-			}
-
-			
-
-			for (let r = 0; r < this.resources.length; r++){
-				if (this.resources[r]){
-					ctx.strokeStyle = this.master.codex.resources[r].triplet[1]
-					ctx.beginPath()
-					ctx.moveTo(xyf[0] + dx0, xyf[1] + dy0)
-					for (let i = idf + 1; i < idl; i++){
-						const xy = this.master.uvToXYUntranslated(this.path[i])
-						ctx.lineTo(xy[0] + ((i * this.master.time.lt * 57.319 * (r + 367.13) % 1) * 2 - 1) * this.master.unit * deviance, xy[1] + ((i * this.master.time.lt * 793.567 * (r + 17.2) % 1) * 2 - 1) * this.master.unit * deviance)
-					}
-					ctx.lineTo(xyl[0] + dx1, xyl[1] + dy1)
-					ctx.stroke()
-				}
-			}
-
-		}
-
-	}
-
-}
-
-export class Lightning extends VFX {
-
-	constructor(master, payload){
-
-		super(master, payload)
-
-		this.color = payload.color || `#FFF`
-
-		const force = 4 * this.master.unit
-		this.resources = payload.resources
-		this.maxEndTime = 100 + Math.random() * 200
-
-		const rd = payload?.destination ? payload.destination : this.master.resourceHomes[i]
-		const rp = payload?.source ? payload.source : this.master.resourceHomes[i]
-		const curve = new Bezier([
-			[rp[0], rp[1]], 
-			[rp[0] + force * (Math.random() * 2 - 1), rp[1] + force * (Math.random() * 2 - 1)],
-			[rd[0] + force * (Math.random() * 2 - 1), rd[1] + force * (Math.random() * 2 - 1)],
-			[rd[0], rd[1]]
-			])
-		
-		this.path = curve
-		this.oncomplete = payload?.f ? payload.f : _=>{this.master.addResourcesFromArray(payload.resources)}
-		this.time = 0
-		
-	}
-
-	render(){
-
-		if (this.visibility[this.master.plane]){
-
-			const t = this.time / this.maxEndTime
-
-			this.master.ctx.strokeStyle = this.color
-			this.master.ctx.lineCap = `round`
-			this.master.ctx.lineWidth = (1 - t) * this.master.pixelRatio * 4
-			this.master.ctx.beginPath()
-			const p0 = this.path.getXY(0)
-			this.master.ctx.moveTo(p0[0], p0[1])
-			for (let f = .05; f <= 1; f+=.05){
-				const p = this.path.getXY(f)
-				const r1 = (Math.random() * 2 - 1) * this.master.unit * .1
-				const r2 = (Math.random() * 2 - 1) * this.master.unit * .1
-				this.master.ctx.lineTo(p[0] + r1, p[1] + r2)
-			}
-			this.master.ctx.stroke()
-
-			if (t < .33 && !this.master.chillMode){
-				this.master.ctx.save()
-				this.master.ctx.globalAlpha = (1 - t*3) * .1
-				// this.master.ctx.fillStyle = `rgba(255,255,255,${(1 - t*3) * .1})`
-				this.master.ctx.fillStyle = this.color
-				this.master.ctx.fillRect(0,0,this.master.w,this.master.h)
-				this.master.ctx.restore()
-
-			}
-
-		}
-
-	}
-
-}
+import { VFX } from './effects/VFX.js'
+import { Exhaust } from './effects/Exhaust.js'
+import { ResourceExplosion } from './effects/ResourceExplosion.js'
+import { ResourceSpark } from './effects/ResourceSpark.js'
+import { ResourceTransfer } from './effects/ResourceTransfer.js'
+import { ChasmTransfer } from './effects/ChasmTransfer.js'
+import { Lightning } from './effects/Lightning.js'
+import type { ColorTriplet, ResourceAmounts, Vec2 } from '../types/core.js'
+import type { ClockWorkerTick, GameStartupPayload } from '../types/platform.js'
+import type { EncodedSave, LoadableSaveState, SaveSource, SerializedEntity, SerializedEntityParams } from '../types/save.js'
+import type { EffectCompletion, EffectHost, EffectVisibility } from './effects/types.js'
+import type { EntityHost } from './entities/types.js'
+import type { GameEntity, GameRuntimeState, GlState, HeldItem, PlayingSound, PointerInput, SoundState } from './game/types.js'
+
+export { VFX, Exhaust, ResourceExplosion, ResourceSpark, ResourceTransfer, ChasmTransfer, Lightning }
+
+export interface Game extends GameRuntimeState {}
 
 export class Game {
 
-	constructor(canvas, preload){
+	constructor(canvas: HTMLCanvasElement, preload: GameStartupPayload){
 
 		this.canvas = canvas
-		this.ctx = this.canvas.getContext(`2d`)
+		this.ctx = this.canvas.getContext(`2d`) as CanvasRenderingContext2D
 
 		this.isWindows = navigator.userAgent.indexOf(`Win`) !== -1
 		this.steamId = preload?.steamId || ``
 		this.languages = [`en`, `ru`, `de`, `ptbr`, `it`, `es`, `fr`, `nl`, `cz`, `pl`, `jp`, `kr`, `sch`, `tch`, `thai`, `hu`, `lv`, `ro`]
-		this.languageId = this.getLanguageId()
+		this.languageId = this.getLanguageId() as number
 		if (this.languageId === null) this.languageId = (preload && preload.languageId !== null) ? preload.languageId : 0
 		this.language = this.languages[this.languageId]
 		this.hasSteam = this.steamId ? true : false
@@ -569,13 +51,13 @@ export class Game {
 			if (typeof window.require !== `function`) throw new ReferenceError(`require is not defined`)
 			this.spaceport = window.require(`electron`).ipcRenderer
 		} catch(e){
-			this.spaceport = {send:_=>false, isPlaceholder: true}
+			this.spaceport = {send:(_: unknown)=>false, isPlaceholder: true}
 		}
 
 		this.pixelRatio = devicePixelRatio
 		this.translation = [0, 0]
 		this.translationMap = [0, 0, 0, 0]
-		const zoom = +localStorage.getItem(`abstractv03_zoom${this.steamId}`)
+		const zoom = +localStorage.getItem(`abstractv03_zoom${this.steamId}`)!
 		this.zoomRange = [.3, 2]
 		this.zoom = (zoom >= this.zoomRange[0] && zoom <= this.zoomRange[1]) ? zoom : 1
 		
@@ -665,7 +147,7 @@ export class Game {
 		this.stabilizers = new Set()
 
 		this.stats = {
-			totalResourcesMined: new Array(10).fill(0),
+			totalResourcesMined: new Array(10).fill(0) as ResourceAmounts,
 			absoluteResourcesCount: 0,
 			maxDepth: 0,
 			timeEvents: 0,
@@ -686,24 +168,24 @@ export class Game {
 		this.initResources()
 		this.initScreenSize()
 		
-		this.shop = new Shop(document.querySelector(`.shop`), this)
-		this.splash = new Splash(this)
-		this.messenger = new Messenger(this)
+		this.shop = new Shop(document.querySelector(`.shop`) as HTMLDivElement, this as ConstructorParameters<typeof Shop>[1])
+		this.splash = new Splash(this as unknown as ConstructorParameters<typeof Splash>[0])
+		this.messenger = new Messenger(this as unknown as ConstructorParameters<typeof Messenger>[0])
 		this.steamAchievements = preload?.steamAchievements
-		this.achiever = new Achiever(this)
-		this.explainer = new Explainer(this,localStorage.getItem(`abstractv03_helpIsNeeded${this.steamId}`))
+		this.achiever = new Achiever(this as unknown as ConstructorParameters<typeof Achiever>[0])
+		this.explainer = new Explainer(this as ConstructorParameters<typeof Explainer>[0],localStorage.getItem(`abstractv03_helpIsNeeded${this.steamId}`))
 
 		if (!this.hasSteam) this.showSteamWarning()
 		this.setListeners()
 
 		this.updateLoop()
 		this.clock = new Worker(new URL('./clock.ts', import.meta.url))
-		this.clock.addEventListener(`message`, m=>{
+		this.clock.addEventListener(`message`, (m: MessageEvent<ClockWorkerTick>)=>{
 			this.updateLoop()
 		})
 		this.renderloop()
-		setTimeout( _=>this.saveLoop(), 10000)
-		setTimeout( _=>this.backupLoop(), 240000)
+		setTimeout( (_: unknown)=>this.saveLoop(), 10000)
+		setTimeout( (_: unknown)=>this.backupLoop(), 240000)
 
 		this.splash.show()
 
@@ -744,7 +226,7 @@ export class Game {
 
 			this.analytics.graphs.push({
 				canvas: canvas,
-				ctx: canvas.getContext(`2d`),
+				ctx: canvas.getContext(`2d`) as CanvasRenderingContext2D,
 				data: [],
 				max: 10
 			})
@@ -757,7 +239,7 @@ export class Game {
 
 		this.photofobia = !this.photofobia
 		this.splash.setPhotofobia(this.photofobia)
-		localStorage.setItem(`abstractv03_photofobia${this.steamId}`, this.photofobia)
+		localStorage.setItem(`abstractv03_photofobia${this.steamId}`, this.photofobia as unknown as string)
 
 	}
 
@@ -765,13 +247,13 @@ export class Game {
 
 		this.chillMode = !this.chillMode
 		this.splash.chill.classList.toggle(`active`)
-		localStorage.setItem(`abstractv03_chill${this.steamId}`, this.chillMode)
+		localStorage.setItem(`abstractv03_chill${this.steamId}`, this.chillMode as unknown as string)
 
 	}
 
-	preloadImages(){
+	preloadImages(): Record<string, HTMLImageElement | undefined> {
 		const list = this.codex.preload
-		const images = {}
+		const images: Record<string, HTMLImageElement> = {}
 		for (let i = 0; i < list.length; i++){
 
 			const img = new Image()
@@ -793,13 +275,13 @@ export class Game {
 
 	}
 
-	initialLoad(save){
+	initialLoad(save: SaveSource){
 
 		if (save){
 			const cloud = this.decodeSave(save)
 			const local = this.decodeSave(localStorage.getItem(`abstractv03${this.steamId}`))
 
-			const loadSuccess = this.loadSave((!local && cloud) || (cloud?.timestamp > local?.timestamp) ? cloud : local)
+			const loadSuccess = this.loadSave((!local && cloud) || ((cloud as LoadableSaveState)?.timestamp as number) > ((local as LoadableSaveState)?.timestamp as number) ? cloud : local)
 			if (!loadSuccess) {
 				this.prepopulate()
 				this.splash.updateBackups()
@@ -831,22 +313,22 @@ export class Game {
 		}
 	}
 
-	updateSteamAchievement(id,v){
+	updateSteamAchievement(id: string, v: boolean){
 		this.spaceport?.send(`achieve`, id)
 	}
 
-	getMute(){
+	getMute(): boolean {
 		const mute = localStorage.getItem(`abstractv03_mute${this.steamId}`)
 		return mute === `true` ? true : false
 	}
 
-	getLanguageId(){
-		const id = +localStorage.getItem(`abstractv03_language${this.steamId}`)
+	getLanguageId(): number | null {
+		const id = +localStorage.getItem(`abstractv03_language${this.steamId}`)!
 		if (id && this.languages[id]) return id
 		return null
 	}
 
-	changeLanguage(id){
+	changeLanguage(id: number){
 		if (this.languages[id]){
 			this.languageId = id
 			this.language = this.languages[this.languageId]
@@ -861,7 +343,7 @@ export class Game {
 				this.stuff[i].initHint()
 			}
 
-			localStorage.setItem(`abstractv03_language${this.steamId}`, this.languageId)
+			localStorage.setItem(`abstractv03_language${this.steamId}`, this.languageId as unknown as string)
 		}
 	}
 
@@ -896,7 +378,7 @@ export class Game {
 		const eonly = abstract_getWords().en.credits
 		const l = this.language
 
-		const addLine = t => {
+		const addLine = (t: string) => {
 			const say = document.createElement(`p`)
 			say.innerHTML = t
 			this.creditPillar.appendChild(say)
@@ -904,7 +386,7 @@ export class Game {
 
 		this.halt = true
 		this.messenger.element.innerHTML = ``
-		setTimeout(_=>{this.lastDialogue = true}, 20000)
+		setTimeout((_: unknown)=>{this.lastDialogue = true}, 20000)
 
 		this.credits = document.createElement(`div`)
 		this.credits.classList.add(`credits`)
@@ -966,23 +448,23 @@ export class Game {
 		addLine(texts[29])
 		addLine(texts[30])
 
-		this.creditImage.style.opacity = 1
+		this.creditImage.style.opacity = 1 as unknown as string
 		this.creditImage.play()
 
 		this.creditImage.addEventListener(`ended`,_=>{
 			this.creditImage.style.transition = `opacity 48s ease`
-			this.creditImage.style.opacity = 0
+			this.creditImage.style.opacity = 0 as unknown as string
 		})
 
 		const speed = .02
 		let scrollAmount = -1000
 		let lt = performance.now()
-		let finalChord = false
-		const scrollDown = p=>{
+		let finalChord: HTMLDivElement | false = false
+		const scrollDown = (p: HTMLDivElement)=>{
 
 			const edge = p.getBoundingClientRect().bottom < 0
 
-			if (!edge) requestAnimationFrame(_=>{scrollDown(p)})
+			if (!edge) requestAnimationFrame((_: number)=>{scrollDown(p)})
 
 			const now = performance.now()
 			const dt = now - lt
@@ -995,11 +477,11 @@ export class Game {
 				finalChord = document.createElement(`div`)
 				finalChord.classList.add(`finalChord`)
 				finalChord.innerHTML = `<span>T-1</span>`
-				this.credits.append(finalChord)
-				finalChord.onclick = _=>{
+				this.credits!.append(finalChord)
+				finalChord.onclick = (_: MouseEvent)=>{
 					location.reload()
 				}
-				setTimeout(_=>{finalChord.style.opacity = 1},640)
+				setTimeout((_: unknown)=>{(finalChord as HTMLDivElement).style.opacity = 1 as unknown as string},640)
 			}
 
 		}
@@ -1017,7 +499,7 @@ export class Game {
 		}
 	}
 
-	switchPlane(p){
+	switchPlane(p: number){
 
 		if (this.plane !== p){
 			this.shop.switchPlane(p)
@@ -1034,12 +516,12 @@ export class Game {
 		if (!this.chasm) return false
 
 		const key = this.chasm.chasmNetwork
-		const silos = []
-		const automatedStuff = new Set()
-		const auxes = new Set()
-		const pumps = new Set()
-		const mapTiles = new Set()
-		const pumpZones = []
+		const silos: Silo[] = []
+		const automatedStuff = new Set<GameEntity>()
+		const auxes = new Set<Auxpump | Auxpump2>()
+		const pumps = new Set<Pump>()
+		const mapTiles = new Set<string>()
+		const pumpZones: Array<{ pump: Pump; speed: number; uvs: Vec2[] }> = []
 
 		//Get all connected silos
 		for (let i = 0; i < this.stuff.length; i++){
@@ -1059,8 +541,8 @@ export class Game {
 
 			for (let j = 0; j < m.length; j++){
 
-				if (m[j] && m[j] instanceof Auxpump) auxes.add(m[j])
-				if (m[j] && !(m[j] instanceof Cube)) automatedStuff.add(m[j])
+				if (m[j] && m[j] instanceof Auxpump) auxes.add(m[j] as Auxpump)
+				if (m[j] && !(m[j] instanceof Cube)) automatedStuff.add(m[j] as GameEntity)
 
 			}
 
@@ -1071,7 +553,7 @@ export class Game {
 
 			for (let i = 0; i < a.soi.length; i++){
 
-				const uv = [a.position[0] + a.soi[i][0], a.position[1] + a.soi[i][1]]
+				const uv: Vec2 = [a.position[0] + a.soi[i][0], a.position[1] + a.soi[i][1]]
 				const entity = this.entityAtCoordinates(uv)
 				if (entity instanceof Pump) pumps.add(entity)
 
@@ -1089,14 +571,14 @@ export class Game {
 			let auxMult = .25
 			for (let i = 0; i < p.auxes.length; i++){
 
-				if (auxes.has(p.auxes[i]) && p.auxes[i] instanceof Auxpump2){
+				if (auxes.has(p.auxes[i] as Auxpump | Auxpump2) && p.auxes[i] instanceof Auxpump2){
 					auxMult = 1
 					break
 				}
 
 			}
 
-			const zone = {
+			const zone: { pump: Pump; speed: number; uvs: Vec2[] } = {
 				pump: p,
 				speed: p.pumpSpeed * (1 + auxMult),
 				uvs: []
@@ -1104,7 +586,7 @@ export class Game {
 
 			for (let i = 0; i < range.length; i++){
 
-				const uv = [p.position[0] + range[i][0], p.position[1] + range[i][1]]
+				const uv: Vec2 = [p.position[0] + range[i][0], p.position[1] + range[i][1]]
 				const uvString = `u${uv[0]}v${uv[1]}`
 				const entity = this.entityAtCoordinates(uv)
 
@@ -1120,7 +602,7 @@ export class Game {
 		}
 
 		//Check for bonuses and breakers for each spot
-		const soi = [[0,-1], [1,-1],[1,0],[1,1],[0,1],[-1,1],[-1,0],[-1,-1]]
+		const soi: Vec2[] = [[0,-1], [1,-1],[1,0],[1,1],[0,1],[-1,1],[-1,0],[-1,-1]]
 		for (let i = 0; i < pumpZones.length; i++){
 
 			const pz = pumpZones[i]
@@ -1139,10 +621,10 @@ export class Game {
 					const entity = this.entityAtCoordinates( [c[0] + soi[k][0], c[1] + soi[k][1]] )
 					if (!entity || !automatedStuff.has(entity)) continue
 					if (entity instanceof Entropic2a) {
-						initialPower += entity.power
-					} else if (entity instanceof Entropic) {
-						initialPower += entity.power
-						powerRate += entity.power / entity.interval
+					initialPower += entity.power as number
+				} else if (entity instanceof Entropic) {
+					initialPower += entity.power as number
+					powerRate += (entity.power as number) / entity.interval
 					}
 
 				}
@@ -1162,14 +644,14 @@ export class Game {
 
 	initResources(){
 
-		this.resources = new Array(10).fill(0)
+		this.resources = new Array(10).fill(0) as ResourceAmounts
 		this.resourcePops = new Array(10).fill(0)
 		// this.preGradient = new Array(10).fill(0)
-		this.resourcesSprites = []
+		this.resourcesSprites = [] as unknown as Sprite[] & Record<string | number, Sprite>
 
 		for (let i = 0; i < this.codex.resources.length; i++){
 			this.resourcesSprites.push(new Sprite({
-				master: this,
+				master: this as EntityHost,
 				src: `img/resources.png`,
 				frames: [[i*108,0,104,120]],
 				origins: [52,60],
@@ -1198,7 +680,7 @@ export class Game {
 
 		if (!this.preventSaving){
 			const save = this.assembleSave(true)
-			await navigator.clipboard.writeText(save)
+			await navigator.clipboard.writeText(save as string)
 		}
 
 	}
@@ -1217,15 +699,15 @@ export class Game {
 
 	}
 
-	importSave(data){
+	importSave(data: EncodedSave | undefined){
 		
 		this.spaceport?.send(`save`, data)
-		localStorage.setItem(`abstractv03${this.steamId}`, data)
+		localStorage.setItem(`abstractv03${this.steamId}`, data as string)
 		location.reload()
 
 	}
 
-	loadSave( manual = this.decodeSave(localStorage.getItem(`abstractv03${this.steamId}`)) ){
+	loadSave( manual: LoadableSaveState | 0 = this.decodeSave(localStorage.getItem(`abstractv03${this.steamId}`)) ){
 
 		if (!manual) return false
 
@@ -1263,7 +745,7 @@ export class Game {
 			if (manual.glory) this.achiever.setState(this.steamAchievements || manual.glory)
 			if (manual.stats) {
 				for (let i in manual.stats)
-				this.stats[i] = manual.stats[i]
+				(this.stats as unknown as Record<string, unknown>)[i] = (manual.stats as unknown as Record<string, unknown>)[i]
 			}
 			if (manual.backups) this.backups = manual.backups
 			if (manual.existed?.pump2) this.stats.excavatorWasBuilt = true
@@ -1275,7 +757,7 @@ export class Game {
 				if (entity){
 					try{
 						for (let j in s.par){
-							if (s.par[j] !== `resources`) entity[j] = s.par[j]
+							if ((s.par[j as keyof SerializedEntityParams] as unknown) !== `resources`) (entity as unknown as Record<string, unknown>)[j] = s.par[j as keyof SerializedEntityParams]
 						}
 					} catch(e){console.log(s)}
 
@@ -1297,7 +779,7 @@ export class Game {
 
 	}
 
-	restoreBackup(n){
+	restoreBackup(n: number){
 
 		if (!this.backups[n]) return
 		const state = this.decodeSave(this.backups[n].data)
@@ -1314,18 +796,18 @@ export class Game {
 			const save = this.assembleSave(true)
 			this.backups.unshift({
 				timestamp: Date.now(),
-				data: save
+				data: save as EncodedSave
 			})
 			if (this.backups.length > 4) this.backups.pop()
 			this.splash.updateBackups()
 		}
-		setTimeout(_=>{this.backupLoop()}, 240000)
+		setTimeout((_: unknown)=>{this.backupLoop()}, 240000)
 
 	}
 
 	saveLoop(){
 
-		setTimeout(_=>{this.saveLoop()}, 10000)
+		setTimeout((_: unknown)=>{this.saveLoop()}, 10000)
 		this.saveGame()
 
 		//UPDATES
@@ -1350,16 +832,16 @@ export class Game {
 
 	saveGame(){
 		if (!this.preventSaving){
-			localStorage.setItem(`abstractv03_zoom${this.steamId}`, this.zoom)
+			localStorage.setItem(`abstractv03_zoom${this.steamId}`, this.zoom as unknown as string)
 			const save = this.assembleSave()
 			if (!this.preventCloud){
-				localStorage.setItem(`abstractv03${this.steamId}`, save)
+				localStorage.setItem(`abstractv03${this.steamId}`, save as string)
 				this.spaceport?.send(`save`, save)
 			}
 		}
 	}
 
-	assembleSave(backupless){
+	assembleSave(backupless?: boolean): EncodedSave | undefined {
 
 		const stuff = []
 		for (let i = 0; i < this.stuff.length; i++){
@@ -1395,18 +877,18 @@ export class Game {
 
 	}
 
-	decodeSave(s){
+	decodeSave(s: unknown): LoadableSaveState | 0 {
 		try {
-			const legacy = s.substring(0,8) === `{"stuff"`
-			const payload = legacy ? s : atob(s)
-			return JSON.parse(payload)
+			const legacy = (s as string).substring(0,8) === `{"stuff"`
+			const payload = legacy ? s as string : atob(s as string)
+			return JSON.parse(payload) as LoadableSaveState
 		} catch(e){
 			console.log(`I cant load most brobably because you have something weird in your clipboard. Gimme a save!`)
 			return 0
 		}
 	}
 
-	encodeSave(s){
+	encodeSave(s: string): EncodedSave | undefined {
 		try {
 			return btoa(s)
 		} catch(e){
@@ -1415,11 +897,11 @@ export class Game {
 		
 	}
 
-	getEntityString(e){
+	getEntityString(e: GameEntity): SerializedEntity | undefined {
 
 		if (!e.name || e.name === `cube` && e.state !== 2) return
 
-		const par = {}
+		const par = {} as SerializedEntityParams
 		if (e.name === `pump` || e.name === `pump2`) par.depth = e.depth
 		if (e.name === `pump2`) par.timeStamp = 0
 		if (e.fill !== undefined) par.fill = e.fill
@@ -1432,7 +914,7 @@ export class Game {
 		if (e.order !== undefined) par.order = e.order
 		if (e.soul !== undefined) par.soul = e.soul
 		if (e.grade !== undefined) {
-			par.grade = e.grade
+			par.grade = e.grade as 0 | 1 | 2
 			par.type = e.type
 			par.rayNumber = e.rayNumber
 			par.colors = e.colors
@@ -1448,7 +930,7 @@ export class Game {
 		return {name: e.name, position: e.position, par: par}
 	}
 
-	addWaypoint(e, o){
+	addWaypoint(e: GameEntity, o?: number){
 
 		if (o === undefined){
 			o = this.waypointList.length
@@ -1478,14 +960,14 @@ export class Game {
 
 	}
 
-	removeWaypoint(e){
+	removeWaypoint(e: GameEntity){
 
 		let reduce = false
 
 		for (let i = 0; i < this.waypointList.length; i++){
 
 			if (reduce){
-				this.waypointList[i].order--
+				this.waypointList[i]!.order--
 			} else {
 				if (e === this.waypointList[i]){
 
@@ -1500,7 +982,7 @@ export class Game {
 
 	}
 
-	useWaypoint(e){
+	useWaypoint(e: GameEntity){
 
 		for (let i = 0; i < this.waypointList.length; i++){
 
@@ -1508,7 +990,7 @@ export class Game {
 
 				const next = this.waypointList[(i+1)%this.waypointList.length]
 
-				const delta = this.uvToXY(next.position)
+				const delta = this.uvToXY(next!.position)
 				this.translation[0] += delta[0] / this.zoom
 				this.translation[1] += delta[1] / this.zoom
 
@@ -1529,7 +1011,7 @@ export class Game {
 
 	}
 
-	mute(on){
+	mute(on: boolean){
 
 		if (on){
 			this.fadeSound(0)
@@ -1541,7 +1023,7 @@ export class Game {
 
 	}
 
-	updateEraserType(t){
+	updateEraserType(t: 0 | 1 | 2){
 		this.eraserType = t
 		this.shop.check()
 	}
@@ -1551,10 +1033,10 @@ export class Game {
 		this.glcanvas = document.createElement(`canvas`)
 		this.glcanvas.width = this.w
 		this.glcanvas.height = this.h
-		const gl = this.gl = this.glcanvas.getContext(`webgl2`, {premultipliedAlpha: false})
+		const gl = this.gl = this.glcanvas.getContext(`webgl2`, {premultipliedAlpha: false}) as WebGL2RenderingContext
 
 		//Vertex Shader
-		const vshader = gl.createShader(gl.VERTEX_SHADER)
+		const vshader = gl.createShader(gl.VERTEX_SHADER)!
 		gl.shaderSource(vshader, 
 			`#version 300 es 
 			in vec2 a_position;
@@ -1566,10 +1048,10 @@ export class Game {
 				v_texcoord = a_texcoord;
 			}`)
 		gl.compileShader(vshader)
-		if (!gl.getShaderParameter(vshader, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(vshader))
+		if (!gl.getShaderParameter(vshader, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(vshader) as string)
 
 		//Fragment Shader
-		const fshader = gl.createShader(gl.FRAGMENT_SHADER)
+		const fshader = gl.createShader(gl.FRAGMENT_SHADER)!
 		gl.shaderSource(fshader, 
 			`#version 300 es
 
@@ -1584,23 +1066,23 @@ export class Game {
 				pixelColor = color; //vec4(v_texcoord, 0., 1.);
 			}`)
 		gl.compileShader(fshader)
-		if (!gl.getShaderParameter(fshader, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(fshader))
+		if (!gl.getShaderParameter(fshader, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(fshader) as string)
 
 		//Program
-		const program = gl.createProgram()
+		const program = gl.createProgram()!
 		gl.attachShader(program, vshader)
 		gl.attachShader(program, fshader)
 		gl.linkProgram(program)
 		if (gl.getProgramParameter(program, gl.LINK_STATUS)){
 			gl.useProgram(program)
 		} else {
-			throw new Error(gl.getProgramInfoLog(program))
+			throw new Error(gl.getProgramInfoLog(program) as string)
 		}
 		
 		this.glStuff = {
 			gl: gl,
 			textures: {}
-		}
+		} as GlState
 
 		this.glStuff.pal = gl.getAttribLocation(program, `a_position`)
 		gl.enableVertexAttribArray(this.glStuff.pal)
@@ -1616,33 +1098,33 @@ export class Game {
 
 	}
 
-	getLoudnessFromXY(xy){
+	getLoudnessFromXY(xy: Vec2){
 		const distance = Math.max(Math.abs(xy[0] - this.w2), Math.abs(xy[1] - this.h2)) / this.w / 2
 		return Math.max(0, 1 - distance)
 	}
 
-	getPanValueFromX(x){
+	getPanValueFromX(x: number){
 		return Math.min(Math.max(-1, x / this.w * 2 - 1), 1)
 	}
 
-	pickupItem(name){
+	pickupItem(name: string){
 
 		if (name === `eraser` || name === `eraser2` || name === `eraser3`){
-			this.itemInHand = {name: name, eraser: true}
+			this.itemInHand = {name: name, eraser: true} as HeldItem
 		} else {
-			this.itemInHand = new this.codex.entities[name].class(this)
+			this.itemInHand = new this.codex.entities[name].class!(this as EntityHost) as HeldItem
 		}
 
 		delete this.transportedEntity
 
 		if (!this.itemInHand.eraser){
-			this.itemInHandPriceTag = new Cloud(this)
+			this.itemInHandPriceTag = new Cloud(this as ConstructorParameters<typeof Cloud>[0])
 			this.itemInHandPriceTag.addResourceList(this.getRealPrice(this.itemInHand.name))
 		}
 
 	}
 
-	requestResources(r,d,f,skip){
+	requestResources(r: number[], d: Vec2, f?: ((resources?: number[]) => void) | false, skip?: boolean){
 
 		let good = true
 		
@@ -1658,7 +1140,7 @@ export class Game {
 		if (good) {
 
 			this.substractResourcesFromArray(r,skip)
-			this.createResourceTransfer(r, false, this.uvToXYUntranslated(d), f ? f : _=>{}, undefined, skip)
+			this.createResourceTransfer(r, false, this.uvToXYUntranslated(d), f ? f as EffectCompletion : (_: unknown)=>{}, undefined, skip)
 			return true
 		}
 
@@ -1666,9 +1148,9 @@ export class Game {
 
 	}
 
-	askForResources(r,d,f,skip){
+	askForResources(r: number[], d: Vec2, f?: ((resources: number[]) => void) | false, skip?: boolean){
 
-		const response = []
+		const response: number[] = []
 		
 		for (let i = 0; i < r.length; i++){
 
@@ -1679,7 +1161,7 @@ export class Game {
 		}
 
 		this.substractResourcesFromArray(response,skip)
-		this.createResourceTransfer(response, false, this.uvToXYUntranslated(d), f ? _=>{f(response)} : _=>{}, undefined, skip)
+		this.createResourceTransfer(response, false, this.uvToXYUntranslated(d), f ? (_: unknown)=>{f(response)} : (_: unknown)=>{}, undefined, skip)
 		return true
 
 	}
@@ -1705,11 +1187,11 @@ export class Game {
 		v = Math.max(0, Math.min(1, v))
 		this.globalSoundVolume = v
 		if (this.splash.soundSlider) this.splash.soundSlider.style.width = 100 * v + `%`
-		localStorage.setItem(`abstractv03_globalSoundVolume${this.steamId}`, v)
+		localStorage.setItem(`abstractv03_globalSoundVolume${this.steamId}`, v as unknown as string)
 
 	}
 
-	fadeSound(v){
+	fadeSound(v: number){
 		if (this.actx){
 			this.sfx.master.gain.cancelScheduledValues(this.actx.currentTime)
 			this.sfx.master.gain.linearRampToValueAtTime(.001 + this.globalSoundVolume * v, this.actx.currentTime + 1)
@@ -1773,7 +1255,7 @@ export class Game {
 
 		}
 
-		function check(sfx){
+		function check(sfx: SoundState){
 			counter++
 			if (counter >= samples.length) sfx.ready = true;
 		}
@@ -1781,7 +1263,7 @@ export class Game {
 		
 	}
 
-	startSound(id, panning, loudness){
+	startSound(id: string | number, panning?: number, loudness?: number): PlayingSound | false {
 		if (this.sfx?.ready){
 			if (loudness === undefined) loudness = 1
 			const source = this.actx.createBufferSource()
@@ -1804,27 +1286,27 @@ export class Game {
 		return false
 	}
 
-	stopSound(sfx, t){
+	stopSound(sfx: unknown, t?: number){
 		if (this.sfx?.ready && sfx){
-			sfx.volume.gain.exponentialRampToValueAtTime(.01, this.actx.currentTime + (t || 1))
-			sfx.source.stop(this.actx.currentTime + (t || 1))
+			;(sfx as PlayingSound).volume.gain.exponentialRampToValueAtTime(.01, this.actx.currentTime + (t || 1))
+			;(sfx as PlayingSound).source.stop(this.actx.currentTime + (t || 1))
 			// this.sfx.stackSize = Math.max(0, this.sfx.stackSize - 1)
 		}
 	}
 
-	setLoudnessToSFX(sfx, l){
+	setLoudnessToSFX(sfx: unknown, l: number){
 		if (this.sfx?.ready && sfx){
-			sfx.volume.gain.value = sfx.baseVolume * l
+			(sfx as PlayingSound).volume.gain.value = (sfx as PlayingSound).baseVolume * l
 		}
 	}
 
-	setPanToSFX(sfx, p){
+	setPanToSFX(sfx: unknown, p: number){
 		if (this.sfx?.ready && sfx){
-			sfx.pan.pan.value = p
+			(sfx as PlayingSound).pan.pan.value = p
 		}
 	}
 
-	playSound(id, panning, loudness, dark, forced){
+	playSound(id: string | number, panning?: number, loudness?: number, dark?: boolean, forced?: boolean){
 
 		if (this.sfx?.ready && (this.sfx.stackSize < 128 || forced)){
 			loudness = (loudness === undefined ? 1 : loudness)
@@ -1863,14 +1345,14 @@ export class Game {
 			// 	}
 			// 	this.sfx.stackSize = Math.max(0, this.sfx.stackSize - 1)
 			// }
-			setTimeout(_=>{this.sfx.stackSize = Math.max(0, this.sfx.stackSize - 1)}, (this.sfx.samples[id].duration || source.buffer.duration) * 1000)
+			setTimeout((_: unknown)=>{this.sfx.stackSize = Math.max(0, this.sfx.stackSize - 1)}, (this.sfx.samples[id].duration || source.buffer!.duration) * 1000)
 			source.start(this.actx.currentTime)
-			source.stop(this.actx.currentTime + (this.sfx.samples[id].duration || source.buffer.duration))
+			source.stop(this.actx.currentTime + (this.sfx.samples[id].duration || source.buffer!.duration))
 		}
 
 	}
 
-	getRealPrice(name, sale){
+	getRealPrice(name: string, sale?: boolean){
 
 		// if (price[i]) this.resources[i] += Math.floor(price[i] * (this.eraserType === 2 ? 1 : this.eraserType === 1 ? .9 : .5))
 
@@ -1886,7 +1368,7 @@ export class Game {
 	}
 
 
-	canAfford(name){
+	canAfford(name: string){
 
 		let can = true
 		const price = this.getRealPrice(name)
@@ -1906,13 +1388,13 @@ export class Game {
 
 	}
 
-	clearCell(uv){
+	clearCell(uv: Vec2){
 		const entity = this.entityAtCoordinates(uv)
 		if (!entity) return
 		if (entity.onDelete) entity.onDelete()
 		const n = entity.getNeighbours()
 
-		this.entitiesInGame[entity.name]--
+		this.entitiesInGame[entity.name]!--
 		this.shop.updateElements()
 
 		if (!entity.entitySpan) {
@@ -1936,12 +1418,12 @@ export class Game {
 		}
 
 		for (let i = 0; i < n.length; i++){
-			if (n[i]) n[i].init()
+			if (n[i]) n[i]!.init()
 		}
 
 	}
 
-	updateMouseData(x,y){
+	updateMouseData(x: number, y: number){
 
 		this.mouse.offsetxy[0] = x
 		this.mouse.offsetxy[1] = y
@@ -1955,18 +1437,18 @@ export class Game {
 
 	}
 
-	processMousemove(e, dxy){
+	processMousemove(e?: PointerInput, dxy?: Vec2){
 
 		const x = e?.offsetX || e?.clientX
 		const y = e?.offsetY || e?.clientY
 
 		if (e){
 
-			this.updateMouseData(x,y)
+			this.updateMouseData(x as number,y as number)
 
 			if (e.buttons === 2) {
-				this.translation[0] -= e.movementX * this.pixelRatio / this.zoom
-				this.translation[1] -= e.movementY * this.pixelRatio / this.zoom
+				this.translation[0] -= (e.movementX as number) * this.pixelRatio / this.zoom
+				this.translation[1] -= (e.movementY as number) * this.pixelRatio / this.zoom
 			} else if (e.buttons === 1 && this.hoveredEntity) {
 
 				//DragFill
@@ -1986,7 +1468,7 @@ export class Game {
 		}
 
 		const uv = this.xyToUV([this.mouse.offsetxy[0], this.mouse.offsetxy[1]])
-		const targetCell = [Math.floor(uv[0]), Math.floor(uv[1])]
+		const targetCell: Vec2 = [Math.floor(uv[0]), Math.floor(uv[1])]
 		this.hoveredCell = targetCell
 		this.hoveredEntity = this.entityAtCoordinates(this.hoveredCell)
 
@@ -2016,8 +1498,8 @@ export class Game {
 
 	}
 
-	processMousedown(e){
-		if (e?.buttons !== 2){
+	processMousedown(e?: unknown){
+		if ((e as { buttons?: number } | undefined)?.buttons !== 2){
 
 			this.mouse.state = 1
 
@@ -2073,19 +1555,19 @@ export class Game {
 		if (this.entitiesInGame.mega3 > 0 && this.resources[4] >= 1 && this.hoveredEntity && this.canRelocate(this.hoveredEntity) && !this.plane && !this.entitiesInGame.pinhole){
 			
 			this.transportedEntity = this.hoveredEntity
-			this.itemInHand = new this.codex.entities[this.hoveredEntity.name].class(this)
+			this.itemInHand = new this.codex.entities[this.hoveredEntity.name].class!(this as EntityHost) as HeldItem
 			delete this.itemInHandPriceTag
 
 		}
 
 	}
 
-	canRelocate(e){
+	canRelocate(e: GameEntity | false | undefined){
 		if (!e || !e.name) return false
 		return (this.codex.entities[e.name].canPurchase || e.name === `stabilizer3`) && !(e.name === `flower` || e.name === `fruit` || e.name === `strange1` || e.name === `strange2` || e.name === `strange3` || e.name === `pump` || e.name === `pump2` || e.name === `cube`)
 	}
 
-	relocate(e,p){
+	relocate(e: GameEntity, p: Vec2){
 
 		const n = e.getNeighbours()
 		const targetEntity = this.entityAtCoordinates(p)
@@ -2118,7 +1600,7 @@ export class Game {
 		//swap
 		if (targetEntity) {
 			this.stuffMap[`u${e.position[0]}v${e.position[1]}`] = targetEntity
-			targetEntity.setPosition([...e.position])
+			targetEntity.setPosition([...e.position] as Vec2)
 		}
 		
 		e.setPosition(p)
@@ -2136,7 +1618,7 @@ export class Game {
 
 		//update previous neighbours
 		for (let i = 0; i < n.length; i++){
-			if (n[i]) n[i].init()
+			if (n[i]) n[i]!.init()
 		}
 
 	}
@@ -2152,8 +1634,8 @@ export class Game {
 		if (this.transportedEntity && this.hoveredCell && this.resources[4] >= 1){
 
 			//Relocation
-			this.requestResources([0,0,0,0,1], this.hoveredCell, false, true)
-			this.relocate(this.transportedEntity, this.hoveredCell)
+			this.requestResources([0,0,0,0,1], this.hoveredCell as Vec2, false, true)
+			this.relocate(this.transportedEntity!, this.hoveredCell as Vec2)
 			delete this.transportedEntity
 			delete this.itemInHand
 
@@ -2161,24 +1643,24 @@ export class Game {
 			// const entityHere = this.entityAtCoordinates(this.hoveredCell)
 
 			//Just your regular item placement
-			if (!this.hoveredEntity && !this.itemInHand.eraser && !this.codex.entities[this.itemInHand.name].isUpgradeTo){
+			if (!this.hoveredEntity && !this.itemInHand!.eraser && !this.codex.entities[this.itemInHand!.name].isUpgradeTo){
 
-				const price = this.getRealPrice(this.itemInHand.name)
+				const price = this.getRealPrice(this.itemInHand!.name)
 
-				this.requestResources(price, this.hoveredCell, false, true)
+				this.requestResources(price, this.hoveredCell as Vec2, false, true)
 
-				this.addEntity(this.itemInHand.name, this.hoveredCell)
+				this.addEntity(this.itemInHand!.name, this.hoveredCell as Vec2)
 				this.stats.machinesBuild++
 				this.processMousemove()
 
-				if (this.codex.entities[this.itemInHand.name].onlyone){
-					this.onlyones[this.itemInHand.name] = true
+				if (this.codex.entities[this.itemInHand!.name].onlyone){
+					this.onlyones[this.itemInHand!.name] = true
 					this.shop.check()
 					delete this.itemInHand
-				} else if (!this.canAfford(this.itemInHand?.name)){
+				} else if (!this.canAfford(this.itemInHand?.name as string)){
 					delete this.itemInHand
 				} else {
-					this.pickupItem(this.itemInHand.name)
+					this.pickupItem(this.itemInHand!.name)
 				}
 				
 				// console.log(this.itemInHand)
@@ -2190,11 +1672,11 @@ export class Game {
 				// delete this.hoveredCell
 
 			//Erasing
-			} else if (this.hoveredEntity && this.itemInHand.eraser && !(this.hoveredEntity instanceof Cube) && !this.hoveredEntity.indestructible){
+			} else if (this.hoveredEntity && this.itemInHand!.eraser && !(this.hoveredEntity instanceof Cube) && !this.hoveredEntity.indestructible){
 
 				//REFUND
 				const price = this.getRealPrice(this.hoveredEntity.name, true)
-				const xy = this.uvToXYUntranslated(this.hoveredCell)
+				const xy = this.uvToXYUntranslated(this.hoveredCell as Vec2)
 
 				if (this.codex.entities[this.hoveredEntity.name].onlyone){
 
@@ -2205,7 +1687,7 @@ export class Game {
 					}
 
 					if (this.codex.entities[this.hoveredEntity.name].isUpgradeTo){
-						delete this.onlyones[this.codex.entities[this.hoveredEntity.name].isUpgradeTo]
+						delete this.onlyones[this.codex.entities[this.hoveredEntity.name].isUpgradeTo as string]
 					}
 
 					delete this.onlyones[this.hoveredEntity.name]
@@ -2214,37 +1696,37 @@ export class Game {
 
 				this.createResourceTransfer(price, xy, undefined, undefined, undefined, true)
 
-				this.requestResources(this.getRealPrice(this.itemInHand.name), this.hoveredCell, false, true) //just the cost of erasing
-				this.clearCell(this.hoveredCell)
+				this.requestResources(this.getRealPrice(this.itemInHand!.name), this.hoveredCell as Vec2, false, true) //just the cost of erasing
+				this.clearCell(this.hoveredCell as Vec2)
 				this.stats.machinesSold++
 				this.stats.timeSinceLastDelete = 0
 				this.hoveredEntity = undefined
 
 			//Upgrading
-			} else if (this.hoveredEntity && !this.itemInHand.eraser && this.codex.entities[this.itemInHand.name]?.isUpgradeTo === this.hoveredEntity.name){
+			} else if (this.hoveredEntity && !this.itemInHand!.eraser && this.codex.entities[this.itemInHand!.name]?.isUpgradeTo === this.hoveredEntity.name){
 
-				if (this.itemInHand.name === `pinhole`){
+				if (this.itemInHand!.name === `pinhole`){
 					this.saveGame()
 					this.preventSaving = true
 				}
 				
-				this.clearCell(this.hoveredCell)
+				this.clearCell(this.hoveredCell as Vec2)
 				this.stats.timeSinceLastDelete = 0
 
-				const price = this.getRealPrice(this.itemInHand.name)
+				const price = this.getRealPrice(this.itemInHand!.name)
 				const refund = this.getRealPrice(this.hoveredEntity.name)
 				
-				this.createResourceTransfer(refund, this.uvToXYUntranslated(this.hoveredCell), undefined, undefined, undefined, true)
-				this.requestResources(price, this.hoveredCell, _=>{}, true)
-				this.addEntity(this.itemInHand.name, this.hoveredEntity.position)
+				this.createResourceTransfer(refund, this.uvToXYUntranslated(this.hoveredCell as Vec2), undefined, undefined, undefined, true)
+				this.requestResources(price, this.hoveredCell as Vec2, _=>{}, true)
+				this.addEntity(this.itemInHand!.name, this.hoveredEntity.position)
 				this.stats.machinesBuild++
-				if (this.codex.entities[this.itemInHand.name].onlyone) {
-					this.onlyones[this.itemInHand.name] = true
+				if (this.codex.entities[this.itemInHand!.name].onlyone) {
+					this.onlyones[this.itemInHand!.name] = true
 					delete this.itemInHand
-				} else if (!this.canAfford(this.itemInHand?.name)){
+				} else if (!this.canAfford(this.itemInHand?.name as string)){
 					delete this.itemInHand
 				} else {
-					this.pickupItem(this.itemInHand.name) // to update the price
+					this.pickupItem(this.itemInHand!.name) // to update the price
 				}
 				this.shop.check()
 				// delete this.hoveredCell
@@ -2280,7 +1762,7 @@ export class Game {
 		this.removeHint()
 	}
 
-	zoomInOut(delta){
+	zoomInOut(delta: number){
 
 		this.zoom = Math.min(this.zoomRange[1], Math.max(this.zoomRange[0], this.zoom + delta * this.time.realDt * .0002))
 
@@ -2342,7 +1824,7 @@ export class Game {
 			this.doOnFocus()
 		})
 
-		addEventListener(`keydown`, e=>{
+		addEventListener(`keydown`, (e: KeyboardEvent)=>{
 
 			this.gamepadControl = false
 			this.thereWasZoomAction = true
@@ -2382,7 +1864,7 @@ export class Game {
 			}
 
 		})
-		addEventListener(`keyup`, e=>{
+		addEventListener(`keyup`, (e: KeyboardEvent)=>{
 			if (e.keyCode === 87 || e.keyCode === 38){
 				this.translationMap[0] = 0
 				if (this.keyboardMovementHappening === 87) delete this.keyboardMovementHappening
@@ -2440,7 +1922,7 @@ export class Game {
 		this.canvas.addEventListener(`touchmove`, e=>{
 			if (e.target === this.canvas) e.preventDefault()
 			if (e.touches.length === 2){
-				const delta = [
+			const delta: Vec2 = [
 					(e.touches[0].clientX - this.mouse.lastTouch[0]) * this.pixelRatio,
 					(e.touches[0].clientY - this.mouse.lastTouch[1]) * this.pixelRatio,
 				]
@@ -2486,18 +1968,18 @@ export class Game {
 
 				if (!this.thereWasZoomAction) this.thereWasZoomAction = true
 
-				const delta = [
-					e.wheelDeltaX * (this.isWindows ? .2 : .5),
-					e.wheelDeltaY * (this.isWindows ? .2 : .5)
+				const delta: Vec2 = [
+					(e as WheelEvent & { wheelDeltaX: number }).wheelDeltaX * (this.isWindows ? .2 : .5),
+					(e as WheelEvent & { wheelDeltaY: number }).wheelDeltaY * (this.isWindows ? .2 : .5)
 				]
 
 				this.zoomInOut(Math.abs(delta[1]) > Math.abs(delta[0]) ? delta[1] : delta[0])
 
 			} else {
 
-				const delta = [
-					e.wheelDeltaX * (this.isWindows ? .2 : .5) / this.zoom,
-					e.wheelDeltaY * (this.isWindows ? .2 : .5) / this.zoom
+				const delta: Vec2 = [
+					(e as WheelEvent & { wheelDeltaX: number }).wheelDeltaX * (this.isWindows ? .2 : .5) / this.zoom,
+					(e as WheelEvent & { wheelDeltaY: number }).wheelDeltaY * (this.isWindows ? .2 : .5) / this.zoom
 				]
 
 				this.processMousemove(e, delta)
@@ -2508,17 +1990,17 @@ export class Game {
 
 	}
 
-	getHitCoordinates(xy){
+	getHitCoordinates(xy: Vec2): Vec2 {
 		return [(xy[0] * this.pixelRatio - this.w2 + this.translation[0]) / this.unit, (xy[1] * this.pixelRatio - this.h2 + this.translation[1]) / this.unit]
 	}
 
-	checkHitBox(uv, hb){
+	checkHitBox(uv: Vec2, hb: [number, number, number, number]){
 
 		if (uv[0] > hb[0] && uv[0] < hb[2] && uv[1] > hb[1] && uv[1] < hb[3]) return true
 		return false
 	}
 
-	updateAnalytics(dt){
+	updateAnalytics(dt: number){
 
 		const a = this.analytics
 
@@ -2580,7 +2062,7 @@ export class Game {
 		}
 
 		//Ingame updates
-		this.currentlyExtracting = false
+		this.currentlyExtracting = false as unknown as number
 		this.updateSlowdownEvent()
 		this.updateUnfilled(this.time.dt)
 		this.updateEntities(this.time.dt)
@@ -2596,7 +2078,7 @@ export class Game {
 		this.updateAnalytics(this.time.dt)
 
 		if (this.entitiesInGame.pinhole > 0){
-			this.resources = new Array(10).fill(.01)
+			this.resources = new Array(10).fill(.01) as ResourceAmounts
 		}
 
 		this.clock?.postMessage(true)
@@ -2617,7 +2099,7 @@ export class Game {
 	// 	}
 	// }
 
-	updateAutoClicker(dt){
+	updateAutoClicker(dt: number){
 
 		if (!this.mouse.automate || !this.mouse.state || !this.hoveredEntity || !(this.hoveredEntity instanceof Cube || this.hoveredEntity instanceof Hollow)) return
 		//cube, hollow cube
@@ -2632,7 +2114,7 @@ export class Game {
 
 	}
 
-	updateGamepad(dt){
+	updateGamepad(dt: number){
 
 		const gamepad = navigator.getGamepads()[0]
 		if (!gamepad || gamepad.id.toLowerCase().includes("wheel") || gamepad.id.toLowerCase().includes("driving")) return
@@ -2677,13 +2159,13 @@ export class Game {
 		}
 		
 		//Main action
-		const mainAction = v=>{
+		const mainAction = (v: number | boolean)=>{
 			if (this.splash.isShown){
 				if (v) {
-					if (this.splash.selected && this.splash.items[this.splash.selectedId].onmousedown) this.splash.items[this.splash.selectedId].onmousedown()
+					if (this.splash.selected && this.splash.items[this.splash.selectedId].onmousedown) (this.splash.items[this.splash.selectedId].onmousedown as (() => unknown))()
 					if (this.splash.selected) this.splash.items[this.splash.selectedId].click()
 				} else {
-					if (this.splash.selected && this.splash.items[this.splash.selectedId].onmouseup) this.splash.items[this.splash.selectedId].onmouseup()
+					if (this.splash.selected && this.splash.items[this.splash.selectedId].onmouseup) (this.splash.items[this.splash.selectedId].onmouseup as (() => unknown))()
 				}
 			} else if (this.shop.selected){
 				const id = this.shop.items[this.shop.selectedId].name
@@ -2704,7 +2186,7 @@ export class Game {
 			}
 		}
 
-		const isValidButton = (id,prop=`value`) => gamepad.buttons[id] && gamepad.buttons[id][prop] !== undefined && gamepad.buttons[id][prop] !== this.gamepadButtons[id]
+		const isValidButton = (id: number, prop: keyof GamepadButton = `value`) => gamepad.buttons[id] && gamepad.buttons[id][prop] !== undefined && gamepad.buttons[id][prop] !== this.gamepadButtons[id]
 
 		// console.log(this.shop.selected)
 
@@ -2851,7 +2333,7 @@ export class Game {
 		const resourceBuffer = [...this.resources]
 		this.rateMeasureMode = true
 
-		setTimeout(_=>{
+		setTimeout((_: unknown)=>{
 
 			const delta = this.resources.map((v,i)=>v-resourceBuffer[i])
 			const resourceRates = delta.map(v=>v/timeWindow*100) //Change in resources per second
@@ -2897,7 +2379,7 @@ export class Game {
 				const dice = Math.random()
 				const power = (dice < .1 && hollows > 8) ? .02 : dice < .3 ? .1 : dice < .7 ? .5 : 2
 
-				const time = (10000 + Math.random() * 10000 * hollows) * (power === .01 ? .5 : 1)
+			const time = (10000 + Math.random() * 10000 * hollows) * ((power as number) === .01 ? .5 : 1)
 
 				// const fast = Math.random() < .333
 				// const veryslow = hollows > 8 && fast && (Math.random() < .333)
@@ -2916,7 +2398,7 @@ export class Game {
 
 	}
 
-	updateResourceInteractions(dt){
+	updateResourceInteractions(dt: number){
 
 		//Halflife
 		if (this.resources[5]){
@@ -2936,7 +2418,7 @@ export class Game {
 			// 	[1, n=>[0,64*n]]
 			// ]
 
-			const outcomes = this.generaldecay ? [[.5, n=>[0,0,0,0,4*n]],[.8, n=>[0,0,0,16*n]],[.93, n=>[0,0,32*n]],[1, n=>[0,64*n]]] : [[.5, n=>[0,0,0,0,2*n]],[.85, n=>[0,0,0,8*n]],[.97, n=>[0,0,16*n]],[1, n=>[0,32*n]]]
+			const outcomes: Array<[number, (n: number) => number[]]> = this.generaldecay ? [[.5, n=>[0,0,0,0,4*n]],[.8, n=>[0,0,0,16*n]],[.93, n=>[0,0,32*n]],[1, n=>[0,64*n]]] : [[.5, n=>[0,0,0,0,2*n]],[.85, n=>[0,0,0,8*n]],[.97, n=>[0,0,16*n]],[1, n=>[0,32*n]]]
 
 			const average = this.chromaToContain * decayChance
 			let hits = 0
@@ -2955,7 +2437,7 @@ export class Game {
 			if (hits) {
 
 				const dice = Math.random()
-				let outcome
+				let outcome: [number, (n: number) => number[]] | undefined
 				for (let i = 0; i < 4; i++){
 					if (dice < outcomes[i][0]){
 						outcome = outcomes[i]
@@ -2964,10 +2446,10 @@ export class Game {
 				}
 
 				if (this.generaldecay){
-					this.generaldecay.consume(outcome[1](hits))
+					this.generaldecay.consume(outcome![1](hits))
 				} else {
 					this.playSound(`geiger`)
-					this.createResourceTransfer(outcome[1](hits), this.resourceHomes[5])
+					this.createResourceTransfer(outcome![1](hits), this.resourceHomes[5])
 				}
 			}
 
@@ -2991,9 +2473,9 @@ export class Game {
 				this.substractResourcesFromArray([0,0,0,0,hellToDestroy,0,heavenToDestroy])
 				this.createResourceTransfer([0,0,0,hellToDestroy * 4], this.resourceHomes[4])
 				
-				let annihilatorWorking = false
+				let annihilatorWorking: number | boolean | void = false
 				for (const a of this.annihilators){
-					annihilatorWorking = a.tap() || annihilatorWorking
+					annihilatorWorking = a.tap!() || annihilatorWorking
 				}
 				this.playSound(`hellbreak`,0, this.voidsculpture ? .16 : 1)
 				if (!annihilatorWorking){
@@ -3001,7 +2483,7 @@ export class Game {
 				}
 
 				for (const m of this.annihilationMachines){
-					m.tap()
+					m.tap!()
 				}
 
 			}
@@ -3010,7 +2492,7 @@ export class Game {
 
 	}
 
-	updateResourcePops(dt){
+	updateResourcePops(dt: number){
 
 		for (let i = 0; i < this.resourcePops.length; i++){
 			this.resourcePops[i] = Math.max(0, this.resourcePops[i] * (1 - 1/dt))
@@ -3018,7 +2500,7 @@ export class Game {
 
 	}
 
-	updateTranslation(dt){
+	updateTranslation(dt: number){
 
 		let updated = false
 
@@ -3260,13 +2742,13 @@ export class Game {
 
 	}
 
-	renderSOI(entity){
+	renderSOI(entity: GameEntity | Vec2){
 
 		// this.drawPrism(this.hoveredCell, 3, 0, [`#FF03`,`#FF03`,`#FF03`])
 
 		//NEW
 		this.ctx.save()
-		const xy = this.uvToXY(entity.position || entity)
+		const xy = this.uvToXY((entity as GameEntity).position || entity as Vec2)
 		this.ctx.translate(xy[0], xy[1])
 
 		const dx = .866 * this.unit * 3
@@ -3315,12 +2797,12 @@ export class Game {
 
 	}
 
-	renderAffected(name){
+	renderAffected(name: string){
 		const list = this.codex.entities[name].affected
 		if (list){
 			const color = `#53B976`
 			const n = []
-			const o = this.hoveredCell
+			const o = this.hoveredCell as Vec2
 			let hasAffected = false
 			const r = this.unit * .05
 			const xy0 = this.uvToXY(o)
@@ -3416,12 +2898,12 @@ export class Game {
 					if (this.currentHint.element) document.body.removeChild(this.currentHint.element)
 					this.currentHint.element = hint.element
 					this.currentHint.entity = this.hoveredEntity
-					document.body.appendChild(this.currentHint.element)
+					document.body.appendChild(this.currentHint.element!)
 
 				}
 
 				if (this.itemInHand){
-					this.currentHint.element.style.opacity = this.canPlace ? 1 : .3
+					this.currentHint.element!.style.opacity = (this.canPlace ? 1 : .3) as unknown as string
 				}
 
 			}
@@ -3456,7 +2938,7 @@ export class Game {
 					if (this.currentHint.element) document.body.removeChild(this.currentHint.element)
 					this.currentHint.element = hint.element
 					this.currentHint.entity = this.hoveredEntity
-					document.body.appendChild(this.currentHint.element)
+					document.body.appendChild(this.currentHint.element!)
 
 				}
 
@@ -3541,7 +3023,7 @@ export class Game {
 
 	renderAvailability(){
 
-		this.drawPrism(this.hoveredCell, 1, 0, this.canPlace ? [`#0F06`,`#0F06`,`#0F06`] : [`#F006`,`#F006`,`#F006`])
+		this.drawPrism(this.hoveredCell as Vec2, 1, 0, this.canPlace ? [`#0F06`,`#0F06`,`#0F06`] : [`#F006`,`#F006`,`#F006`])
 
 		// return ok //xxx
 
@@ -3592,7 +3074,7 @@ export class Game {
 				const x = this.resourceHomes[i][0]
 				const y = this.resourceHomes[i][1] - this.screenUnit * .4
 				this.ctx.fillStyle = `#FFF`
-				const measure = this.ctx.measureText(text)
+				const measure = this.ctx.measureText(text as string)
 				
 				if (this.ctx.roundRect){
 					this.ctx.beginPath()
@@ -3605,7 +3087,7 @@ export class Game {
 				
 
 				this.ctx.fillStyle = `#000`
-				this.ctx.fillText(text, this.resourceHomes[i][0], this.resourceHomes[i][1] - this.screenUnit * .4)
+				this.ctx.fillText(text as string, this.resourceHomes[i][0], this.resourceHomes[i][1] - this.screenUnit * .4)
 
 				if (i === this.hoveredResource){
 
@@ -3811,7 +3293,7 @@ export class Game {
 			this.drawResourceInScreenCoordinates(9, [0,0])
 			this.ctx.restore()
 			this.ctx.fillStyle = `#FFF`
-			this.ctx.fillText(this.makeReadable(this.resources[9]), this.resourceHomes[0][0], this.resourceHomes[0][1] - this.screenUnit * .4)
+			this.ctx.fillText(this.makeReadable(this.resources[9]) as string, this.resourceHomes[0][0], this.resourceHomes[0][1] - this.screenUnit * .4)
 			
 		}
 
@@ -3819,7 +3301,7 @@ export class Game {
 
 	}
 
-	makeReadable(n){
+	makeReadable(n: number){
 		const sign = Math.sign(n)
 		const abs = Math.abs(n)
 		if (abs<1e4) return sign * Math.floor(abs)
@@ -3830,7 +3312,7 @@ export class Game {
 		return `A lot`
 	}
 
-	addResourcesFromArray(a,skipAnalytics){
+	addResourcesFromArray(a: number[], skipAnalytics?: boolean){
 
 		const f = this.analytics.frame || []
 
@@ -3846,7 +3328,7 @@ export class Game {
 
 	}
 
-	substractResourcesFromArray(a,skipAnalytics){
+	substractResourcesFromArray(a: number[], skipAnalytics?: boolean){
 
 		const f = this.analytics.frame || []
 
@@ -3859,7 +3341,7 @@ export class Game {
 
 	}
 
-	isVisible(p){
+	isVisible(p: GameEntity){
 
 		const coords = this.uvToXYUntranslated(p.position)
 		const span = p.entitySpan * this.unit || 0
@@ -3868,7 +3350,7 @@ export class Game {
 
 	}
 
-	renderConductors(dt){
+	renderConductors(dt: number){
 		if (!this.plane){
 
 			const c = Array.from(this.conductors)
@@ -3879,7 +3361,7 @@ export class Game {
 		}
 	}
 
-	renderEntities(dt){
+	renderEntities(dt: number){
 
 		if (!this.plane){
 
@@ -3901,7 +3383,7 @@ export class Game {
 
 	}
 
-	updateUnfilled(){
+	updateUnfilled(_dt = 0){
 
 		this.unfilledEntities = []
 		for (let i = 0; i < this.stuff.length; i++){
@@ -3910,7 +3392,7 @@ export class Game {
 
 	}
 
-	updateEntities(dt){
+	updateEntities(dt: number){
 
 		this.chromaToContain = this.resources[5]
 		// this.unfilledEntities = []
@@ -3920,7 +3402,7 @@ export class Game {
 			if (this.stuff[i].killme){
 
 				this.stuff[i].onDelete()
-				this.entitiesInGame[this.stuff[i].name]--
+				this.entitiesInGame[this.stuff[i].name]!--
 				delete this.stuffMap[`u${this.stuff[i].position[0]}v${this.stuff[i].position[1]}`]
 				this.stuff.splice(i,1)
 				i--
@@ -3930,7 +3412,7 @@ export class Game {
 				//Halflife stuff
 				if (this.stuff[i] instanceof Vessel){
 					if (this.chromaToContain && this.stuff[i].state === 2){
-						this.stuff[i].tap(dt)
+					this.stuff[i].tap!(dt)
 						this.stuff[i].isUsed = true
 						this.chromaToContain = Math.max(0, this.chromaToContain - this.stuff[i].capacity)
 					} else {
@@ -3985,7 +3467,7 @@ export class Game {
 
 	}
 
-	drawResourceInScreenCoordinates(id, p){
+	drawResourceInScreenCoordinates(id: number, p: Vec2){
 
 		this.resourcesSprites[id].scale = .25/this.zoom
 		this.resourcesSprites[id].renderXY(p)
@@ -3993,13 +3475,13 @@ export class Game {
 
 	}
 
-	drawCube(position, size, triplet){
+	drawCube(position: Vec2, size: number, triplet?: ColorTriplet){
 
 		this.drawPrism([position[0]+size/2, position[1]+size/2], size, size, triplet)
 
 	}
 
-	drawPrism(position, size, height, triplet){
+	drawPrism(position: Vec2, size: number, height: number, triplet?: ColorTriplet){
 
 		const colors = triplet ? triplet : [`#FFC759`, `#FFE86F`, `#FF8F60`]
 		height = height || 0
@@ -4047,7 +3529,7 @@ export class Game {
 
 	}
 
-	uvToXY(uv){
+	uvToXY(uv: Vec2): Vec2 {
 
 		return [ (uv[0] * 0.866 - uv[1] * .866) * this.unit - this.translation[0] * this.zoom, (uv[0] * .5 + uv[1] * .5) * this.unit - this.translation[1] * this.zoom]
 
@@ -4057,35 +3539,35 @@ export class Game {
 	// 	return [ (uv[0] * 0.866 - uv[1] * .866) * this.unit, (uv[0] * .5 + uv[1] * .5) * this.unit]
 
 	// }
-	uvToXYUntranslated(uv){
+	uvToXYUntranslated(uv: Vec2): Vec2 {
 
 		const xy = this.uvToXY(uv)
 		return [xy[0] + this.w2, xy[1] + this.h2]
 
 	}
 
-	xyToUV(xy){
+	xyToUV(xy: Vec2): Vec2 {
 
 		const centered = [xy[0]*this.pixelRatio - this.w2 + this.translation[0] * this.zoom, xy[1]*this.pixelRatio - this.h2 + this.translation[1] * this.zoom]
 		const fx = centered[0] / .866 * .5
-		const normalized = [(centered[1] + fx) / this.unit + .5, (centered[1] - fx) / this.unit + .5]
+		const normalized: Vec2 = [(centered[1] + fx) / this.unit + .5, (centered[1] - fx) / this.unit + .5]
 		return normalized
 
 	}
 
-	entityAtCoordinates(p){
+	entityAtCoordinates(p: Vec2){
 		return this.stuffMap[`u${p[0]}v${p[1]}`]
 
 	}
 
-	addEntity(name, position, misc, options = {}){
+	addEntity(name: string, position: Vec2, misc?: unknown, options: { skipShopUpdate?: boolean } = {}): GameEntity | false {
 
 		//Make check for bigger entities zzz
 		if (this.codex.entities[name] && !this.entityAtCoordinates(position)){
 
-			let entity
+			let entity: GameEntity | false
 			try {
-				entity = new this.codex.entities[name].class(this, misc)
+				entity = new this.codex.entities[name].class!(this as EntityHost, misc) as GameEntity
 			} catch {
 				entity = false
 			}
@@ -4124,7 +3606,7 @@ export class Game {
 				if (!this.entitiesInGame[entity.name]) {
 					this.entitiesInGame[entity.name] = 1
 				} else {
-					this.entitiesInGame[entity.name]++
+					this.entitiesInGame[entity.name]!++
 				}
 
 				if (!options.skipShopUpdate && name !== `cube`) this.shop.updateElements()
@@ -4169,9 +3651,9 @@ export class Game {
 			[this.unit * .3, 	-this.unit * 1.54],
 		]
 
-		if (this.isVisible(this.chasm)){
+		if (this.isVisible(this.chasm!)){
 
-			const cp = this.uvToXYUntranslated(this.chasm.position)
+			const cp = this.uvToXYUntranslated(this.chasm!.position)
 
 			for (let i = 0; i < this.resources.length; i++){
 
@@ -4196,7 +3678,7 @@ export class Game {
 
 	}
 
-	updateVFX(dt){
+	updateVFX(dt: number){
 
 		for (let i = 0; i < this.vfx.length; i++){
 
@@ -4221,49 +3703,49 @@ export class Game {
 	}
 
 	// Resources, origin position, destination position, onfinish or will be added to resources, visibility
-	createResourceTransfer(r,p,d,f,v,skip){
-		const transfer = new ResourceTransfer(this, {resources: r, source: p, destination: d, f: f, visibility: v, skip: skip})
+	createResourceTransfer(r: number[], p?: Vec2 | false, d?: Vec2, f?: EffectCompletion | false, v?: EffectVisibility, skip?: boolean){
+		const transfer = new ResourceTransfer(this as EffectHost, {resources: r, source: p, destination: d, f: f, visibility: v, skip: skip})
 		this.vfx.push(transfer)
 		// this.chasmVfx.push(transfer)
 
 	}
 
-	createChasmTransfer(r,path,f,v){
+	createChasmTransfer(r: number[], path: unknown, f?: EffectCompletion | false, v?: EffectVisibility){
 
-		const transfer = new ChasmTransfer(this, {resources: r, path: path, f: f, visibility: v})
+		const transfer = new ChasmTransfer(this as EffectHost, {resources: r, path: path as Vec2[], f: f, visibility: v})
 		// this.vfx.push(transfer)
 		this.chasmVfx.push(transfer)
 
 	}
 
-	createLightning(r,p,d,f,v,c){
+	createLightning(r: number[], p?: Vec2 | false, d?: Vec2, f?: EffectCompletion | false, v?: EffectVisibility, c?: string){
 
-		this.vfx.push(new Lightning(this, {resources: r, source: p, destination: d, f: f, visibility: v, color: c}))
-
-	}
-
-	createResourceExplosion(r,p,v){
-		this.vfx.push(new ResourceExplosion(this, {resources: r, source: p, visibility: v}))
-	}
-
-	createResourceSpark(c,p,v){
-
-		this.vfx.push(new ResourceSpark(this, {resources: c, source: p, visibility: v}))
+		this.vfx.push(new Lightning(this as EffectHost, {resources: r, source: p, destination: d, f: f, visibility: v, color: c}))
 
 	}
 
-	createExhaust(uv,c,v){
-		this.vfx.push(new Exhaust(this, {uv: uv, color: c, visibility: v}))
+	createResourceExplosion(r: number[], p?: Vec2 | false, v?: EffectVisibility){
+		this.vfx.push(new ResourceExplosion(this as EffectHost, {resources: r, source: p, visibility: v}))
 	}
 
-	createHollowEvent(color = `#FFBB36`, time = 6000, sound = false, image = false){
+	createResourceSpark(c: number[], p?: Vec2 | false, v?: EffectVisibility){
+
+		this.vfx.push(new ResourceSpark(this as EffectHost, {resources: c, source: p, visibility: v}))
+
+	}
+
+	createExhaust(uv: Vec2, c?: string, v?: EffectVisibility){
+		this.vfx.push(new Exhaust(this as EffectHost, {uv: uv, color: c, visibility: v}))
+	}
+
+	createHollowEvent(color = `#FFBB36`, time = 6000, sound: string | number | false = false, image = false){
 
 		if (sound) this.playSound(sound, 0, 1)
 
 		this.hollowEvents.push({max: time, time: time, color: color, imageTime: image ? 250 : 0, maxImageTime: 200})
 
 	}
-	createDarkHollowEvent(color = `#FFBB36`, time = 6000, sound = false, image = false){
+	createDarkHollowEvent(color = `#FFBB36`, time = 6000, sound: string | number | false = false, image = false){
 
 		if (sound) this.playSound(sound, 0, 1)
 
@@ -4271,7 +3753,7 @@ export class Game {
 
 	}
 
-	updateHollowEvents(dt){
+	updateHollowEvents(dt: number){
 
 		for (let i = 0; i < this.hollowEvents.length; i++){
 
@@ -4350,7 +3832,7 @@ export class Game {
 
 	}
 
-	initiateSlowdown(t,m){
+	initiateSlowdown(t: number, m: number){
 
 		this.stats.timeEvents++
 
@@ -4361,7 +3843,7 @@ export class Game {
 
 	}
 
-	updateSurge(dt){
+	updateSurge(dt: number){
 		if (this.currentlyExtracting) this.surgeSpawnTimer -= dt
 		if (this.surgeSpawnTimer <= 0){
 			this.spawnSurge()
