@@ -7,6 +7,12 @@ import type { LanguageCode, LanguagePack } from '../words.js'
 import type { ResourceAmounts, Vec2 } from '../../types/core.js'
 import type { GameSpaceport } from '../../types/platform.js'
 import type { SaveBackup, SaveStats, SlowdownState } from '../../types/save.js'
+import type { SaveSystem } from '../save/SaveSystem.js'
+import type { AudioSystem } from '../audio/AudioSystem.js'
+import type { EffectSystem } from '../effects/EffectSystem.js'
+import type { PlayingSound, SoundState, DecodedAudioSample as AudioSample } from '../audio/types.js'
+
+export type { PlayingSound, SoundState, AudioSample }
 
 export interface GameEntity extends Entity {
 	eraser?: boolean
@@ -35,27 +41,6 @@ export interface AnalyticsState {
 	instant: Array<[number, number]>
 	dataSize: number
 	graphs: AnalyticsGraph[]
-}
-
-export interface AudioSample {
-	data: AudioBuffer
-	duration?: number
-	detune?: number
-	volume: number
-}
-
-export interface SoundState {
-	ready: boolean
-	master: GainNode
-	samples: Record<string, AudioSample>
-	stackSize: number
-}
-
-export interface PlayingSound {
-	source: AudioBufferSourceNode
-	volume: GainNode
-	pan: StereoPannerNode
-	baseVolume: number
 }
 
 export interface HollowEvent {
@@ -88,6 +73,9 @@ export interface GameRuntimeState {
 	languageId: number
 	language: LanguageCode
 	hasSteam: boolean
+	saves: SaveSystem
+	audio: AudioSystem
+	effects: EffectSystem
 	backups: SaveBackup[]
 	spaceport: GameSpaceport
 	pixelRatio: number
@@ -204,8 +192,8 @@ export interface GameRuntimeState {
 	altActive: boolean
 	pressedQOnBlank?: boolean
 	pressedQOnMachine?: boolean
-	actx: AudioContext
-	sfx: SoundState
+	actx?: AudioContext
+	sfx?: SoundState
 	resizeAnimationFrame: number
 	gamepadControl?: boolean
 	thereWasZoomAction?: boolean

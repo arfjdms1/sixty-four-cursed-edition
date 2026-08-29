@@ -41,7 +41,8 @@ export class ResourceTransfer extends VFX {
 							[rd[0] + force * .1 * (Math.random() * 2 - 1), rd[1] + force * .1 * (Math.random() * 2 - 1)], 
 							[rd[0], rd[1]]
 						])
-						const endTime = endRange[0] + Math.random() * ([endRange[1] - endRange[0]] as unknown as number)
+						const span = [endRange[1] - endRange[0]]
+						const endTime = endRange[0] + Math.random() * span[0]
 						paths.push(curve)
 						resources.push(i)
 						quantities.push(1)

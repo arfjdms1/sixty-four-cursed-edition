@@ -40,7 +40,8 @@ export class ResourceSpark extends VFX {
 					[rp[0] + offsetA[0], rp[1] + offsetA[0]],
 					[rp[0] + d[0] + offsetB[0], rp[1] + d[1] + offsetB[1]], 
 					[rp[0] + d[0], rp[1] + d[1]]])
-				const endTime = endRange[0] + Math.random() * ([endRange[1] - endRange[0]] as unknown as number)
+				const span = [endRange[1] - endRange[0]]
+				const endTime = endRange[0] + Math.random() * span[0]
 				paths.push(curve)
 				resources.push(i)
 				endTimes.push(endTime)

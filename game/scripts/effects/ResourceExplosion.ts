@@ -33,7 +33,8 @@ export class ResourceExplosion extends VFX {
 				const d = [force * (Math.random() * 2 - 1), force * (Math.random() * 2 - 1)]
 
 				const curve = new Bezier([[rp[0], rp[1]], [rp[0] + d[0], rp[1] + d[1]],[rp[0] + d[0], rp[1] + d[1]], [rp[0]+d[0], rp[1] + d[1]]])
-				const endTime = endRange[0] + Math.random() * ([endRange[1] - endRange[0]] as unknown as number)
+				const span = [endRange[1] - endRange[0]]
+				const endTime = endRange[0] + Math.random() * span[0]
 				paths.push(curve)
 				resources.push(i)
 				endTimes.push(endTime)

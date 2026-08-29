@@ -13,6 +13,11 @@ import { Silo } from './entities/Silo.js'
 import { Vessel } from './entities/Vessel.js'
 import { Achiever, Cloud, Explainer, Messenger, Shop, Splash } from './ui.js'
 import { abstract_getWords } from './words.js'
+import { SaveSystem } from './save/SaveSystem.js'
+import type { SaveHost } from './save/types.js'
+import { AudioSystem } from './audio/AudioSystem.js'
+import type { AudioHost } from './audio/types.js'
+import { EffectSystem } from './effects/EffectSystem.js'
 import { VFX } from './effects/VFX.js'
 import { Exhaust } from './effects/Exhaust.js'
 import { ResourceExplosion } from './effects/ResourceExplosion.js'
@@ -22,7 +27,7 @@ import { ChasmTransfer } from './effects/ChasmTransfer.js'
 import { Lightning } from './effects/Lightning.js'
 import type { ColorTriplet, ResourceAmounts, Vec2 } from '../types/core.js'
 import type { ClockWorkerTick, GameStartupPayload } from '../types/platform.js'
-import type { EncodedSave, LoadableSaveState, SaveSource, SerializedEntity, SerializedEntityParams } from '../types/save.js'
+import type { EncodedSave, LoadableSaveState, SaveBackup, SaveSource, SerializedEntity, SerializedEntityParams } from '../types/save.js'
 import type { EffectCompletion, EffectHost, EffectVisibility } from './effects/types.js'
 import type { EntityHost } from './entities/types.js'
 import type { GameEntity, GameRuntimeState, GlState, HeldItem, PlayingSound, PointerInput, SoundState } from './game/types.js'
@@ -31,7 +36,7 @@ export { VFX, Exhaust, ResourceExplosion, ResourceSpark, ResourceTransfer, Chasm
 
 export interface Game extends GameRuntimeState {}
 
-export class Game {
+export class Game implements SaveHost, AudioHost, EffectHost {
 
 	constructor(canvas: HTMLCanvasElement, preload: GameStartupPayload){
 
@@ -45,7 +50,9 @@ export class Game {
 		if (this.languageId === null) this.languageId = (preload && preload.languageId !== null) ? preload.languageId : 0
 		this.language = this.languages[this.languageId]
 		this.hasSteam = this.steamId ? true : false
-		this.backups = []
+		this.saves = new SaveSystem(this)
+		this.audio = new AudioSystem(this)
+		this.effects = new EffectSystem(this)
 
 		try {
 			if (typeof window.require !== `function`) throw new ReferenceError(`require is not defined`)
@@ -79,16 +86,12 @@ export class Game {
 			timer: 150
 		}
 		this.gamepadButtons = []
-		this.isMute = this.getMute()
-		this.globalSoundVolume = .6
 		this.chillMode = false
 		this.version = `1.1.0`
 
 		this.stuff = []
 		this.stuffMap = {}
 		this.unlockedEntities = {}
-		this.vfx = []
-		this.chasmVfx = []
 		this.entitiesInGame = {}
 		this.plane = 0
 		this.bridge = false
@@ -275,29 +278,8 @@ export class Game {
 
 	}
 
-	initialLoad(save: SaveSource){
-
-		if (save){
-			const cloud = this.decodeSave(save)
-			const local = this.decodeSave(localStorage.getItem(`abstractv03${this.steamId}`))
-
-			const loadSuccess = this.loadSave((!local && cloud) || ((cloud as LoadableSaveState)?.timestamp as number) > ((local as LoadableSaveState)?.timestamp as number) ? cloud : local)
-			if (!loadSuccess) {
-				this.prepopulate()
-				this.splash.updateBackups()
-			}
-		    this.cleanup()
-		} else {
-			const loadSuccess = this.loadSave()
-	     	if (!loadSuccess) {
-	     		this.prepopulate()
-	     		this.splash.updateBackups()
-	     	}
-	     	this.cleanup()
-		}
-
-		
-
+	initialLoad(save?: SaveSource){
+		this.saves.initialLoad(save)
 	}
 
 	prepopulate(){
@@ -318,8 +300,7 @@ export class Game {
 	}
 
 	getMute(): boolean {
-		const mute = localStorage.getItem(`abstractv03_mute${this.steamId}`)
-		return mute === `true` ? true : false
+		return this.audio.getMute()
 	}
 
 	getLanguageId(): number | null {
@@ -675,259 +656,73 @@ export class Game {
 	}
 
 	//SAVE
-
-	async exportSave(){
-
-		if (!this.preventSaving){
-			const save = this.assembleSave(true)
-			await navigator.clipboard.writeText(save as string)
-		}
-
+	get backups(): SaveBackup[] {
+		return this.saves.backups
+	}
+	set backups(val: SaveBackup[]) {
+		this.saves.backups = val
 	}
 
-	async loadSaveFromClipboard(){
+	get preventSaving(): boolean {
+		return this.saves.preventSaving
+	}
+	set preventSaving(val: boolean) {
+		this.saves.preventSaving = val
+	}
 
-		const encoded = await navigator.clipboard.readText()
-		const state = this.decodeSave(encoded)
-		if (!state) return
-		state.backups = this.backups
-		const hope = this.encodeSave(JSON.stringify(state))
-		this.importSave(hope)
+	get preventCloud(): boolean {
+		return this.saves.preventCloud
+	}
+	set preventCloud(val: boolean) {
+		this.saves.preventCloud = val
+	}
 
-		// const text = this.decodeSave(encoded)
-		// if (text) this.importSave(encoded)
+	async exportSave(): Promise<void> {
+		return this.saves.exportSave()
+	}
 
+	async loadSaveFromClipboard(): Promise<void> {
+		return this.saves.loadSaveFromClipboard()
 	}
 
 	importSave(data: EncodedSave | undefined){
-		
-		this.spaceport?.send(`save`, data)
-		localStorage.setItem(`abstractv03${this.steamId}`, data as string)
-		location.reload()
-
+		return this.saves.importSave(data)
 	}
 
-	loadSave( manual: LoadableSaveState | 0 = this.decodeSave(localStorage.getItem(`abstractv03${this.steamId}`)) ){
-
-		if (!manual) return false
-
-		try {
-			//To make sure
-			for (let i = 0; i < manual.resources.length; i++){
-				if (manual.resources[i]) this.resources[i] = manual.resources[i]
-			}
-
-			this.onlyones = manual.onlyones || {}
-
-			//Just to make sure
-			for (let i in this.onlyones){
-				if (!this.codex.entities[i].onlyone) delete this.onlyones[i]
-			}
-
-			this.updateEraserType(manual.eraserType || 0)
-
-			if (manual.hollowHardness) this.hollowHardness = Math.min(64, manual.hollowHardness)
-			if (manual.slowdown) this.slowdown = manual.slowdown
-			if (manual.plane) {
-				this.plane = manual.plane
-				this.shop.switchPlane(this.plane)
-			}
-			if (manual.switchedplanes) this.switchedplanes = manual.switchedplanes
-			if (manual.bridge) this.bridge = manual.bridge
-			if (manual.unlockedEntities) this.unlockedEntities = manual.unlockedEntities
-			if (manual.needNoHelp) this.needNoHelp = true
-			if (manual.messengerFiredEvents && manual.messengerShownMessages && manual.messengerShown !== undefined) {
-				this.messenger.setState(manual.messengerFiredEvents, manual.messengerShownMessages, manual.messengerShown)
-			}
-			if (manual.existed) {
-				this.shop.setExisted(manual.existed)
-			}
-			if (manual.glory) this.achiever.setState(this.steamAchievements || manual.glory)
-			if (manual.stats) {
-				for (let i in manual.stats)
-				(this.stats as unknown as Record<string, unknown>)[i] = (manual.stats as unknown as Record<string, unknown>)[i]
-			}
-			if (manual.backups) this.backups = manual.backups
-			if (manual.existed?.pump2) this.stats.excavatorWasBuilt = true
-			
-			for (let i = 0; i < manual.stuff.length; i++){
-
-				const s = manual.stuff[i]
-				const entity = s.name === `cube` ? this.addEntity(s.name, s.position, {pump: false, resources: s.par.resources}) : s.name === `surge` ? this.addEntity(s.name, s.position, {resources: s.par.resources, rayNumber: s.par.rayNumber, grade: s.par.grade, colors: s.par.colors, type: s.par.type, maxLife: s.par.maxLife, life: s.par.life}) : this.addEntity(s.name, s.position, undefined, {skipShopUpdate: true})
-				if (entity){
-					try{
-						for (let j in s.par){
-							if ((s.par[j as keyof SerializedEntityParams] as unknown) !== `resources`) (entity as unknown as Record<string, unknown>)[j] = s.par[j as keyof SerializedEntityParams]
-						}
-					} catch(e){console.log(s)}
-
-					entity.init()
-				}
-
-			}
-			this.shop.updateElements()
-			this.splash.updateBackups()
-
-			return true
-		} catch(e){
-
-			alert(`Sorry, there is a problem with loading the game. Game saving won't be available and all the progress will be lost on quit.
-				${e}`)
-			this.preventCloud = true
-			return false
-		}
-
+	loadSave( manual: LoadableSaveState | 0 = this.saves.decodeSave(localStorage.getItem(`abstractv03${this.steamId}`)) ): boolean {
+		return this.saves.loadSave(manual)
 	}
 
 	restoreBackup(n: number){
-
-		if (!this.backups[n]) return
-		const state = this.decodeSave(this.backups[n].data)
-		if (!state) return
-		state.backups = this.backups
-		const hope = this.encodeSave(JSON.stringify(state))
-		this.importSave(hope)
-
+		return this.saves.restoreBackup(n)
 	}
 
 	backupLoop(){
-
-		if (!this.preventSaving){
-			const save = this.assembleSave(true)
-			this.backups.unshift({
-				timestamp: Date.now(),
-				data: save as EncodedSave
-			})
-			if (this.backups.length > 4) this.backups.pop()
-			this.splash.updateBackups()
-		}
-		setTimeout((_: unknown)=>{this.backupLoop()}, 240000)
-
+		return this.saves.backupLoop()
 	}
 
 	saveLoop(){
-
-		setTimeout((_: unknown)=>{this.saveLoop()}, 10000)
-		this.saveGame()
-
-		//UPDATES
-		const payload = [
-			{id: `HOURSINARUN`, value: Math.floor(this.stats.totalPlayTime / 1000 / 60 / 60) || 0 },
-			{id: `DARKVISITS`, value: this.stats.darkVisited || 0},
-			{id: `TOTALRESOURCECOUNT_K`, value: Math.min(Math.floor(this.stats.absoluteResourcesCount / 1e3), 64) || 0},
-			{id: `TOTALRESOURCECOUNT_M`, value: Math.min(Math.floor(this.stats.absoluteResourcesCount / 1e6), 64) || 0},
-			{id: `TOTALRESOURCECOUNT_B`, value: Math.min(Math.floor(this.stats.absoluteResourcesCount / 1e9), 64) || 0},
-			{id: `TOTALCUBECLICKS`, value: this.stats.totalCubeClicks || 0},
-			{id: `MACHINESBUILT`, value: this.stats.machinesBuild || 0},
-			{id: `MACHINESSOLD`, value: this.stats.machinesSold || 0},
-			{id: `VAULTS`, value: this.entitiesInGame.vault || 0},
-			{id: `ROCKPOKES`, value: this.stats.strangeRockPoked || 0},
-			{id: `PUMPS`, value: this.entitiesInGame.pump2 || 0},
-			{id: `MAXDEPTH`, value: this.stats.maxDepth * 10 || 0},
-			{id: `TIMESTELEPORTED`, value: this.stats.timesTeleported || 0}
-		]
-		this.spaceport?.send(`updateStat`, payload)
-
+		return this.saves.saveLoop()
 	}
 
 	saveGame(){
-		if (!this.preventSaving){
-			localStorage.setItem(`abstractv03_zoom${this.steamId}`, this.zoom as unknown as string)
-			const save = this.assembleSave()
-			if (!this.preventCloud){
-				localStorage.setItem(`abstractv03${this.steamId}`, save as string)
-				this.spaceport?.send(`save`, save)
-			}
-		}
+		return this.saves.saveGame()
 	}
 
 	assembleSave(backupless?: boolean): EncodedSave | undefined {
-
-		const stuff = []
-		for (let i = 0; i < this.stuff.length; i++){
-			const string = this.getEntityString(this.stuff[i])
-			if (string) stuff.push(string)
-		}
-
-		const string = JSON.stringify({
-			stuff: stuff, 
-			onlyones: this.onlyones, 
-			resources: this.resources, 
-			eraserType: this.eraserType,
-			hollowHardness: this.hollowHardness,
-			slowdown: this.slowdown,
-			plane: this.plane,
-			version: this.version,
-			switchedplanes: this.switchedplanes,
-			bridge: this.bridge,
-			unlockedEntities: this.unlockedEntities,
-			needNoHelp: this.needNoHelp,
-			messengerShownMessages: this.messenger.shownMessages,
-			messengerFiredEvents: this.messenger.firedEvents,
-			messengerShown: this.messenger.messagesShown,
-			existed: this.shop.existed,
-			glory: this.achiever.fired,
-			stats: this.stats,
-			timestamp: Date.now(),
-			backups: backupless ? undefined : this.backups
-		})
-
-		return this.encodeSave(string)
-		
-
+		return this.saves.assembleSave(backupless)
 	}
 
 	decodeSave(s: unknown): LoadableSaveState | 0 {
-		try {
-			const legacy = (s as string).substring(0,8) === `{"stuff"`
-			const payload = legacy ? s as string : atob(s as string)
-			return JSON.parse(payload) as LoadableSaveState
-		} catch(e){
-			console.log(`I cant load most brobably because you have something weird in your clipboard. Gimme a save!`)
-			return 0
-		}
+		return this.saves.decodeSave(s)
 	}
 
 	encodeSave(s: string): EncodedSave | undefined {
-		try {
-			return btoa(s)
-		} catch(e){
-			console.log(`I cant save because the designer of this game decided "Well, there is no weird characters in save, I'll just encode it and call it a day." Tell him to fix this shit.`)
-		}
-		
+		return this.saves.encodeSave(s)
 	}
 
 	getEntityString(e: GameEntity): SerializedEntity | undefined {
-
-		if (!e.name || e.name === `cube` && e.state !== 2) return
-
-		const par = {} as SerializedEntityParams
-		if (e.name === `pump` || e.name === `pump2`) par.depth = e.depth
-		if (e.name === `pump2`) par.timeStamp = 0
-		if (e.fill !== undefined) par.fill = e.fill
-		if (e.state !== undefined) par.state = (e.state === 1 ? 0 : e.state)
-		if (e.conversion !== undefined) par.conversion = e.conversion
-		if (e.resources !== undefined) par.resources = e.resources
-		if (e.resourceCount !== undefined) par.resourceCount = e.resourceCount
-		if (e.spawnedHollows !== undefined) par.spawnedHollows = e.spawnedHollows
-		if (e.variant !== undefined) par.variant = e.variant
-		if (e.order !== undefined) par.order = e.order
-		if (e.soul !== undefined) par.soul = e.soul
-		if (e.grade !== undefined) {
-			par.grade = e.grade as 0 | 1 | 2
-			par.type = e.type
-			par.rayNumber = e.rayNumber
-			par.colors = e.colors
-			par.maxLife = e.maxLifeTimer
-			par.life = e.lifeTimer
-		}
-
-		if (e.name === `cube` && e.state === 2) {
-			par.broken = e.broken
-			par.state = 2
-		}
-
-		return {name: e.name, position: e.position, par: par}
+		return this.saves.serializeEntity(e)
 	}
 
 	addWaypoint(e: GameEntity, o?: number){
@@ -1012,15 +807,7 @@ export class Game {
 	}
 
 	mute(on: boolean){
-
-		if (on){
-			this.fadeSound(0)
-			this.isMute = true
-		} else {
-			this.fadeSound(1)
-			this.isMute = false
-		}
-
+		this.audio.mute(on)
 	}
 
 	updateEraserType(t: 0 | 1 | 2){
@@ -1099,12 +886,11 @@ export class Game {
 	}
 
 	getLoudnessFromXY(xy: Vec2){
-		const distance = Math.max(Math.abs(xy[0] - this.w2), Math.abs(xy[1] - this.h2)) / this.w / 2
-		return Math.max(0, 1 - distance)
+		return this.audio.getLoudnessFromXY(xy)
 	}
 
 	getPanValueFromX(x: number){
-		return Math.min(Math.max(-1, x / this.w * 2 - 1), 1)
+		return this.audio.getPanValueFromX(x)
 	}
 
 	pickupItem(name: string){
@@ -1166,190 +952,68 @@ export class Game {
 
 	}
 
+	get isMute(): boolean {
+		return this.audio.isMute
+	}
+	set isMute(val: boolean) {
+		this.audio.isMute = val
+	}
+
+	get globalSoundVolume(): number {
+		return this.audio.globalSoundVolume
+	}
+	set globalSoundVolume(val: number) {
+		this.audio.globalSoundVolume = val
+	}
+
+	get actx(): AudioContext | undefined {
+		return this.audio.actx
+	}
+	set actx(val: AudioContext | undefined) {
+		this.audio.actx = val
+	}
+
+	get sfx(): SoundState | undefined {
+		return this.audio.sfx
+	}
+	set sfx(val: SoundState | undefined) {
+		this.audio.sfx = val
+	}
+
 	updateGlobalSounds(){
-
-		for (let i = 0; i < this.stuff.length; i++){
-			if (this.stuff[i].sfxPlaying) {
-
-				const screenxy = this.uvToXYUntranslated(this.stuff[i].position)
-				const pan = this.getPanValueFromX(screenxy[0])
-				const loudness = this.getLoudnessFromXY(screenxy)
-
-				this.setPanToSFX(this.stuff[i].sfxPlaying, pan)
-				this.setLoudnessToSFX(this.stuff[i].sfxPlaying, loudness)
-
-			}
-		}
-
+		this.audio.updateGlobalSounds()
 	}
 
 	updateGlobalVolume(v = this.globalSoundVolume){
-		v = Math.max(0, Math.min(1, v))
-		this.globalSoundVolume = v
-		if (this.splash.soundSlider) this.splash.soundSlider.style.width = 100 * v + `%`
-		localStorage.setItem(`abstractv03_globalSoundVolume${this.steamId}`, v as unknown as string)
-
+		this.audio.updateGlobalVolume(v)
 	}
 
 	fadeSound(v: number){
-		if (this.actx){
-			this.sfx.master.gain.cancelScheduledValues(this.actx.currentTime)
-			this.sfx.master.gain.linearRampToValueAtTime(.001 + this.globalSoundVolume * v, this.actx.currentTime + 1)
-			if (v === 0) this.sfx.master.gain.setValueAtTime(0, this.actx.currentTime + 1)
-
-		}
+		this.audio.fadeSound(v)
 	}
 
 	initAudio(){
-
-		this.actx = new (AudioContext || webkitAudioContext)()
-		this.sfx = {
-			ready: false,
-			master: this.actx.createGain(),
-			samples: {},
-			stackSize: 0
-		}
-		this.sfx.master.gain.value = this.globalSoundVolume
-		this.sfx.master.connect(this.actx.destination)
-
-		let counter = 0
-		const samples = [
-			{src: `sfx/tap.mp3?v5`, name: `tap1`, duration: .2, detune: 300, volume: .5},
-			{src: `sfx/tap2.mp3?v2`, name: `tap2`, duration: 1.5, detune: 300, volume: .06},
-			{src: `sfx/tap3.mp3?v1`, name: `tap3`, duration: 2, detune: 200, volume: .4},
-			{src: `sfx/tap4.mp3?v1`, name: `tap4`, duration: .7, detune: 300, volume: .3},
-			{src: `sfx/tap5.mp3?v1`, name: `tap5`, duration: .6, detune: 200, volume: .1},
-			{src: `sfx/tap6.mp3?v1`, name: `tap6`, detune: 200, volume: .6},
-			{src: `sfx/tap7.mp3`, name: `tap7`, detune: 80, volume: .3},
-			{src: `sfx/break.mp3?v3`, name: `break`, duration: .5, detune: 300, volume: .6},
-			{src: `sfx/rumble.mp3`, name: `rumble`, volume: .8},
-			{src: `sfx/bubble.mp3`, name: `bubble`, volume: .2},
-			{src: `sfx/counter.mp3`, name: `geiger`, volume: .3, detune: 100},
-			{src: `sfx/release.mp3`, name: `release`, volume: .6},
-			{src: `sfx/hellbreak.mp3`, name: `hellbreak`, volume: .4,detune: 100},
-			{src: `sfx/horn.mp3`, name: `horn`, volume: .9},
-			{src: `sfx/hollow.mp3`, name: `hollow`, detune: 250, volume: .2},
-			{src: `sfx/teleport.mp3`, name: `teleport`, volume: .9},
-			{src: `sfx/void.mp3`, name: `void`, volume: .9, detune: 100},
-			{src: `sfx/soul.mp3`, name: `soul`, volume: 1, detune: 800},
-			{src: `sfx/exhaust.mp3`, name: `exhaust`, volume: 1, detune: 200},
-			{src: `sfx/lightning.mp3`, name: `lightning`, volume: .5, detune: 50},
-			{src: `sfx/siloin.mp3`, name: `silo`, volume: .8},
-			{src: `sfx/siloout.mp3`, name: `silo2`, volume: .8},
-			{src: `sfx/collect.mp3`, name: `collect`, volume: 1},
-			{src: `sfx/shallow_anne.mp3`, name: `endingMusic`, volume: 1}
-		]
-
-		for (let i = 0; i < samples.length; i++){
-
-			const s = samples[i]
-
-			fetch(s.src).then(r => {
-				r.arrayBuffer().then(buffer=>{
-					this.actx.decodeAudioData(buffer, data=>{
-						this.sfx.samples[s.name] = {data: data, duration: s.duration, detune: s.detune, volume: s.volume}
-						check(this.sfx)
-					})
-				})
-			})
-
-		}
-
-		function check(sfx: SoundState){
-			counter++
-			if (counter >= samples.length) sfx.ready = true;
-		}
-
-		
+		this.audio.initAudio()
 	}
 
 	startSound(id: string | number, panning?: number, loudness?: number): PlayingSound | false {
-		if (this.sfx?.ready){
-			if (loudness === undefined) loudness = 1
-			const source = this.actx.createBufferSource()
-			const volume = this.actx.createGain()
-			const pan = this.actx.createStereoPanner()
-			pan.pan.value = panning || 0
-			volume.gain.value = this.sfx.samples[id].volume * loudness || .5 * loudness
-			source.buffer = this.sfx.samples[id].data
-			source.loop = true
-			if (this.sfx.samples[id].detune) source.detune.value = (Math.random() * 2 - 1) * this.sfx.samples[id].detune
-			source.connect(pan)
-			pan.connect(volume)
-			volume.connect(this.sfx.master)
-			
-			source.start(this.actx.currentTime)
-			// this.sfx.stackSize++
-
-			return {source: source, volume: volume, pan: pan, baseVolume: this.sfx.samples[id].volume || .5}
-		}
-		return false
+		return this.audio.startSound(id, panning, loudness)
 	}
 
 	stopSound(sfx: unknown, t?: number){
-		if (this.sfx?.ready && sfx){
-			;(sfx as PlayingSound).volume.gain.exponentialRampToValueAtTime(.01, this.actx.currentTime + (t || 1))
-			;(sfx as PlayingSound).source.stop(this.actx.currentTime + (t || 1))
-			// this.sfx.stackSize = Math.max(0, this.sfx.stackSize - 1)
-		}
+		this.audio.stopSound(sfx, t)
 	}
 
 	setLoudnessToSFX(sfx: unknown, l: number){
-		if (this.sfx?.ready && sfx){
-			(sfx as PlayingSound).volume.gain.value = (sfx as PlayingSound).baseVolume * l
-		}
+		this.audio.setLoudnessToSFX(sfx, l)
 	}
 
 	setPanToSFX(sfx: unknown, p: number){
-		if (this.sfx?.ready && sfx){
-			(sfx as PlayingSound).pan.pan.value = p
-		}
+		this.audio.setPanToSFX(sfx, p)
 	}
 
 	playSound(id: string | number, panning?: number, loudness?: number, dark?: boolean, forced?: boolean){
-
-		if (this.sfx?.ready && (this.sfx.stackSize < 128 || forced)){
-			loudness = (loudness === undefined ? 1 : loudness)
-			let filter
-			let source = this.actx.createBufferSource()
-			let volume = this.actx.createGain()
-			let pan = this.actx.createStereoPanner()
-			pan.pan.value = panning || 0
-			volume.gain.value = this.sfx.samples[id].volume * loudness || .5 * loudness
-			source.buffer = this.sfx.samples[id].data
-			let detune = this.sfx.samples[id].detune ? (Math.random() * 2 - 1) * this.sfx.samples[id].detune : 0
-			if (this.slowdown.state) {
-				detune += (this.slowdown.multiplyer < 1 ? -100/this.slowdown.multiplyer : this.slowdown.multiplyer * 200) * this.slowdown.f
-			}
-			source.detune.value = detune
-			source.connect(pan)
-			pan.connect(volume)
-			if (!this.plane || dark){
-				volume.connect(this.sfx.master)
-			} else {
-				filter = this.actx.createBiquadFilter()
-				filter.type = `lowpass`
-				volume.connect(filter).connect(this.sfx.master)
-			}
-			this.sfx.stackSize++
-			// source.onended = _=>{
-			// 	source.disconnect()
-			// 	volume.disconnect()
-			// 	pan.disconnect()
-			// 	// source = null
-			// 	// volume = null
-			// 	// pan = null
-			// 	if (filter) {
-			// 		filter.disconnect()
-			// 		// filter = null
-			// 	}
-			// 	this.sfx.stackSize = Math.max(0, this.sfx.stackSize - 1)
-			// }
-			setTimeout((_: unknown)=>{this.sfx.stackSize = Math.max(0, this.sfx.stackSize - 1)}, (this.sfx.samples[id].duration || source.buffer!.duration) * 1000)
-			source.start(this.actx.currentTime)
-			source.stop(this.actx.currentTime + (this.sfx.samples[id].duration || source.buffer!.duration))
-		}
-
+		this.audio.playSound(id, panning, loudness, dark, forced)
 	}
 
 	getRealPrice(name: string, sale?: boolean){
@@ -3621,18 +3285,26 @@ export class Game {
 
 	}
 
+	get vfx(): VFX[] {
+		return this.effects.vfx
+	}
+	set vfx(val: VFX[]) {
+		this.effects.vfx = val
+	}
+
+	get chasmVfx(): VFX[] {
+		return this.effects.chasmVfx
+	}
+	set chasmVfx(val: VFX[]) {
+		this.effects.chasmVfx = val
+	}
+
 	renderVFX(){
-		for (let i = 0; i < this.vfx.length; i++){
-			if (this.chillMode && i > 32) return
-			this.vfx[i].render()
-		}
+		this.effects.renderVFX()
 	}
 
 	renderChasmVFX(){
-		for (let i = 0; i < this.chasmVfx.length; i++){
-			if (this.chillMode && i > 32) return
-			this.chasmVfx[i].render()
-		}
+		this.effects.renderChasmVFX()
 	}
 
 	renderChasm(){
@@ -3679,63 +3351,32 @@ export class Game {
 	}
 
 	updateVFX(dt: number){
-
-		for (let i = 0; i < this.vfx.length; i++){
-
-			this.vfx[i].update(dt)
-			if (this.vfx[i].terminate){
-				this.vfx.splice(i,1)
-				i--
-			}
-			
-		}
-
-		for (let i = 0; i < this.chasmVfx.length; i++){
-
-			this.chasmVfx[i].update(dt)
-			if (this.chasmVfx[i].terminate){
-				this.chasmVfx.splice(i,1)
-				i--
-			}
-			
-		}
-
+		this.effects.updateVFX(dt)
 	}
 
 	// Resources, origin position, destination position, onfinish or will be added to resources, visibility
 	createResourceTransfer(r: number[], p?: Vec2 | false, d?: Vec2, f?: EffectCompletion | false, v?: EffectVisibility, skip?: boolean){
-		const transfer = new ResourceTransfer(this as EffectHost, {resources: r, source: p, destination: d, f: f, visibility: v, skip: skip})
-		this.vfx.push(transfer)
-		// this.chasmVfx.push(transfer)
-
+		return this.effects.createResourceTransfer(r, p, d, f, v, skip)
 	}
 
 	createChasmTransfer(r: number[], path: unknown, f?: EffectCompletion | false, v?: EffectVisibility){
-
-		const transfer = new ChasmTransfer(this as EffectHost, {resources: r, path: path as Vec2[], f: f, visibility: v})
-		// this.vfx.push(transfer)
-		this.chasmVfx.push(transfer)
-
+		return this.effects.createChasmTransfer(r, path, f, v)
 	}
 
 	createLightning(r: number[], p?: Vec2 | false, d?: Vec2, f?: EffectCompletion | false, v?: EffectVisibility, c?: string){
-
-		this.vfx.push(new Lightning(this as EffectHost, {resources: r, source: p, destination: d, f: f, visibility: v, color: c}))
-
+		return this.effects.createLightning(r, p, d, f, v, c)
 	}
 
 	createResourceExplosion(r: number[], p?: Vec2 | false, v?: EffectVisibility){
-		this.vfx.push(new ResourceExplosion(this as EffectHost, {resources: r, source: p, visibility: v}))
+		return this.effects.createResourceExplosion(r, p, v)
 	}
 
 	createResourceSpark(c: number[], p?: Vec2 | false, v?: EffectVisibility){
-
-		this.vfx.push(new ResourceSpark(this as EffectHost, {resources: c, source: p, visibility: v}))
-
+		return this.effects.createResourceSpark(c, p, v)
 	}
 
 	createExhaust(uv: Vec2, c?: string, v?: EffectVisibility){
-		this.vfx.push(new Exhaust(this as EffectHost, {uv: uv, color: c, visibility: v}))
+		return this.effects.createExhaust(uv, c, v)
 	}
 
 	createHollowEvent(color = `#FFBB36`, time = 6000, sound: string | number | false = false, image = false){
