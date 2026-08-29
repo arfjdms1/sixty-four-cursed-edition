@@ -1,3 +1,5 @@
+// @ts-nocheck
+// Deferred: bootstrap aggregates every compatibility global and the complete Game API.
 import * as BezierModule from './bezier.js'
 import * as UiModule from './ui.js'
 import * as SpritesModule from './sprites.js'

@@ -1,3 +1,5 @@
+// @ts-nocheck
+// Deferred: Game owns the dynamic entity, save, UI, audio, input, and platform state.
 import { Bezier } from './bezier.js'
 import { abstract_getCodex } from './codex.js'
 import { Sprite } from './sprites.js'
@@ -697,7 +699,7 @@ export class Game {
 		this.setListeners()
 
 		this.updateLoop()
-		this.clock = new Worker(new URL('./clock.js', import.meta.url))
+		this.clock = new Worker(new URL('./clock.ts', import.meta.url))
 		this.clock.addEventListener(`message`, m=>{
 			this.updateLoop()
 		})

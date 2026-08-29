@@ -1,3 +1,5 @@
+// @ts-nocheck
+// Deferred: translations intentionally have incomplete and dynamically indexed shapes.
 export function generateGlobalJson(){
 
 	const keys = abstract_getWords().en

@@ -1,3 +1,5 @@
+// @ts-nocheck
+// Deferred: codex predicates depend on the full dynamic Game and entity surface.
 import {
 	Annihilator,
 	Auxpump,

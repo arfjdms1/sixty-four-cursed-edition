@@ -1,3 +1,5 @@
+// @ts-nocheck
+// Deferred: legacy methods mix tuple points with object-style x/y access.
 export class Bezier {
 
 	constructor(p){
