@@ -1,11 +1,11 @@
-// @ts-nocheck
-// Deferred: bootstrap aggregates every compatibility global and the complete Game API.
+import type { GameStartupPayload } from '../types/platform.js'
 import * as BezierModule from './bezier.js'
 import * as UiModule from './ui.js'
 import * as SpritesModule from './sprites.js'
 import * as WordsModule from './words.js'
 import * as CodexModule from './codex.js'
 import * as GameModule from './Game.js'
+import { Game } from './Game.js'
 import { Entity } from './entities/Entity.js'
 import { Annihilator } from './entities/Annihilator.js'
 import { Auxpump } from './entities/Auxpump.js'
@@ -125,7 +125,7 @@ const EntitiesModule = {
 	Vessel,
 	Vessel2,
 	Voidsculpture,
-	Waypoint
+	Waypoint,
 }
 
 // Preserve the legacy global bindings for the console and external runtime code.
@@ -140,28 +140,31 @@ Object.assign(
 	GameModule,
 )
 
-let game
+let game: Game | undefined
 globalThis.game = game
 
-function startGame(preload){
-	game = new GameModule.Game(document.querySelector(`.canvas`), preload)
-	globalThis.game = game
+function startGame(preload?: GameStartupPayload){
+	const canvas = document.querySelector<HTMLCanvasElement>(`.canvas`)
+	if (canvas) {
+		game = new Game(canvas, preload)
+		globalThis.game = game
+	}
 }
 
-window.onload = _=>{
+window.onload = () => {
 	try {
 		if (typeof window.require !== `function`) throw new ReferenceError(`require is not defined`)
 		const spaceport = window.require(`electron`).ipcRenderer
 		if (spaceport){
-			window.onerror = (ev, so, li, co, er)=>{
+			window.onerror = (_ev, _so, _li, _co, er) => {
 				spaceport.send(`gameError`, er)
 			}
-			spaceport.on(`hereYouGoSir`, (e,d)=>{
+			spaceport.on(`hereYouGoSir`, (_e, d) => {
 				startGame(d)
 			})
 			spaceport.send(`getMyStuff`, `please`)
 		}
-	} catch (e){
+	} catch (_e){
 		startGame()
 	}
 }
