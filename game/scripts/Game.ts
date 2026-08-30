@@ -7,10 +7,8 @@ import { Cube } from './entities/Cube.js'
 import { Entropic } from './entities/Entropic.js'
 import { Entropic2a } from './entities/Entropic2a.js'
 import { Gradient } from './entities/Gradient.js'
-import { Hollow } from './entities/Hollow.js'
 import { Pump } from './entities/Pump.js'
 import { Silo } from './entities/Silo.js'
-import { Vessel } from './entities/Vessel.js'
 import { Achiever, Cloud, Explainer, Messenger, Shop, Splash } from './ui.js'
 import { abstract_getWords } from './words.js'
 import { SaveSystem } from './save/SaveSystem.js'
@@ -37,6 +35,8 @@ import type { EntityHost } from './entities/types.js'
 import type { GameEntity, GameRuntimeState, GlState, HeldItem, PlayingSound, PointerInput, SoundState } from './game/types.js'
 import { ResourceSystem } from './resources/ResourceSystem.js'
 import type { ResourceHost } from './resources/types.js'
+import { EntityManager } from './entities/EntityManager.js'
+import type { EntityManagerHost } from './entities/manager-types.js'
 
 export { VFX, Exhaust, ResourceExplosion, ResourceSpark, ResourceTransfer, ChasmTransfer, Lightning }
 
@@ -53,7 +53,18 @@ function installResourceAccessor<K extends ResourceOwnedField>(game: Game, prope
 	})
 }
 
-export class Game implements SaveHost, AudioHost, EffectHost, InputHost, RenderHost, ResourceHost {
+type EntityOwnedField = 'stuff' | 'stuffMap' | 'entitiesInGame' | 'chromaToContain'
+
+function installEntityAccessor<K extends EntityOwnedField>(game: Game, property: K): void {
+	Object.defineProperty(game, property, {
+		configurable: true,
+		enumerable: true,
+		get: () => game.entityManager[property],
+		set: (value: EntityManager[K]) => { game.entityManager[property] = value },
+	})
+}
+
+export class Game implements SaveHost, AudioHost, EffectHost, InputHost, RenderHost, ResourceHost, EntityManagerHost {
 
 	constructor(canvas: HTMLCanvasElement, preload: GameStartupPayload){
 
@@ -73,6 +84,7 @@ export class Game implements SaveHost, AudioHost, EffectHost, InputHost, RenderH
 		this.input = new InputSystem(this)
 		this.renderer = new RenderSystem(this)
 		this.resourceSystem = new ResourceSystem(this)
+		this.entityManager = new EntityManager(this, this as EntityHost)
 
 		try {
 			if (typeof window.require !== `function`) throw new ReferenceError(`require is not defined`)
@@ -96,10 +108,13 @@ export class Game implements SaveHost, AudioHost, EffectHost, InputHost, RenderH
 		this.chillMode = false
 		this.version = `1.1.0`
 
-		this.stuff = []
-		this.stuffMap = {}
+		installEntityAccessor(this, `stuff`)
+		installEntityAccessor(this, `stuffMap`)
+		installEntityAccessor(this, `entitiesInGame`)
+		installEntityAccessor(this, `chromaToContain`)
+		this.entityManager.initEntities()
+
 		this.unlockedEntities = {}
-		this.entitiesInGame = {}
 		this.plane = 0
 		this.bridge = false
 		this.maxEntityHeight = 3
@@ -948,38 +963,7 @@ export class Game implements SaveHost, AudioHost, EffectHost, InputHost, RenderH
 	}
 
 	clearCell(uv: Vec2){
-		const entity = this.entityAtCoordinates(uv)
-		if (!entity) return
-		if (entity.onDelete) entity.onDelete()
-		const n = entity.getNeighbours()
-
-		this.entitiesInGame[entity.name]!--
-		this.shop.updateElements()
-
-		if (!entity.entitySpan) {
-			delete this.stuffMap[`u${entity.position[0]}v${entity.position[1]}`]
-		} else {
-			const s = entity.entitySpan
-			for (let dy = -s; dy <= s; dy++){
-				for (let dx = -s; dx <= s; dx++){
-
-					delete this.stuffMap[`u${entity.position[0]+dx}v${entity.position[1]+dy}`]
-
-				}
-			}
-		}
-		
-		for (let i = 0; i < this.stuff.length; i++){
-			if (this.stuff[i] === entity){
-				this.stuff.splice(i,1)
-				break
-			}
-		}
-
-		for (let i = 0; i < n.length; i++){
-			if (n[i]) n[i]!.init()
-		}
-
+		this.entityManager.clearCell(uv)
 	}
 
 	updateMouseData(x: number, y: number){
@@ -1117,59 +1101,9 @@ export class Game implements SaveHost, AudioHost, EffectHost, InputHost, RenderH
 	}
 
 	relocate(e: GameEntity, p: Vec2){
-
-		const n = e.getNeighbours()
 		const targetEntity = this.entityAtCoordinates(p)
 		if (targetEntity && (targetEntity.span || !(this.canRelocate(targetEntity)))) return
-
-		//Clean up without triigering ondelete
-		if (!e.entitySpan) {
-			delete this.stuffMap[`u${e.position[0]}v${e.position[1]}`]
-		} else {
-			const s = e.entitySpan
-			for (let dy = -s; dy <= s; dy++){
-				for (let dx = -s; dx <= s; dx++){
-					delete this.stuffMap[`u${e.position[0]+dx}v${e.position[1]+dy}`]
-				}
-			}
-		}
-
-		//relocate
-		if (!e.entitySpan) {
-			this.stuffMap[`u${p[0]}v${p[1]}`] = e
-		} else {
-			const s = e.entitySpan
-			for (let dy = -s; dy <= s; dy++){
-				for (let dx = -s; dx <= s; dx++){
-					this.stuffMap[`u${p[0]+dx}v${p[1]+dy}`] = e
-				}
-			}
-		}
-
-		//swap
-		if (targetEntity) {
-			this.stuffMap[`u${e.position[0]}v${e.position[1]}`] = targetEntity
-			targetEntity.setPosition([...e.position] as Vec2)
-		}
-		
-		e.setPosition(p)
-
-
-		this.stuff.sort((a,b)=>a.position[0] + a.position[1] - b.position[0] - b.position[1])
-
-		//update new neighbours
-		for (let i = 0; i < e.soi.length; i++){
-			const cell = this.stuffMap[`u${e.position[0] + e.soi[i][0]}v${e.position[1] + e.soi[i][1]}`]
-			if (cell){
-				cell.init()
-			}
-		}
-
-		//update previous neighbours
-		for (let i = 0; i < n.length; i++){
-			if (n[i]) n[i]!.init()
-		}
-
+		this.entityManager.relocate(e, p)
 	}
 
 	processClick(){
@@ -1736,41 +1670,7 @@ export class Game implements SaveHost, AudioHost, EffectHost, InputHost, RenderH
 	}
 
 	updateEntities(dt: number){
-
-		this.chromaToContain = this.resources[5]
-		// this.unfilledEntities = []
-
-		for (let i = 0; i < this.stuff.length; i++){
-
-			if (this.stuff[i].killme){
-
-				this.stuff[i].onDelete()
-				this.entitiesInGame[this.stuff[i].name]!--
-				delete this.stuffMap[`u${this.stuff[i].position[0]}v${this.stuff[i].position[1]}`]
-				this.stuff.splice(i,1)
-				i--
-
-			} else {
-
-				//Halflife stuff
-				if (this.stuff[i] instanceof Vessel){
-					if (this.chromaToContain && this.stuff[i].state === 2){
-					this.stuff[i].tap!(dt)
-						this.stuff[i].isUsed = true
-						this.chromaToContain = Math.max(0, this.chromaToContain - this.stuff[i].capacity)
-					} else {
-						this.stuff[i].isUsed = false
-					}
-				}
-
-				this.stuff[i].update(dt)
-				this.stuff[i]?.updateSoul(dt)
-				// if (this.stuff[i]?.fill === 0 && !(this.stuff[i] instanceof Cube)) this.unfilledEntities.push(this.stuff[i])
-				// if (!(this.stuff[i] instanceof Cube) && this.stuff[i]?.fill === 0 && !this.stuff[i].isNextToSilo) this.unfilledEntities.push(this.stuff[i])
-			}
-
-		}
-
+		this.entityManager.updateEntities(dt)
 	}
 
 	updateRange(){
@@ -1808,69 +1708,11 @@ export class Game implements SaveHost, AudioHost, EffectHost, InputHost, RenderH
 	}
 
 	entityAtCoordinates(p: Vec2){
-		return this.stuffMap[`u${p[0]}v${p[1]}`]
-
+		return this.entityManager.entityAtCoordinates(p)
 	}
 
 	addEntity(name: string, position: Vec2, misc?: unknown, options: { skipShopUpdate?: boolean } = {}): GameEntity | false {
-
-		//Make check for bigger entities zzz
-		if (this.codex.entities[name] && !this.entityAtCoordinates(position)){
-
-			let entity: GameEntity | false
-			try {
-				entity = new this.codex.entities[name].class!(this as EntityHost, misc) as GameEntity
-			} catch {
-				entity = false
-			}
-
-			if (entity){
-
-				this.stuff.push(entity)
-				if (!entity.entitySpan) {
-					this.stuffMap[`u${position[0]}v${position[1]}`] = entity
-				} else {
-
-					const s = entity.entitySpan
-					for (let dy = -s; dy <= s; dy++){
-						for (let dx = -s; dx <= s; dx++){
-
-							this.stuffMap[`u${position[0]+dx}v${position[1]+dy}`] = entity
-
-						}
-					}
-
-				}
-				
-				entity.setPosition(position)
-				this.stuff.sort((a,b)=>a.position[0] + a.position[1] - b.position[0] - b.position[1])
-
-				//AUTOINIT everything around
-				if (!(entity instanceof Cube)){
-					for (let i = 0; i < entity.soi.length; i++){
-						const cell = this.stuffMap[`u${entity.position[0] + entity.soi[i][0]}v${entity.position[1] + entity.soi[i][1]}`]
-						if (cell){
-							cell.init()
-						}
-					}
-				}
-
-				if (!this.entitiesInGame[entity.name]) {
-					this.entitiesInGame[entity.name] = 1
-				} else {
-					this.entitiesInGame[entity.name]!++
-				}
-
-				if (!options.skipShopUpdate && name !== `cube`) this.shop.updateElements()
-
-			}
-
-			return entity
-		} else {
-			// console.log(`This place is occupied`)
-		}
-		return false
-
+		return this.entityManager.addEntity(name, position, misc, options)
 	}
 
 	get vfx(): VFX[] {

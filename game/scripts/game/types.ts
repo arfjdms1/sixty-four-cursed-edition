@@ -16,6 +16,7 @@ import type { MouseState, PointerInput } from '../input/types.js'
 import type { PlayingSound, SoundState, DecodedAudioSample as AudioSample } from '../audio/types.js'
 import type { AnalyticsState } from '../resources/types.js'
 import type { ResourceSystem } from '../resources/ResourceSystem.js'
+import type { EntityManager } from '../entities/EntityManager.js'
 
 export type { PlayingSound, SoundState, AudioSample, MouseState, PointerInput }
 export type { AnalyticsGraph, AnalyticsState } from '../resources/types.js'
@@ -66,6 +67,7 @@ export interface GameRuntimeState {
 	input: InputSystem
 	renderer: RenderSystem
 	resourceSystem: ResourceSystem
+	entityManager: EntityManager
 	backups: SaveBackup[]
 	spaceport: GameSpaceport
 	pixelRatio: number
