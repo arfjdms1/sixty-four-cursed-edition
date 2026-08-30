@@ -35,12 +35,25 @@ import type { EncodedSave, LoadableSaveState, SaveBackup, SaveSource, Serialized
 import type { EffectCompletion, EffectHost, EffectVisibility } from './effects/types.js'
 import type { EntityHost } from './entities/types.js'
 import type { GameEntity, GameRuntimeState, GlState, HeldItem, PlayingSound, PointerInput, SoundState } from './game/types.js'
+import { ResourceSystem } from './resources/ResourceSystem.js'
+import type { ResourceHost } from './resources/types.js'
 
 export { VFX, Exhaust, ResourceExplosion, ResourceSpark, ResourceTransfer, ChasmTransfer, Lightning }
 
 export interface Game extends GameRuntimeState {}
 
-export class Game implements SaveHost, AudioHost, EffectHost, InputHost, RenderHost {
+type ResourceOwnedField = 'analytics' | 'resources' | 'resourcePops' | 'resourceBuffer' | 'resourceRates' | 'rateMeasureMode'
+
+function installResourceAccessor<K extends ResourceOwnedField>(game: Game, property: K): void {
+	Object.defineProperty(game, property, {
+		configurable: true,
+		enumerable: true,
+		get: () => game.resourceSystem[property],
+		set: (value: ResourceSystem[K]) => { game.resourceSystem[property] = value },
+	})
+}
+
+export class Game implements SaveHost, AudioHost, EffectHost, InputHost, RenderHost, ResourceHost {
 
 	constructor(canvas: HTMLCanvasElement, preload: GameStartupPayload){
 
@@ -59,6 +72,7 @@ export class Game implements SaveHost, AudioHost, EffectHost, InputHost, RenderH
 		this.effects = new EffectSystem(this)
 		this.input = new InputSystem(this)
 		this.renderer = new RenderSystem(this)
+		this.resourceSystem = new ResourceSystem(this)
 
 		try {
 			if (typeof window.require !== `function`) throw new ReferenceError(`require is not defined`)
@@ -201,34 +215,8 @@ export class Game implements SaveHost, AudioHost, EffectHost, InputHost, RenderH
 	}
 
 	initAnalytics(){
-
-		this.analytics = {
-			measuringFrame: 1000,
-			frameCount: 16,
-			frames: [],
-			frame: [[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0]],
-			frameTimer: 0,
-			average: [[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0]],
-			instant: [[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0]],
-			dataSize: 64,
-			graphs: []
-		}
-
-		for (let i = 0; i < 10; i++){
-
-			const canvas = document.createElement(`canvas`)
-			canvas.width = this.w2 / 2
-			canvas.height = this.h2 / 2
-
-			this.analytics.graphs.push({
-				canvas: canvas,
-				ctx: canvas.getContext(`2d`) as CanvasRenderingContext2D,
-				data: [],
-				max: 10
-			})
-
-		}
-
+		installResourceAccessor(this, `analytics`)
+		this.resourceSystem.initAnalytics()
 	}
 
 	togglePhotofobia(){
@@ -597,8 +585,9 @@ export class Game implements SaveHost, AudioHost, EffectHost, InputHost, RenderH
 
 	initResources(){
 
-		this.resources = new Array(10).fill(0) as ResourceAmounts
-		this.resourcePops = new Array(10).fill(0)
+		installResourceAccessor(this, `resources`)
+		installResourceAccessor(this, `resourcePops`)
+		this.resourceSystem.initResources()
 		// this.preGradient = new Array(10).fill(0)
 		this.resourcesSprites = [] as unknown as Sprite[] & Record<string | number, Sprite>
 
@@ -612,9 +601,9 @@ export class Game implements SaveHost, AudioHost, EffectHost, InputHost, RenderH
 				intervals: 100
 			}))
 		}
-
-		this.resourceBuffer = new Array(10).fill(0)
-		this.resourceRates = new Array(10).fill(0)
+		installResourceAccessor(this, `resourceBuffer`)
+		installResourceAccessor(this, `resourceRates`)
+		this.resourceSystem.initRateTracking()
 
 	}
 
@@ -878,45 +867,11 @@ export class Game implements SaveHost, AudioHost, EffectHost, InputHost, RenderH
 	}
 
 	requestResources(r: number[], d: Vec2, f?: ((resources?: number[]) => void) | false, skip?: boolean){
-
-		let good = true
-		
-		for (let i = 0; i < r.length; i++){
-
-			if (r[i] && this.resources[i] < r[i]){
-				good = false
-				break
-			}
-
-		}
-
-		if (good) {
-
-			this.substractResourcesFromArray(r,skip)
-			this.createResourceTransfer(r, false, this.uvToXYUntranslated(d), f ? f as EffectCompletion : (_: unknown)=>{}, undefined, skip)
-			return true
-		}
-
-		return false
-
+		return this.resourceSystem.requestResources(r, d, f, skip)
 	}
 
 	askForResources(r: number[], d: Vec2, f?: ((resources: number[]) => void) | false, skip?: boolean){
-
-		const response: number[] = []
-		
-		for (let i = 0; i < r.length; i++){
-
-			if (r[i]){
-				response[i] = Math.min(this.resources[i], r[i])
-			}
-
-		}
-
-		this.substractResourcesFromArray(response,skip)
-		this.createResourceTransfer(response, false, this.uvToXYUntranslated(d), f ? (_: unknown)=>{f(response)} : (_: unknown)=>{}, undefined, skip)
-		return true
-
+		return this.resourceSystem.askForResources(r, d, f, skip)
 	}
 
 	get isMute(): boolean {
@@ -984,39 +939,12 @@ export class Game implements SaveHost, AudioHost, EffectHost, InputHost, RenderH
 	}
 
 	getRealPrice(name: string, sale?: boolean){
-
-		// if (price[i]) this.resources[i] += Math.floor(price[i] * (this.eraserType === 2 ? 1 : this.eraserType === 1 ? .9 : .5))
-
-		const mult = this.codex.entities[name].priceExponent ? this.codex.entities[name].priceExponent ** Math.max(0, (this.entitiesInGame[name] || 0) - (sale ? 1 : 0)) : 1
-		const sellMult = sale ? (this.eraserType === 2 ? 1 : this.eraserType === 1 ? .9 : .5) : 1
-		if (mult === 1) return this.codex.entities[name].price
-
-		const realPrice = []
-		for (let i = 0; i < this.codex.entities[name].price.length; i++){
-			realPrice.push(this.codex.entities[name].price[i] * mult * sellMult)
-		}
-		return realPrice
+		return this.resourceSystem.getRealPrice(name, sale)
 	}
 
 
 	canAfford(name: string){
-
-		let can = true
-		const price = this.getRealPrice(name)
-		// const source = this.codex.entities[name].priceType ? this[this.codex.entities[name].priceType] : this.resources
-		const source = this.resources
-
-		for (let i = 0; i < price.length; i++){
-
-			if (price[i] && source[i] < price[i]){
-				can = false
-				break
-			}
-
-		}
-
-		return can
-
+		return this.resourceSystem.canAfford(name)
 	}
 
 	clearCell(uv: Vec2){
@@ -1481,33 +1409,7 @@ export class Game implements SaveHost, AudioHost, EffectHost, InputHost, RenderH
 	}
 
 	updateAnalytics(dt: number){
-		const a = this.analytics
-		a.frameTimer -= dt
-		if (a.frameTimer < 0){
-			a.frameTimer = a.measuringFrame + a.frameTimer
-			a.frames.push(a.frame)
-			a.instant = a.frame
-			for (let i = 0; i < a.instant.length; i++){
-				const norm = a.measuringFrame / 1000
-				a.instant[i][0] /= norm
-				a.instant[i][1] /= norm
-				a.graphs[i].data.push(a.instant[i])
-				if (a.graphs[i].data.length > a.dataSize) a.graphs[i].data.shift()
-			}
-
-			a.frame = [[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0]]
-			if (a.frames.length > a.frameCount) a.frames.shift()
-
-			//Average
-			a.average = [[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0]]
-			for (let i = 0; i < a.frames.length; i++){
-				const norm = a.frames.length / (i + 1) * this.analytics.frames.length / 2
-				for (let j = 0; j < a.frames[i].length; j++){
-					a.average[j][0] += a.frames[i][j][0] / norm
-					a.average[j][1] += a.frames[i][j][1] / norm
-				}
-			}
-		}
+		this.resourceSystem.updateAnalytics(dt)
 	}
 
 	updateLoop(){
@@ -1561,27 +1463,8 @@ export class Game implements SaveHost, AudioHost, EffectHost, InputHost, RenderH
 	}
 
 	measureRates(){
-
-		const timeWindow = 11000
-		const resourceBuffer = [...this.resources]
-		this.rateMeasureMode = true
-
-		setTimeout((_: unknown)=>{
-
-			const delta = this.resources.map((v,i)=>v-resourceBuffer[i])
-			const resourceRates = delta.map(v=>v/timeWindow*100) //Change in resources per second
-			console.log(resourceRates)
-			delete this.rateMeasureMode
-
-		},timeWindow)
-
-		
-		// this.resourceRates = delta.map(v=>v/dt)
-
-		// console.log(this.resourceRates)//zzz
-
-		// this.resourceBuffer = [...this.resources]
-
+		installResourceAccessor(this, `rateMeasureMode`)
+		this.resourceSystem.measureRates(()=>{ delete this.rateMeasureMode })
 	}
 
 	updateSlowdownEvent(){
@@ -1726,11 +1609,7 @@ export class Game implements SaveHost, AudioHost, EffectHost, InputHost, RenderH
 	}
 
 	updateResourcePops(dt: number){
-
-		for (let i = 0; i < this.resourcePops.length; i++){
-			this.resourcePops[i] = Math.max(0, this.resourcePops[i] * (1 - 1/dt))
-		}
-
+		this.resourceSystem.updateResourcePops(dt)
 	}
 
 	updateTranslation(dt: number){
@@ -1828,32 +1707,11 @@ export class Game implements SaveHost, AudioHost, EffectHost, InputHost, RenderH
 	}
 
 	addResourcesFromArray(a: number[], skipAnalytics?: boolean){
-
-		const f = this.analytics.frame || []
-
-		for (let i = 0; i < a.length; i++){
-			if (a[i]) {
-				this.resources[i] += a[i]
-				if (!skipAnalytics) f[i][0] += a[i]
-				this.resourcePops[i] = .5
-				this.stats.totalResourcesMined[i] += a[i]
-				this.stats.absoluteResourcesCount += a[i]
-			}
-		}
-
+		this.resourceSystem.addResourcesFromArray(a, skipAnalytics)
 	}
 
 	substractResourcesFromArray(a: number[], skipAnalytics?: boolean){
-
-		const f = this.analytics.frame || []
-
-		for (let i = 0; i < a.length; i++){
-			if (a[i]) {
-				this.resources[i] = Math.max(0, this.resources[i] -= a[i])
-				if (!skipAnalytics) f[i][1] -= a[i]
-			}
-		}
-
+		this.resourceSystem.substractResourcesFromArray(a, skipAnalytics)
 	}
 
 	isVisible(p: GameEntity){

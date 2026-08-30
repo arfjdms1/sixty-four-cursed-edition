@@ -14,8 +14,11 @@ import type { InputSystem } from '../input/InputSystem.js'
 import type { RenderSystem } from '../rendering/RenderSystem.js'
 import type { MouseState, PointerInput } from '../input/types.js'
 import type { PlayingSound, SoundState, DecodedAudioSample as AudioSample } from '../audio/types.js'
+import type { AnalyticsState } from '../resources/types.js'
+import type { ResourceSystem } from '../resources/ResourceSystem.js'
 
 export type { PlayingSound, SoundState, AudioSample, MouseState, PointerInput }
+export type { AnalyticsGraph, AnalyticsState } from '../resources/types.js'
 
 export interface GameEntity extends Entity {
 	eraser?: boolean
@@ -25,25 +28,6 @@ export interface GameEntity extends Entity {
 
 export interface HeldItem extends GameEntity {
 	eraser?: boolean
-}
-
-export interface AnalyticsGraph {
-	canvas: HTMLCanvasElement
-	ctx: CanvasRenderingContext2D
-	data: Array<[number, number]>
-	max: number
-}
-
-export interface AnalyticsState {
-	measuringFrame: number
-	frameCount: number
-	frames: Array<Array<[number, number]>>
-	frame: Array<[number, number]>
-	frameTimer: number
-	average: Array<[number, number]>
-	instant: Array<[number, number]>
-	dataSize: number
-	graphs: AnalyticsGraph[]
 }
 
 export interface HollowEvent {
@@ -81,6 +65,7 @@ export interface GameRuntimeState {
 	effects: EffectSystem
 	input: InputSystem
 	renderer: RenderSystem
+	resourceSystem: ResourceSystem
 	backups: SaveBackup[]
 	spaceport: GameSpaceport
 	pixelRatio: number
