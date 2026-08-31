@@ -6,7 +6,6 @@ import { Auxpump2 } from './entities/Auxpump2.js'
 import { Cube } from './entities/Cube.js'
 import { Entropic } from './entities/Entropic.js'
 import { Entropic2a } from './entities/Entropic2a.js'
-import { Gradient } from './entities/Gradient.js'
 import { Pump } from './entities/Pump.js'
 import { Silo } from './entities/Silo.js'
 import { Achiever, Cloud, Explainer, Messenger, Shop, Splash } from './ui.js'
@@ -37,6 +36,8 @@ import { ResourceSystem } from './resources/ResourceSystem.js'
 import type { ResourceHost } from './resources/types.js'
 import { EntityManager } from './entities/EntityManager.js'
 import type { EntityManagerHost } from './entities/manager-types.js'
+import { InteractionSystem } from './interaction/InteractionSystem.js'
+import type { InteractionHost } from './interaction/types.js'
 
 export { VFX, Exhaust, ResourceExplosion, ResourceSpark, ResourceTransfer, ChasmTransfer, Lightning }
 
@@ -64,7 +65,30 @@ function installEntityAccessor<K extends EntityOwnedField>(game: Game, property:
 	})
 }
 
-export class Game implements SaveHost, AudioHost, EffectHost, InputHost, RenderHost, ResourceHost, EntityManagerHost {
+type InteractionOwnedField =
+	| 'selectedCell'
+	| 'selectedEntity'
+	| 'canPlace'
+	| 'itemInHand'
+	| 'itemInHandPriceTag'
+	| 'transportedEntity'
+	| 'hoveredCell'
+	| 'hoveredEntity'
+	| 'hoveredResource'
+	| 'altActive'
+	| 'pressedQOnBlank'
+	| 'pressedQOnMachine'
+
+function installInteractionAccessor<K extends InteractionOwnedField>(game: Game, property: K): void {
+	Object.defineProperty(game, property, {
+		configurable: true,
+		enumerable: true,
+		get: () => game.interaction[property],
+		set: (value: InteractionSystem[K]) => { game.interaction[property] = value },
+	})
+}
+
+export class Game implements SaveHost, AudioHost, EffectHost, InputHost, RenderHost, ResourceHost, EntityManagerHost, InteractionHost {
 
 	constructor(canvas: HTMLCanvasElement, preload: GameStartupPayload){
 
@@ -85,6 +109,7 @@ export class Game implements SaveHost, AudioHost, EffectHost, InputHost, RenderH
 		this.renderer = new RenderSystem(this)
 		this.resourceSystem = new ResourceSystem(this)
 		this.entityManager = new EntityManager(this, this as EntityHost)
+		this.interaction = new InteractionSystem(this, this.entityManager, this.resourceSystem)
 
 		try {
 			if (typeof window.require !== `function`) throw new ReferenceError(`require is not defined`)
@@ -114,12 +139,23 @@ export class Game implements SaveHost, AudioHost, EffectHost, InputHost, RenderH
 		installEntityAccessor(this, `chromaToContain`)
 		this.entityManager.initEntities()
 
+		installInteractionAccessor(this, `selectedCell`)
+		installInteractionAccessor(this, `selectedEntity`)
+		installInteractionAccessor(this, `canPlace`)
+		installInteractionAccessor(this, `itemInHand`)
+		installInteractionAccessor(this, `itemInHandPriceTag`)
+		installInteractionAccessor(this, `transportedEntity`)
+		installInteractionAccessor(this, `hoveredCell`)
+		installInteractionAccessor(this, `hoveredEntity`)
+		installInteractionAccessor(this, `hoveredResource`)
+		installInteractionAccessor(this, `altActive`)
+		installInteractionAccessor(this, `pressedQOnBlank`)
+		installInteractionAccessor(this, `pressedQOnMachine`)
+
 		this.unlockedEntities = {}
 		this.plane = 0
 		this.bridge = false
 		this.maxEntityHeight = 3
-		this.selectedCell = false
-		this.selectedEntity = false
 		this.resourceTransferType = 0
 		this.onlyones = {}
 		this.eraserType = 0
@@ -129,7 +165,6 @@ export class Game implements SaveHost, AudioHost, EffectHost, InputHost, RenderH
 			entity: undefined,
 			element: undefined
 		}
-		this.canPlace = false
 		this.needNoHelp = false
 		// this.music = {
 		// 	playing: false,
@@ -596,6 +631,10 @@ export class Game implements SaveHost, AudioHost, EffectHost, InputHost, RenderH
 
 	}
 
+	get entityHost(): EntityHost {
+		return this as EntityHost
+	}
+
 	//RESOURCES
 
 	initResources(){
@@ -865,20 +904,7 @@ export class Game implements SaveHost, AudioHost, EffectHost, InputHost, RenderH
 	}
 
 	pickupItem(name: string){
-
-		if (name === `eraser` || name === `eraser2` || name === `eraser3`){
-			this.itemInHand = {name: name, eraser: true} as HeldItem
-		} else {
-			this.itemInHand = new this.codex.entities[name].class!(this as EntityHost) as HeldItem
-		}
-
-		delete this.transportedEntity
-
-		if (!this.itemInHand.eraser){
-			this.itemInHandPriceTag = new Cloud(this as ConstructorParameters<typeof Cloud>[0])
-			this.itemInHandPriceTag.addResourceList(this.getRealPrice(this.itemInHand.name))
-		}
-
+		this.interaction.pickupItem(name)
 	}
 
 	requestResources(r: number[], d: Vec2, f?: ((resources?: number[]) => void) | false, skip?: boolean){
@@ -971,278 +997,39 @@ export class Game implements SaveHost, AudioHost, EffectHost, InputHost, RenderH
 	}
 
 	processMousemove(e?: PointerInput, dxy?: Vec2){
-
-		const x = e?.offsetX || e?.clientX
-		const y = e?.offsetY || e?.clientY
-
-		if (e){
-
-			this.updateMouseData(x as number,y as number)
-
-			if (e.buttons === 2) {
-				this.translation[0] -= (e.movementX as number) * this.pixelRatio / this.zoom
-				this.translation[1] -= (e.movementY as number) * this.pixelRatio / this.zoom
-			} else if (e.buttons === 1 && this.hoveredEntity) {
-
-				//DragFill
-				const n = this.hoveredEntity.name
-				const donotclick = (n === `cube` || n === `pump` || n === `pump2` || n === `waypoint` || n === `voidsculpture` || n === `strange` || n === `strange1` || n === `strange2` || n === `strange3` || n === `cookie` || n === `hollow`)
-				if (!this.itemInHand && !this.plane && !donotclick){
-
-					this.hoveredEntity?.onmousedown()	
-
-				}
-
-
-			} else if (dxy) {
-				this.translation[0] -= dxy[0]
-				this.translation[1] -= dxy[1]
-			}
-		}
-
-		const uv = this.xyToUV([this.mouse.offsetxy[0], this.mouse.offsetxy[1]])
-		const targetCell: Vec2 = [Math.floor(uv[0]), Math.floor(uv[1])]
-		this.hoveredCell = targetCell
-		this.hoveredEntity = this.entityAtCoordinates(this.hoveredCell)
-
-		this.hoveredResource = false
-		const delta = this.screenUnit * .3
-		for (let i = 0; i < this.resourceHomes.length; i++){
-			const home = this.resourceHomes[i]
-			if (this.mouse.xy[0] > home[0] - delta && this.mouse.xy[0] < home[0] + delta && this.mouse.xy[1] > home[1] - delta && this.mouse.xy[1] < home[1] + delta){
-				this.hoveredResource = i
-				break
-			}
-
-		}
-		
-		if (this.plane === 1 && this.hoveredEntity?.ondarkhover){
-			this.hoveredEntity.ondarkhover()
-		}
-
-		this.canPlace = false
-		if (this.itemInHand){
-			const base = this.hoveredCell && this.canAfford(this.itemInHand.name)
-			const eraserOk = this.itemInHand.eraser && this.hoveredEntity && !this.hoveredEntity.indestructible && !(this.hoveredEntity instanceof Cube) && !((this.hoveredEntity instanceof Pump || this.hoveredEntity instanceof Gradient) && ((this.entitiesInGame[`pump`] || 0) + (this.entitiesInGame[`pump2`] || 0) + (this.entitiesInGame[`gradient`] || 0) < 2))
-			const newOk = !this.itemInHand.eraser && !this.hoveredEntity && !this.codex.entities[this.itemInHand.name].isUpgradeTo
-			const upgradeOk = this.hoveredEntity && !this.itemInHand.eraser && this.codex.entities[this.itemInHand.name]?.isUpgradeTo === this.hoveredEntity.name
-			this.canPlace = this.transportedEntity ? (!this.hoveredEntity || this.canRelocate(this.hoveredEntity)) : (base && (eraserOk || newOk || upgradeOk))
-		}
-
+		this.interaction.processMousemove(e, dxy)
 	}
 
 	processMousedown(e?: unknown){
-		if ((e as { buttons?: number } | undefined)?.buttons !== 2){
-
-			this.mouse.state = 1
-
-			//Hitbox check
-			const cubeClicked = (this.hoveredEntity && this.hoveredEntity.name === `cube`)
-			if (!this.itemInHand || cubeClicked){
-
-				if (cubeClicked){
-					this.stats.totalCubeClicks++
-				}
-
-				if (this.hoveredEntity){
-					// this.selectedCell = winner.position
-					this.selectedEntity = this.hoveredEntity
-					if (!this.plane){
-						this.selectedEntity.onmousedown()
-					} else if (this.plane === 1 && this.selectedEntity.ondarkmousedown){
-						this.selectedEntity.ondarkmousedown()
-					}
-					
-				}
-
-				this.processMousemove()
-
-			}
-
-		}
-
-		this.mouse.positionChanged = false
+		this.interaction.processMousedown(e)
 	}
 
 	processQ(){
-		if (this.itemInHand){
-			delete this.itemInHand
-			delete this.transportedEntity
-		} else if (this.hoveredEntity && !this.plane){
-			this.shop.centerItem(this.hoveredEntity.name)
-			if (this.canAfford(this.hoveredEntity.name) && !this.onlyones[this.hoveredEntity.name] && this.codex.entities[this.hoveredEntity.name].canPurchase){
-				this.pickupItem(this.hoveredEntity.name)
-				this.pressedQOnMachine = true
-			}
-		} else if (!this.plane){
-			const eraser = this.eraserType === 1 ? `eraser2` : this.eraserType === 2 ? `eraser3` : `eraser`
-			if (this.canAfford(eraser)) {
-				this.pressedQOnBlank = true
-				this.pickupItem(eraser)
-			}
-		}
+		this.interaction.processQ()
 	}
 
 	processE(){
-
-		if (this.entitiesInGame.mega3 > 0 && this.resources[4] >= 1 && this.hoveredEntity && this.canRelocate(this.hoveredEntity) && !this.plane && !this.entitiesInGame.pinhole){
-			
-			this.transportedEntity = this.hoveredEntity
-			this.itemInHand = new this.codex.entities[this.hoveredEntity.name].class!(this as EntityHost) as HeldItem
-			delete this.itemInHandPriceTag
-
-		}
-
+		this.interaction.processE()
 	}
 
 	canRelocate(e: GameEntity | false | undefined){
-		if (!e || !e.name) return false
-		return (this.codex.entities[e.name].canPurchase || e.name === `stabilizer3`) && !(e.name === `flower` || e.name === `fruit` || e.name === `strange1` || e.name === `strange2` || e.name === `strange3` || e.name === `pump` || e.name === `pump2` || e.name === `cube`)
+		return this.interaction.canRelocate(e)
 	}
 
 	relocate(e: GameEntity, p: Vec2){
-		const targetEntity = this.entityAtCoordinates(p)
-		if (targetEntity && (targetEntity.span || !(this.canRelocate(targetEntity)))) return
-		this.entityManager.relocate(e, p)
+		this.interaction.relocate(e, p)
 	}
 
 	processClick(){
-
-		// console.log(this.hoveredCell)
-		// this.spawnSurge() ///REMqqqqqqqqqqqq
-		// this.addEntity(`surge`, this.hoveredCell)
-
-		const ok = this.itemInHand && this.hoveredCell && this.canAfford(this.itemInHand.name) && !(this.itemInHand.eraser && (this.hoveredEntity instanceof Pump || this.hoveredEntity instanceof Gradient) && ((this.entitiesInGame[`pump`] || 0) + (this.entitiesInGame[`pump2`] || 0) + (this.entitiesInGame[`gradient`] || 0) < 2))
-		
-		if (this.transportedEntity && this.hoveredCell && this.resources[4] >= 1){
-
-			//Relocation
-			this.requestResources([0,0,0,0,1], this.hoveredCell as Vec2, false, true)
-			this.relocate(this.transportedEntity!, this.hoveredCell as Vec2)
-			delete this.transportedEntity
-			delete this.itemInHand
-
-		} else if (ok){
-			// const entityHere = this.entityAtCoordinates(this.hoveredCell)
-
-			//Just your regular item placement
-			if (!this.hoveredEntity && !this.itemInHand!.eraser && !this.codex.entities[this.itemInHand!.name].isUpgradeTo){
-
-				const price = this.getRealPrice(this.itemInHand!.name)
-
-				this.requestResources(price, this.hoveredCell as Vec2, false, true)
-
-				this.addEntity(this.itemInHand!.name, this.hoveredCell as Vec2)
-				this.stats.machinesBuild++
-				this.processMousemove()
-
-				if (this.codex.entities[this.itemInHand!.name].onlyone){
-					this.onlyones[this.itemInHand!.name] = true
-					this.shop.check()
-					delete this.itemInHand
-				} else if (!this.canAfford(this.itemInHand?.name as string)){
-					delete this.itemInHand
-				} else {
-					this.pickupItem(this.itemInHand!.name)
-				}
-				
-				// console.log(this.itemInHand)
-				// if (this.itemInHand && !this.canAfford(this.itemInHand.name)) { //zzz random error in console "Cannot read properties of undefined (reading 'name')" fixed?
-				// 	delete this.itemInHand
-				// } else {
-				// 	this.pickupItem(this.itemInHand.name) // to update the price
-				// }
-				// delete this.hoveredCell
-
-			//Erasing
-			} else if (this.hoveredEntity && this.itemInHand!.eraser && !(this.hoveredEntity instanceof Cube) && !this.hoveredEntity.indestructible){
-
-				//REFUND
-				const price = this.getRealPrice(this.hoveredEntity.name, true)
-				const xy = this.uvToXYUntranslated(this.hoveredCell as Vec2)
-
-				if (this.codex.entities[this.hoveredEntity.name].onlyone){
-
-					let chainElement = this.codex.entities[this.hoveredEntity.name]
-					while (chainElement.isUpgradeTo){
-						delete this.onlyones[chainElement.isUpgradeTo]
-						chainElement = this.codex.entities[chainElement.isUpgradeTo]
-					}
-
-					if (this.codex.entities[this.hoveredEntity.name].isUpgradeTo){
-						delete this.onlyones[this.codex.entities[this.hoveredEntity.name].isUpgradeTo as string]
-					}
-
-					delete this.onlyones[this.hoveredEntity.name]
-					this.shop.check()
-				}
-
-				this.createResourceTransfer(price, xy, undefined, undefined, undefined, true)
-
-				this.requestResources(this.getRealPrice(this.itemInHand!.name), this.hoveredCell as Vec2, false, true) //just the cost of erasing
-				this.clearCell(this.hoveredCell as Vec2)
-				this.stats.machinesSold++
-				this.stats.timeSinceLastDelete = 0
-				this.hoveredEntity = undefined
-
-			//Upgrading
-			} else if (this.hoveredEntity && !this.itemInHand!.eraser && this.codex.entities[this.itemInHand!.name]?.isUpgradeTo === this.hoveredEntity.name){
-
-				if (this.itemInHand!.name === `pinhole`){
-					this.saveGame()
-					this.preventSaving = true
-				}
-				
-				this.clearCell(this.hoveredCell as Vec2)
-				this.stats.timeSinceLastDelete = 0
-
-				const price = this.getRealPrice(this.itemInHand!.name)
-				const refund = this.getRealPrice(this.hoveredEntity.name)
-				
-				this.createResourceTransfer(refund, this.uvToXYUntranslated(this.hoveredCell as Vec2), undefined, undefined, undefined, true)
-				this.requestResources(price, this.hoveredCell as Vec2, _=>{}, true)
-				this.addEntity(this.itemInHand!.name, this.hoveredEntity.position)
-				this.stats.machinesBuild++
-				if (this.codex.entities[this.itemInHand!.name].onlyone) {
-					this.onlyones[this.itemInHand!.name] = true
-					delete this.itemInHand
-				} else if (!this.canAfford(this.itemInHand?.name as string)){
-					delete this.itemInHand
-				} else {
-					this.pickupItem(this.itemInHand!.name) // to update the price
-				}
-				this.shop.check()
-				// delete this.hoveredCell
-
-			//Cancel build mode if click on machine
-			} else if (this.itemInHand && this.hoveredEntity?.name !== `cube`) {
-				delete this.itemInHand
-			}
-		}
-		
-
-		// if (this.plane === 1){
-
-		// 	if (this.hoveredEntity && this.hoveredEntity instanceof Pump){
-		// 		this.createDarkLink(this.hoveredEntity)
-		// 	}
-
-		// }
-
+		this.interaction.processClick()
 	}
 
 	processMouseup(){
-		this.mouse.state = 0
-		this.mouse.timer = this.mouse.maxTimer
-		if (this.selectedEntity && !this.plane) this.selectedEntity.onmouseup()
-		this.selectedEntity = false
+		this.interaction.processMouseup()
 	}
 
 	processMouseout(){
-		this.mouse.cursorVisible = false
-		if (this.selectedEntity && !this.plane) this.selectedEntity.onmouseup()
-		this.selectedEntity = false
-		this.removeHint()
+		this.interaction.processMouseout()
 	}
 
 	zoomInOut(delta: number){
