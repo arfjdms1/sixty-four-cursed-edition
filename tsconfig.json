@@ -21,10 +21,10 @@
     "types": []
   },
   "include": [
-    "game/scripts/**/*",
-    "game/types/**/*.d.ts"
+    "src/scripts/**/*",
+    "src/types/**/*.d.ts"
   ],
   "exclude": [
-    "game/scripts/post.js"
+    "src/scripts/post.js"
   ]
 }
