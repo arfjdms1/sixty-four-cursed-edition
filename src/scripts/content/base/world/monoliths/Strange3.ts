@@ -72,10 +72,10 @@ export class Strange3 extends Strange2{
 	}
 
 	onmousedown(){
-		const screenxy = this.master.uvToXYUntranslated(this.position)
-		const pan = this.master.getPanValueFromX(screenxy[0])
-		const loudness = this.master.getLoudnessFromXY(screenxy)
-		this.master.playSound(`horn`, pan, loudness)
+		const screenxy = this.context.coordinates.uvToXYUntranslated(this.position)
+		const pan = this.context.audio.getPanValueFromX(screenxy[0])
+		const loudness = this.context.audio.getLoudnessFromXY(screenxy)
+		this.context.audio.playSound(`horn`, pan, loudness)
 		this.master.stats.strangeRockPoked++
 
 		if (this.master.pinhole && this.master.stuff.length < 3){

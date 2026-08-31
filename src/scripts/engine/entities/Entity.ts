@@ -1,5 +1,6 @@
 import type { ColorTriplet, ResourceAmounts, Vec2 } from '../../../types/core.js'
 import type { EntityHost } from './types.js'
+import type { EntityContext } from './context/types.js'
 import { Sprite } from '../../sprites.js'
 import { Cloud } from '../../ui.js'
 import type { Destabilizer } from '../../content/base/machines/destabilizers/Destabilizer.js'
@@ -19,6 +20,7 @@ export interface Entity {
 
 export class Entity {
 	declare master: EntityHost
+	declare context: EntityContext
 	declare soi: Vec2[]
 	declare entitySpan: number
 	declare entityHeight: number
@@ -176,6 +178,7 @@ export class Entity {
 
 	constructor(master: EntityHost){
 		this.master = master
+		this.context = master.entityContext
 		this.soi = [[0,-1], [1,-1],[1,0],[1,1],[0,1],[-1,1],[-1,0],[-1,-1]]
 		this.entitySpan = 0
 		this.entityHeight = 1
@@ -248,11 +251,11 @@ export class Entity {
 
 	shootExhaust(): void {
 
-		const screenxy = this.master.uvToXYUntranslated(this.position)
-		const pan = this.master.getPanValueFromX(screenxy[0])
-		const loudness = this.master.getLoudnessFromXY(screenxy)
-		this.master.playSound(`exhaust`, pan, loudness)
-		this.master.createExhaust(this.position, this.master.codex.resources[this.fuel!.length - 1].triplet[1])
+		const screenxy = this.context.coordinates.uvToXYUntranslated(this.position)
+		const pan = this.context.audio.getPanValueFromX(screenxy[0])
+		const loudness = this.context.audio.getLoudnessFromXY(screenxy)
+		this.context.audio.playSound(`exhaust`, pan, loudness)
+		this.context.effects.createExhaust(this.position, this.master.codex.resources[this.fuel!.length - 1].triplet[1])
 
 	}
 
@@ -273,7 +276,7 @@ export class Entity {
 	darkrender(dt?: number, vposition?: Vec2): void {
 		const position = vposition ? vposition : this.position
 		const ctx = this.master.ctx
-		// const xy = this.master.uvToXY(position)
+		// const xy = this.context.coordinates.uvToXY(position)
 		ctx.save()
 		// ctx.translate(xy[0], xy[1])
 		ctx.globalAlpha = this.soul
@@ -284,13 +287,13 @@ export class Entity {
 	ondarkhover(): void {
 		if (this.soul === 1){
 
-			const screenxy = this.master.uvToXYUntranslated(this.position)
-			const pan = this.master.getPanValueFromX(screenxy[0])
-			const loudness = this.master.getLoudnessFromXY(screenxy)
-			this.master.playSound(`soul`, pan, loudness, true)
+			const screenxy = this.context.coordinates.uvToXYUntranslated(this.position)
+			const pan = this.context.audio.getPanValueFromX(screenxy[0])
+			const loudness = this.context.audio.getLoudnessFromXY(screenxy)
+			this.context.audio.playSound(`soul`, pan, loudness, true)
 
 			this.soul = 0
-			if (this.master.voidsculpture) this.master.createResourceTransfer([0,0,0,0,0,0,0,0,0,this.soulPower], screenxy, this.master.uvToXYUntranslated([(this.master.voidsculpture as { position: Vec2 }).position[0] - 1, (this.master.voidsculpture as { position: Vec2 }).position[1] - 1]), false, [0,1])
+			if (this.master.voidsculpture) this.context.effects.createResourceTransfer([0,0,0,0,0,0,0,0,0,this.soulPower], screenxy, this.context.coordinates.uvToXYUntranslated([(this.master.voidsculpture as { position: Vec2 }).position[0] - 1, (this.master.voidsculpture as { position: Vec2 }).position[1] - 1]), false, [0,1])
 		}
 	}
 

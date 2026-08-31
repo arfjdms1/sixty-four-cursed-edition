@@ -80,7 +80,7 @@ export class Surge extends Entity{
 			const rad = Math.random() * 2 - 1
 			const sp = Math.random() * 2 - 1
 
-			const p = this.master.uvToXY(this.position)
+			const p = this.context.coordinates.uvToXY(this.position)
 			const u = this.master.unit
 
 			this.rays.push({
@@ -132,8 +132,8 @@ export class Surge extends Entity{
 
 			if (this.mouseDistance < .75 || this.harvestProgression){
 				if (!this.harvestProgression){
-					const pan = this.master.getPanValueFromX(this.master.uvToXYUntranslated(this.position)[0])
-					this.master.playSound(`collect`, pan, .4)
+					const pan = this.context.audio.getPanValueFromX(this.context.coordinates.uvToXYUntranslated(this.position)[0])
+					this.context.audio.playSound(`collect`, pan, .4)
 				}
 				if (dt) if (dt) this.harvestTimer -= dt
 				this.harvestProgression = 1 - this.harvestTimer / this.maxHarvestTimer
@@ -142,13 +142,13 @@ export class Surge extends Entity{
 			if (this.harvestProgression >= 1 && !this.killme){
 				this.harvestProgression = 1
 				this.killme = true
-				this.master.createResourceTransfer(this.resources, this.master.mouse.xy)
+				this.context.effects.createResourceTransfer(this.resources, this.master.mouse.xy)
 
-				const pan = this.master.getPanValueFromX(this.master.uvToXYUntranslated(this.position)[0])
+				const pan = this.context.audio.getPanValueFromX(this.context.coordinates.uvToXYUntranslated(this.position)[0])
 				for (let i = 0; i < this.resources.length; i++){
 					if (this.resources[i]){
-						this.master.playSound(this.master.codex.resources[i].sfx, pan, 1)
-						this.master.playSound(`lightning`, pan, .4)
+						this.context.audio.playSound(this.master.codex.resources[i].sfx, pan, 1)
+						this.context.audio.playSound(`lightning`, pan, .4)
 					}
 				}
 			}
@@ -157,12 +157,12 @@ export class Surge extends Entity{
 
 		if (this.lifeTimer <= 0){
 				this.killme = true
-			this.master.createResourceExplosion(this.resources, this.master.uvToXYUntranslated(this.position))
+			this.context.effects.createResourceExplosion(this.resources, this.context.coordinates.uvToXYUntranslated(this.position))
 
-			const screenxy = this.master.uvToXYUntranslated(this.position)
-			const pan = this.master.getPanValueFromX(screenxy[0])
-			const loudness = this.master.getLoudnessFromXY(screenxy)
-			this.master.playSound(`lightning`, pan, loudness * .2)
+			const screenxy = this.context.coordinates.uvToXYUntranslated(this.position)
+			const pan = this.context.audio.getPanValueFromX(screenxy[0])
+			const loudness = this.context.audio.getLoudnessFromXY(screenxy)
+			this.context.audio.playSound(`lightning`, pan, loudness * .2)
 		}
 
 	}
@@ -170,7 +170,7 @@ export class Surge extends Entity{
 	render(dt?: number, vposition?: Vec2){
 
 		const ctx = this.master.ctx
-		const p = this.master.uvToXY(this.position)
+		const p = this.context.coordinates.uvToXY(this.position)
 
 		ctx.lineWidth = this.master.pixelRatio * 2
 
@@ -204,7 +204,7 @@ export class Surge extends Entity{
 
 				for (let j = this.harvestProgression || 0; j <= (this.ripe || 0); j+=.1){
 
-					const xy = this.master.uvToXY(line.getXY(j))
+					const xy = this.context.coordinates.uvToXY(line.getXY(j))
 					if (j%1) {
 						xy[0] += (Math.random() * 2 - 1) * u * (.02 + f * .04)
 						xy[1] += (Math.random() * 2 - 1) * u * (.02 + f * .04)

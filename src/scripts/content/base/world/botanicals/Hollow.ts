@@ -64,19 +64,19 @@ export class Hollow extends Entity{
 
 			this.integrity -= 1 / this.master.hollowHardness
 
-			const screenxy = this.master.uvToXYUntranslated(this.position)
-			const pan = this.master.getPanValueFromX(screenxy[0])
-			const loudness = this.master.getLoudnessFromXY(screenxy)
-			this.master.playSound(`hollow`, pan, loudness)
-			this.master.createResourceExplosion([0,0,0,0,0,0,0,64],screenxy)
+			const screenxy = this.context.coordinates.uvToXYUntranslated(this.position)
+			const pan = this.context.audio.getPanValueFromX(screenxy[0])
+			const loudness = this.context.audio.getLoudnessFromXY(screenxy)
+			this.context.audio.playSound(`hollow`, pan, loudness)
+			this.context.effects.createResourceExplosion([0,0,0,0,0,0,0,64],screenxy)
 
 			if (this.integrity <= 0 && !this.killme){
 
-				const screenxy = this.master.uvToXYUntranslated(this.position)
-				const pan = this.master.getPanValueFromX(screenxy[0])
-				const loudness = this.master.getLoudnessFromXY(screenxy)
-				this.master.playSound(`break`, pan, loudness)
-				this.master.createResourceTransfer([0,0,0,0,0,0,0,1], screenxy)
+				const screenxy = this.context.coordinates.uvToXYUntranslated(this.position)
+				const pan = this.context.audio.getPanValueFromX(screenxy[0])
+				const loudness = this.context.audio.getLoudnessFromXY(screenxy)
+				this.context.audio.playSound(`break`, pan, loudness)
+				this.context.effects.createResourceTransfer([0,0,0,0,0,0,0,1], screenxy)
 
 				this.master.hollowHardness = Math.max(4, this.master.hollowHardness / 2)
 				this.killme = true

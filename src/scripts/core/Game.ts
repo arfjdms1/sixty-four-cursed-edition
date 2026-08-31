@@ -38,6 +38,7 @@ import type { WorldEventHost } from '../engine/events/types.js'
 import { EntityRegistry } from '../registry/EntityRegistry.js'
 import { ResourceRegistry } from '../registry/ResourceRegistry.js'
 import type { ContentContext } from '../content/types.js'
+import { createEntityContext } from '../engine/entities/context/EntityContext.js'
 
 export { VFX, Exhaust, ResourceExplosion, ResourceSpark, ResourceTransfer, ChasmTransfer, Lightning }
 
@@ -122,6 +123,7 @@ export class Game implements SaveHost, AudioHost, EffectHost, InputHost, RenderH
 		this.input = new InputSystem(this)
 		this.renderer = new RenderSystem(this)
 		this.resourceSystem = new ResourceSystem(this)
+		this.entityContext = createEntityContext(this)
 		this.entityManager = new EntityManager(this, this as EntityHost, this.entityRegistry)
 		this.interaction = new InteractionSystem(this, this.entityManager, this.resourceSystem, this.entityRegistry)
 		this.autonomy = new AutonomySystem(this, this.entityManager)

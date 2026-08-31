@@ -3,8 +3,10 @@ import type { LanguagePack } from '../../words.js'
 import type { CodexData } from '../../codex.js'
 import type { Sprite } from '../../sprites.js'
 import type { Entity } from './Entity.js'
+import type { EntityContext } from './context/types.js'
 
 export interface EntityHost {
+	readonly entityContext: EntityContext
 	ctx: CanvasRenderingContext2D
 	unit: number
 	pixelRatio: number

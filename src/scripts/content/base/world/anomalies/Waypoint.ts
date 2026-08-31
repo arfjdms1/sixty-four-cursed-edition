@@ -61,7 +61,7 @@ export class Waypoint extends Entity{
 
 				this.master.switchedplanes = true
 				this.master.switchPlane(1)
-				this.master.playSound(`teleport`,undefined,undefined,undefined,true)
+				this.context.audio.playSound(`teleport`,undefined,undefined,undefined,true)
 				this.master.createHollowEvent(`#000`, this.master.voidsculpture ? 1000 : 10000)
 
 				//Gamepad
@@ -79,7 +79,7 @@ export class Waypoint extends Entity{
 			} else {
 
 				this.master.useWaypoint(this)
-				this.master.playSound(`teleport`,undefined,undefined,undefined,true)
+				this.context.audio.playSound(`teleport`,undefined,undefined,undefined,true)
 				this.master.createHollowEvent(`#000`, this.master.voidsculpture ? 1000 : 10000)
 				this.master.stats.timesTeleported++
 

@@ -12,8 +12,8 @@
     "build:hosted": "vite build --mode hosted",
     "build:offline": "vite build --mode offline",
     "preview": "npm run preview:hosted",
-    "preview:hosted": "vite preview --outDir dist/hosted",
-    "preview:offline": "vite preview --outDir dist/offline",
+    "preview:hosted": "vite preview --mode hosted",
+    "preview:offline": "vite preview --mode offline",
     "typecheck": "tsc --noEmit",
     "validate:achievement-icons": "node tests/validate_achievement_icons.mjs"
   },

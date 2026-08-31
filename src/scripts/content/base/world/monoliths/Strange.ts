@@ -30,10 +30,10 @@ export class Strange extends Entity{
 	}
 
 	onmousedown(){
-		const screenxy = this.master.uvToXYUntranslated(this.position)
-		const pan = this.master.getPanValueFromX(screenxy[0])
-		const loudness = this.master.getLoudnessFromXY(screenxy)
-		this.master.playSound(`horn`)
+		const screenxy = this.context.coordinates.uvToXYUntranslated(this.position)
+		const pan = this.context.audio.getPanValueFromX(screenxy[0])
+		const loudness = this.context.audio.getLoudnessFromXY(screenxy)
+		this.context.audio.playSound(`horn`)
 		this.master.stats.strangeRockPoked++
 	}
 

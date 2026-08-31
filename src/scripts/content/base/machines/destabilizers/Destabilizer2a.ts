@@ -49,10 +49,10 @@ export class Destabilizer2a extends Destabilizer{
 		this.sprite.render(position, dt)
 
 		if (this.fill){
-			const screen = this.master.uvToXY([position[0] - .25, position[1] - .48])
+			const screen = this.context.coordinates.uvToXY([position[0] - .25, position[1] - .48])
 			const scale = .2 + this.fill * .8
 			this.master.ctx.save()
-			const tr = this.master.translation || [0, 0];
+			const tr = this.context.coordinates.translation || [0, 0];
 			this.master.ctx.translate(screen[0] + (Math.random() * 2 - 1) * this.master.unit * .01 + tr[0] * scale * this.master.zoom, screen[1] + (Math.random() * 2 - 1) * this.master.unit * .01 + tr[1] * scale * this.master.zoom)
 			this.master.ctx.scale(scale,scale)
 			this.master.resourcesSprites[4].render([0,0])

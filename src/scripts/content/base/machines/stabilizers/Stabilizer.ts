@@ -145,11 +145,11 @@ export class Stabilizer extends Entity{
 					const dice = Math.floor(Math.random() * pumps.length)
 					if (pumps[dice]) {
 						pumps[dice].boost?.()
-						const screenxy = this.master.uvToXYUntranslated((this.attractorPosition || [0, 0]) as Vec2)
-						const pan = this.master.getPanValueFromX(screenxy[0])
-						const loudness = this.master.getLoudnessFromXY(screenxy)
-						this.master.playSound(`lightning`, pan, loudness, this.master.plane ? true : false)
-						this.master.createLightning([], screenxy, this.master.uvToXYUntranslated(pumps[dice].position), (_?: unknown) => {}, [1,0], `#112`)
+						const screenxy = this.context.coordinates.uvToXYUntranslated((this.attractorPosition || [0, 0]) as Vec2)
+						const pan = this.context.audio.getPanValueFromX(screenxy[0])
+						const loudness = this.context.audio.getLoudnessFromXY(screenxy)
+						this.context.audio.playSound(`lightning`, pan, loudness, this.master.plane ? true : false)
+						this.context.effects.createLightning([], screenxy, this.context.coordinates.uvToXYUntranslated(pumps[dice].position), (_?: unknown) => {}, [1,0], `#112`)
 					}
 
 				},
@@ -158,11 +158,11 @@ export class Stabilizer extends Entity{
 					const dice = Math.floor(Math.random() * unfilled.length)
 					if (unfilled[dice]) {
 						unfilled[dice].onmousedown(strength)
-						const screenxy = this.master.uvToXYUntranslated((this.attractorPosition || [0, 0]) as Vec2)
-						const pan = this.master.getPanValueFromX(screenxy[0])
-						const loudness = this.master.getLoudnessFromXY(screenxy)
-						this.master.playSound(`lightning`, pan, loudness, this.master.plane ? true : false)
-						this.master.createLightning([], screenxy, this.master.uvToXYUntranslated(unfilled[dice].position), (_?: unknown) => {}, [1,0], `#FA3`)
+						const screenxy = this.context.coordinates.uvToXYUntranslated((this.attractorPosition || [0, 0]) as Vec2)
+						const pan = this.context.audio.getPanValueFromX(screenxy[0])
+						const loudness = this.context.audio.getLoudnessFromXY(screenxy)
+						this.context.audio.playSound(`lightning`, pan, loudness, this.master.plane ? true : false)
+						this.context.effects.createLightning([], screenxy, this.context.coordinates.uvToXYUntranslated(unfilled[dice].position), (_?: unknown) => {}, [1,0], `#FA3`)
 					}
 				},
 				(m?: unknown) => {
@@ -170,11 +170,11 @@ export class Stabilizer extends Entity{
 					const dice = Math.floor(Math.random() * cubes.length)
 					if (cubes[dice]) {
 						cubes[dice].onmousedown(strength)
-						const screenxy = this.master.uvToXYUntranslated((this.attractorPosition || [0, 0]) as Vec2)
-						const pan = this.master.getPanValueFromX(screenxy[0])
-						const loudness = this.master.getLoudnessFromXY(screenxy)
-						this.master.playSound(`lightning`, pan, loudness, this.master.plane ? true : false)
-						this.master.createLightning([], screenxy, this.master.uvToXYUntranslated(cubes[dice].position), (_?: unknown) => {}, [1,0], `#863DFF`)
+						const screenxy = this.context.coordinates.uvToXYUntranslated((this.attractorPosition || [0, 0]) as Vec2)
+						const pan = this.context.audio.getPanValueFromX(screenxy[0])
+						const loudness = this.context.audio.getLoudnessFromXY(screenxy)
+						this.context.audio.playSound(`lightning`, pan, loudness, this.master.plane ? true : false)
+						this.context.effects.createLightning([], screenxy, this.context.coordinates.uvToXYUntranslated(cubes[dice].position), (_?: unknown) => {}, [1,0], `#863DFF`)
 					}
 				},
 				(m?: unknown) => {
@@ -196,16 +196,16 @@ export class Stabilizer extends Entity{
 
 						}
 
-						const screenxy = this.master.uvToXYUntranslated((this.attractorPosition || [0, 0]) as Vec2)
-						const cubeScreenxy = this.master.uvToXYUntranslated(cubes[dice].position)
-						const pan = this.master.getPanValueFromX(screenxy[0])
-						const loudness = this.master.getLoudnessFromXY(screenxy)
-						this.master.playSound(`lightning`, pan, loudness, this.master.plane ? true : false)
-						this.master.createLightning([], screenxy, cubeScreenxy, (_?: unknown) => {}, [1,0], `#F26F67`)
+						const screenxy = this.context.coordinates.uvToXYUntranslated((this.attractorPosition || [0, 0]) as Vec2)
+						const cubeScreenxy = this.context.coordinates.uvToXYUntranslated(cubes[dice].position)
+						const pan = this.context.audio.getPanValueFromX(screenxy[0])
+						const loudness = this.context.audio.getLoudnessFromXY(screenxy)
+						this.context.audio.playSound(`lightning`, pan, loudness, this.master.plane ? true : false)
+						this.context.effects.createLightning([], screenxy, cubeScreenxy, (_?: unknown) => {}, [1,0], `#F26F67`)
 
 						if (swapped){
 							const r = [0,0,0,swapped]
-							this.master.createResourceTransfer(r, cubeScreenxy)
+							this.context.effects.createResourceTransfer(r, cubeScreenxy)
 						}
 
 					}
@@ -216,11 +216,11 @@ export class Stabilizer extends Entity{
 					if (converters[dice]) {
 						
 						converters[dice].conversion = converters[dice].conversion + (1 - converters[dice].conversion) * conversion
-						const screenxy = this.master.uvToXYUntranslated((this.attractorPosition || [0, 0]) as Vec2)
-						const pan = this.master.getPanValueFromX(screenxy[0])
-						const loudness = this.master.getLoudnessFromXY(screenxy)
-						this.master.playSound(`lightning`, pan, loudness, this.master.plane ? true : false)
-						this.master.createLightning([], screenxy, this.master.uvToXYUntranslated(converters[dice].position), (_?: unknown) => {}, [1,0], `#A6F246`)
+						const screenxy = this.context.coordinates.uvToXYUntranslated((this.attractorPosition || [0, 0]) as Vec2)
+						const pan = this.context.audio.getPanValueFromX(screenxy[0])
+						const loudness = this.context.audio.getLoudnessFromXY(screenxy)
+						this.context.audio.playSound(`lightning`, pan, loudness, this.master.plane ? true : false)
+						this.context.effects.createLightning([], screenxy, this.context.coordinates.uvToXYUntranslated(converters[dice].position), (_?: unknown) => {}, [1,0], `#A6F246`)
 					}
 				},
 				(m?: unknown) => {
@@ -262,11 +262,11 @@ export class Stabilizer extends Entity{
 						one.surge.lifeTimer = one.surge.maxLifeTimer;
 						(this.surge as unknown as { lifeTimer: number }).lifeTimer = 64;
 
-						const screenxy = this.master.uvToXYUntranslated((this.attractorPosition || [0, 0]) as Vec2)
-						const pan = this.master.getPanValueFromX(screenxy[0])
-						const loudness = this.master.getLoudnessFromXY(screenxy)
-						this.master.playSound(`lightning`, pan, loudness, this.master.plane ? true : false)
-						this.master.createLightning([], screenxy, this.master.uvToXYUntranslated((one as { position: Vec2 }).position), (_?: unknown) => {}, [1,0], `#000`)
+						const screenxy = this.context.coordinates.uvToXYUntranslated((this.attractorPosition || [0, 0]) as Vec2)
+						const pan = this.context.audio.getPanValueFromX(screenxy[0])
+						const loudness = this.context.audio.getLoudnessFromXY(screenxy)
+						this.context.audio.playSound(`lightning`, pan, loudness, this.master.plane ? true : false)
+						this.context.effects.createLightning([], screenxy, this.context.coordinates.uvToXYUntranslated((one as { position: Vec2 }).position), (_?: unknown) => {}, [1,0], `#000`)
 					}
 				},
 				(m?: unknown) => {
@@ -299,7 +299,7 @@ export class Stabilizer extends Entity{
 
 	render(dt?: number, vposition?: Vec2){
 
-		const axy = (this.attractorPosition || [0, 0]) as Vec2 ? this.master.uvToXY((this.attractorPosition || [0, 0]) as Vec2) : false
+		const axy = (this.attractorPosition || [0, 0]) as Vec2 ? this.context.coordinates.uvToXY((this.attractorPosition || [0, 0]) as Vec2) : false
 		this.sprite.render(vposition ? vposition : this.position)
 
 		if (this.power && typeof this.power === "object" && this.surge){

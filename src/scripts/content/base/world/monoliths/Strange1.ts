@@ -80,7 +80,7 @@ export class Strange1 extends Entity{
 
 		if (consumed){
 
-			this.master.playSound(`horn`, 0, .4)
+			this.context.audio.playSound(`horn`, 0, .4)
 
 		} else {
 
@@ -124,10 +124,10 @@ export class Strange1 extends Entity{
 	}
 
 	onmousedown(){
-		const screenxy = this.master.uvToXYUntranslated(this.position)
-		const pan = this.master.getPanValueFromX(screenxy[0])
-		const loudness = this.master.getLoudnessFromXY(screenxy)
-		this.master.playSound(`horn`, pan, loudness)
+		const screenxy = this.context.coordinates.uvToXYUntranslated(this.position)
+		const pan = this.context.audio.getPanValueFromX(screenxy[0])
+		const loudness = this.context.audio.getLoudnessFromXY(screenxy)
+		this.context.audio.playSound(`horn`, pan, loudness)
 		this.master.stats.strangeRockPoked++
 	}
 

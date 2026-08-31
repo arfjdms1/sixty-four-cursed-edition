@@ -101,7 +101,7 @@ export class Entropic3 extends Entity{
 			}
 
 			if (cubesAround) {
-				this.master.createResourceExplosion([0,0,0,0,0,0,0,0,16], this.master.uvToXYUntranslated(this.position))
+				this.context.effects.createResourceExplosion([0,0,0,0,0,0,0,0,16], this.context.coordinates.uvToXYUntranslated(this.position))
 				this.fill -= 4e-3//0.0078125//0.015625
 				if (!this.master.voidsculpture) this.master.createHollowEvent(`#60F2`,500)
 			}

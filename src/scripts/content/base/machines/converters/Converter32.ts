@@ -55,12 +55,12 @@ export class Converter32 extends Entity{
 				this.conversion = 0
 				this.fill = 0
 				this.master.activeConverters.delete(this)
-				const screenxy = this.master.uvToXYUntranslated(this.position)
-				const pan = this.master.getPanValueFromX(screenxy[0])
-				const loudness = this.master.getLoudnessFromXY(screenxy)
-				this.master.createResourceTransfer(this.getConversionOutput(), screenxy)
-				this.master.playSound(`break`, pan, loudness)
-				this.master.playSound(`tap2`, pan, loudness)
+				const screenxy = this.context.coordinates.uvToXYUntranslated(this.position)
+				const pan = this.context.audio.getPanValueFromX(screenxy[0])
+				const loudness = this.context.audio.getLoudnessFromXY(screenxy)
+				this.context.effects.createResourceTransfer(this.getConversionOutput(), screenxy)
+				this.context.audio.playSound(`break`, pan, loudness)
+				this.context.audio.playSound(`tap2`, pan, loudness)
 			}
 		}
 
@@ -117,7 +117,7 @@ export class Converter32 extends Entity{
 		const ctx = this.master.ctx
 		const unit = this.master.unit
 		const position = vposition ? vposition : this.position
-		const xy = this.master.uvToXY(position)
+		const xy = this.context.coordinates.uvToXY(position)
 
 
 		this.sprite.render(position,0,true)

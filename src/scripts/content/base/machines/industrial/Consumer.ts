@@ -52,7 +52,7 @@ export class Consumer extends Entity{
 
 	consume(r: number[], o?: unknown){
 
-		this.master.createResourceTransfer(r, o, this.master.uvToXYUntranslated(this.position), (_?: unknown) => {
+		this.context.effects.createResourceTransfer(r, o, this.context.coordinates.uvToXYUntranslated(this.position), (_?: unknown) => {
 			
 			for (let i = 0; i < r.length; i++){
 				if (r[i]){
@@ -70,16 +70,16 @@ export class Consumer extends Entity{
 
 	onDelete(){
 
-		this.master.createResourceTransfer(this.resources, this.master.uvToXYUntranslated(this.position))
+		this.context.effects.createResourceTransfer(this.resources, this.context.coordinates.uvToXYUntranslated(this.position))
 
 	}
 
 	release(){
 
-		const screenxy = this.master.uvToXYUntranslated(this.position)
-		const pan = this.master.getPanValueFromX(screenxy[0])
-		const loudness = this.master.getLoudnessFromXY(screenxy)
-		this.master.playSound(`release`, pan, loudness)
+		const screenxy = this.context.coordinates.uvToXYUntranslated(this.position)
+		const pan = this.context.audio.getPanValueFromX(screenxy[0])
+		const loudness = this.context.audio.getLoudnessFromXY(screenxy)
+		this.context.audio.playSound(`release`, pan, loudness)
 
 		this.fill -= .00390625 // 1/256
 		if (this.fill <= 0){
@@ -94,7 +94,7 @@ export class Consumer extends Entity{
 			this.resources[i] = Math.floor(this.resources[i] * (1 + (this.multiplicator * this.bonus)))
 		}
 
-		this.master.createResourceTransfer(this.resources, this.master.uvToXYUntranslated(this.position))
+		this.context.effects.createResourceTransfer(this.resources, this.context.coordinates.uvToXYUntranslated(this.position))
 		this.resourceCount = 0
 		this.resources = new Array(this.master.resources.length).fill(0)
 		this.multiplicator = Math.min(this.multiplicator + 1, this.maxMultiplicator)

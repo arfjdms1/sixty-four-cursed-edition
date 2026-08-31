@@ -88,12 +88,12 @@ export class Converter64 extends Entity{
 				this.fill = 0
 				this.master.activeConverters.delete(this)
 				
-				const screenxy = this.master.uvToXYUntranslated(this.position)
-				const pan = this.master.getPanValueFromX(screenxy[0])
-				const loudness = this.master.getLoudnessFromXY(screenxy)
-				this.master.createResourceTransfer(this.getConversionOutput(), screenxy)
-				this.master.playSound(`break`, pan, loudness)
-				this.master.playSound(`tap4`, pan, loudness)
+				const screenxy = this.context.coordinates.uvToXYUntranslated(this.position)
+				const pan = this.context.audio.getPanValueFromX(screenxy[0])
+				const loudness = this.context.audio.getLoudnessFromXY(screenxy)
+				this.context.effects.createResourceTransfer(this.getConversionOutput(), screenxy)
+				this.context.audio.playSound(`break`, pan, loudness)
+				this.context.audio.playSound(`tap4`, pan, loudness)
 			}
 		}
 

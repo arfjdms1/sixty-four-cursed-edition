@@ -50,8 +50,8 @@ export class Gradient extends Entity{
 
 		power *= (1 + acc)
 		const r = this.getDiscrete(power)
-		const scoords = this.master.uvToXYUntranslated(this.position)
-		this.master.createChasmTransfer(scoords, (this.chasmPath ? [...this.chasmPath, this.position] : [this.position]).reverse()[0])
+		const scoords = this.context.coordinates.uvToXYUntranslated(this.position)
+		this.context.effects.createChasmTransfer(scoords, (this.chasmPath ? [...this.chasmPath, this.position] : [this.position]).reverse()[0])
 		// this.master.addResourcesFromArray(r)
 
 	}
@@ -67,18 +67,18 @@ export class Gradient extends Entity{
 			
 			if (entity.soul === 1){
 
-				const exy = this.master.uvToXYUntranslated(entity.position)
-				const gxy = this.master.uvToXYUntranslated(this.position)
+				const exy = this.context.coordinates.uvToXYUntranslated(entity.position)
+				const gxy = this.context.coordinates.uvToXYUntranslated(this.position)
 
 				if (this.master.plane){
-					const pan = this.master.getPanValueFromX(gxy[0])
-					const loudness = Math.max(this.master.getLoudnessFromXY(exy), this.master.getLoudnessFromXY(gxy))
-					this.master.playSound(`lightning`, pan, loudness, true)
+					const pan = this.context.audio.getPanValueFromX(gxy[0])
+					const loudness = Math.max(this.context.audio.getLoudnessFromXY(exy), this.context.audio.getLoudnessFromXY(gxy))
+					this.context.audio.playSound(`lightning`, pan, loudness, true)
 
 				}
 
 				entity.soul = 0
-				this.master.createLightning([0,0,0,0,0,0,0,0,0,entity.soulPower], exy, gxy, false, [0,1])
+				this.context.effects.createLightning([0,0,0,0,0,0,0,0,0,entity.soulPower], exy, gxy, false, [0,1])
 			}
 
 		}
@@ -130,7 +130,7 @@ export class Gradient extends Entity{
 		ctx.fillStyle = color
 
 		ctx.save()
-		const xy = this.master.uvToXY(this.position)
+		const xy = this.context.coordinates.uvToXY(this.position)
 		ctx.translate(xy[0], xy[1])
 
 		ctx.beginPath()

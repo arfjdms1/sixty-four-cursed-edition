@@ -54,17 +54,17 @@ export class Cube extends Entity{
 	onmousedown(power = 1){
 		if (this.state === 2){
 
-			const screenxy = this.master.uvToXYUntranslated(this.position)
-			const pan = this.master.getPanValueFromX(screenxy[0])
-			const loudness = this.master.getLoudnessFromXY(screenxy)
+			const screenxy = this.context.coordinates.uvToXYUntranslated(this.position)
+			const pan = this.context.audio.getPanValueFromX(screenxy[0])
+			const loudness = this.context.audio.getLoudnessFromXY(screenxy)
 
 			for (let i = 0; i < this.composition.length; i++){
 				if (this.composition[i]){
-					this.master.playSound(this.master.codex.resources[i].sfx, pan, loudness)
+					this.context.audio.playSound(this.master.codex.resources[i].sfx, pan, loudness)
 				}
 			}
 
-			if (this.master.resourceTransferType < 3) this.master.createResourceSpark(this.composition,screenxy)
+			if (this.master.resourceTransferType < 3) this.context.effects.createResourceSpark(this.composition,screenxy)
 			
 			let acc = 0
 			const hellgem = this.composition[4]
@@ -90,7 +90,7 @@ export class Cube extends Entity{
 				this.state = 3
 				this.master.activeCubes.delete(this)
 				if (this.master.plane === 1) {
-					this.master.createExhaust(this.position, `#FFF`)
+					this.context.effects.createExhaust(this.position, `#FFF`)
 				}
 
 				let activeConsumers = []
@@ -102,18 +102,18 @@ export class Cube extends Entity{
 				}
 				const consumer = activeConsumers.length > 1 ? activeConsumers[Math.floor(Math.random() * activeConsumers.length)] : activeConsumers.length > 0 ? activeConsumers[0] : false
 
-				this.master.playSound(`break`, pan, loudness)
+				this.context.audio.playSound(`break`, pan, loudness)
 
 				if (this.master.resourceTransferType < 3){
 					for (let i = 0; i < this.resourceCoordinates.length; i++){
-						const scoords = this.master.uvToXYUntranslated(this.resourceCoordinates[i])
+						const scoords = this.context.coordinates.uvToXYUntranslated(this.resourceCoordinates[i])
 						const r = []
 						r[this.resources[i]] = 1
 
 						if (consumer){
 							(consumer as unknown as { consume?: (r: number[], s: Vec2) => void })?.consume?.(r, scoords)
 						} else {
-							this.master.createResourceTransfer(r, scoords)
+							this.context.effects.createResourceTransfer(r, scoords)
 						}
 						
 					}
@@ -122,11 +122,11 @@ export class Cube extends Entity{
 					for (let i = 0; i < this.resources.length; i++){
 						resources[this.resources[i]]++
 					}
-					const scoords = this.master.uvToXYUntranslated(this.position)
+					const scoords = this.context.coordinates.uvToXYUntranslated(this.position)
 					if (consumer){
 						(consumer as unknown as { consume?: (r: number[], s: Vec2) => void })?.consume?.(resources, scoords)
 					} else {
-						this.master.createResourceTransfer(resources, scoords)
+						this.context.effects.createResourceTransfer(resources, scoords)
 					}
 				}
 
@@ -241,14 +241,14 @@ export class Cube extends Entity{
 			this.composition[swapResourceId] = 0.015625
 			this.composition[resourceId] -= 0.015625
 
-			const screenxy = this.master.uvToXYUntranslated(this.resourceCoordinates[swapPosition])
-			const pan = this.master.getPanValueFromX(screenxy[0])
-			const loudness = this.master.getLoudnessFromXY(screenxy)
+			const screenxy = this.context.coordinates.uvToXYUntranslated(this.resourceCoordinates[swapPosition])
+			const pan = this.context.audio.getPanValueFromX(screenxy[0])
+			const loudness = this.context.audio.getLoudnessFromXY(screenxy)
 
 			const explosionArray = []
 			explosionArray[resourceId] = 1
-			this.master.playSound(this.master.codex.resources[resourceId].sfx, pan, loudness)
-			this.master.createResourceTransfer(explosionArray, screenxy, screenxy, false, [0,0])
+			this.context.audio.playSound(this.master.codex.resources[resourceId].sfx, pan, loudness)
+			this.context.effects.createResourceTransfer(explosionArray, screenxy, screenxy, false, [0,0])
 		}
 	}
 
@@ -308,7 +308,7 @@ export class Cube extends Entity{
 		// const size = .5 * (1 - this.fill / this.maxFill)
 
 		// ctx.fillStyle = `#FFF`
-		// const xy = this.master.uvToXY(this.position)
+		// const xy = this.context.coordinates.uvToXY(this.position)
 
 		// ctx.beginPath()
 		// ctx.arc(xy[0], xy[1], size * unit, 0, Math.PI * 2)

@@ -45,7 +45,7 @@ export class Pinhole extends Entity{
 	init(){
 
 		if (!this.happened){
-			this.master.playSound(`lightning`)
+			this.context.audio.playSound(`lightning`)
 			this.master.createHollowEvent(`#000`, 50000)
 			this.happened = true
 
@@ -54,7 +54,7 @@ export class Pinhole extends Entity{
 			if (this.master.shop?.shopToggle) this.master.shop.shopToggle.style.display = `none`
 			if (this.master.hollowSite) (this.master.hollowSite as { spawnTimerBase?: number }).spawnTimerBase = 2000
 			this.master.pinhole = this
-			this.master.playSound(`endingMusic`,undefined,undefined,undefined,true)
+			this.context.audio.playSound(`endingMusic`,undefined,undefined,undefined,true)
 
 			this.totalCount = this.master.stuff.length
 
@@ -81,11 +81,11 @@ export class Pinhole extends Entity{
 
 			const entity = this.master.stuff[Math.floor(Math.random() * this.master.stuff.length)]
 			
-			const exy = this.master.uvToXYUntranslated(entity.position)
-			const gxy = this.master.uvToXYUntranslated([this.position[0] - 1, this.position[1] - 1])
+			const exy = this.context.coordinates.uvToXYUntranslated(entity.position)
+			const gxy = this.context.coordinates.uvToXYUntranslated([this.position[0] - 1, this.position[1] - 1])
 
-			this.master.playSound(`lightning`, undefined, undefined, this.master.plane ? true : false)
-			this.master.createLightning([], exy, gxy, (_?: unknown) => {}, [1,1], this.master.plane ? `#FFF` : `#112`)
+			this.context.audio.playSound(`lightning`, undefined, undefined, this.master.plane ? true : false)
+			this.context.effects.createLightning([], exy, gxy, (_?: unknown) => {}, [1,1], this.master.plane ? `#FFF` : `#112`)
 
 			//Gamepad
 			const gamepad = navigator.getGamepads()[0]
@@ -101,17 +101,17 @@ export class Pinhole extends Entity{
 
 			//(entity.name === `mega1b` && this.master.stuff.length > 4)
 			if (entity.name !== `pinhole` && entity.name !== `strange3`){
-				this.master.createResourceExplosion(this.master.getRealPrice(entity.name), exy)
+				this.context.effects.createResourceExplosion(this.master.getRealPrice(entity.name), exy)
 				this.master.clearCell(entity.position)
 			} else if (entity.name === `strange3`){
-				this.master.playSound(`horn`)
+				this.context.audio.playSound(`horn`)
 			}
 
 		}
 
 		if (this.switchTimer <= 0){
 			this.switchTimer = this.maxSwitchTimer
-			this.master.playSound(`teleport`,undefined,undefined, this.master.plane ? true : false,true)
+			this.context.audio.playSound(`teleport`,undefined,undefined, this.master.plane ? true : false,true)
 			this.master.switchPlane(this.master.plane ? 0 : 1)
 		}
 

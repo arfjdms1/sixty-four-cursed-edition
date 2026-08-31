@@ -511,14 +511,14 @@ export class Pump extends Entity{
 
 		if (work){
 			if (!this.sfxPlaying){
-				const screenxy = this.master.uvToXYUntranslated(this.position)
-				const pan = this.master.getPanValueFromX(screenxy[0])
-				const loudness = this.master.getLoudnessFromXY(screenxy)
+				const screenxy = this.context.coordinates.uvToXYUntranslated(this.position)
+				const pan = this.context.audio.getPanValueFromX(screenxy[0])
+				const loudness = this.context.audio.getLoudnessFromXY(screenxy)
 				this.sfxPlaying = this.master.startSound(`rumble`, pan, loudness)
 			}
 		} else {
 			if (this.sfxPlaying){
-				this.master.stopSound(this.sfxPlaying, 3)
+				this.context.audio.stopSound(this.sfxPlaying, 3)
 				delete this.sfxPlaying
 			}
 		}
@@ -544,7 +544,7 @@ export class Pump extends Entity{
 
 			// const ctx = ctx
 			// const unit = this.master.unit
-			// const xy = this.master.uvToXY([position[0] - .85, position[1] - 1.25])
+			// const xy = this.context.coordinates.uvToXY([position[0] - .85, position[1] - 1.25])
 			// const step = unit * .12
 
 			// ctx.font = step + `px Verdana`

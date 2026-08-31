@@ -175,14 +175,14 @@ export class Pump2 extends Pump{
 
 		if (work){
 			if (!this.sfxPlaying){
-				const screenxy = this.master.uvToXYUntranslated(this.position)
-				const pan = this.master.getPanValueFromX(screenxy[0])
-				const loudness = this.master.getLoudnessFromXY(screenxy)
+				const screenxy = this.context.coordinates.uvToXYUntranslated(this.position)
+				const pan = this.context.audio.getPanValueFromX(screenxy[0])
+				const loudness = this.context.audio.getLoudnessFromXY(screenxy)
 				this.sfxPlaying = this.master.startSound(`rumble`, pan, loudness)
 			}
 		} else {
 			if (this.sfxPlaying){
-				this.master.stopSound(this.sfxPlaying, 3)
+				this.context.audio.stopSound(this.sfxPlaying, 3)
 				delete this.sfxPlaying
 			}
 		}

@@ -82,7 +82,7 @@ export class Voidsculpture extends Entity{
 			this.master.bridge = true
 			this.master.substractResourcesFromArray([0,0,0,0,0,0,0,0,0,1])
 			this.master.switchPlane(0)
-			this.master.playSound(`teleport`,undefined,undefined,undefined,true)
+			this.context.audio.playSound(`teleport`,undefined,undefined,undefined,true)
 			this.master.createHollowEvent(`#FFF`, 20000)
 
 			//Gamepad
@@ -103,7 +103,7 @@ export class Voidsculpture extends Entity{
 		if (this.master.bridge && this.master.resources[8] >= 1){
 			this.master.substractResourcesFromArray([0,0,0,0,0,0,0,0,1])
 			this.master.switchPlane(1)
-			this.master.playSound(`teleport`,undefined,undefined,undefined,true)
+			this.context.audio.playSound(`teleport`,undefined,undefined,undefined,true)
 
 			//Gamepad
 			const gamepad = navigator.getGamepads()[0]
@@ -131,7 +131,7 @@ export class Voidsculpture extends Entity{
 			const time = performance.now() / 1000
 
 			const ctx = this.master.ctx
-			const xy = this.master.uvToXY(this.position)
+			const xy = this.context.coordinates.uvToXY(this.position)
 			ctx.save()
 			ctx.translate(xy[0], xy[1] - this.master.unit * 3.6)
 			ctx.fillStyle = `#000`
@@ -162,7 +162,7 @@ export class Voidsculpture extends Entity{
 		this.darksprite.render(vposition ? vposition : this.position)
 
 		const ctx = this.master.ctx
-		const xy = this.master.uvToXY(position)
+		const xy = this.context.coordinates.uvToXY(position)
 		ctx.save()
 		ctx.translate(xy[0], xy[1] - this.master.unit)
 		ctx.fillStyle = `#FFF`

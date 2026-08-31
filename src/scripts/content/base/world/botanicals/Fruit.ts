@@ -51,12 +51,12 @@ export class Fruit extends Flower {
 			this.conversion += (this.baseConversionSpeed + (this.baseConversionSpeed * .1 * (Math.random() * 2 - 1))) * (dt || 0)
 			if (this.conversion >= 1){
 				this.state = 0
-				const screenxy = this.master.uvToXYUntranslated(this.position)
-				const pan = this.master.getPanValueFromX(screenxy[0])
-				const loudness = this.master.getLoudnessFromXY(screenxy)
-				this.master.createResourceTransfer(this.getResourceFromFraction(this.conversion), screenxy, screenxy)
+				const screenxy = this.context.coordinates.uvToXYUntranslated(this.position)
+				const pan = this.context.audio.getPanValueFromX(screenxy[0])
+				const loudness = this.context.audio.getLoudnessFromXY(screenxy)
+				this.context.effects.createResourceTransfer(this.getResourceFromFraction(this.conversion), screenxy, screenxy)
 				this.conversion = 0
-				this.master.playSound(`hollow`, pan, loudness)
+				this.context.audio.playSound(`hollow`, pan, loudness)
 			}
 		}
 
@@ -80,11 +80,11 @@ export class Fruit extends Flower {
 		if (this.state === 2){
 
 			this.state = 0
-			const screenxy = this.master.uvToXYUntranslated(this.position)
-			const pan = this.master.getPanValueFromX(screenxy[0])
-			const loudness = this.master.getLoudnessFromXY(screenxy)
-			this.master.createResourceTransfer(this.getResourceFromFraction(this.conversion), screenxy, screenxy)
-			this.master.playSound(`hollow`, pan, loudness)
+			const screenxy = this.context.coordinates.uvToXYUntranslated(this.position)
+			const pan = this.context.audio.getPanValueFromX(screenxy[0])
+			const loudness = this.context.audio.getLoudnessFromXY(screenxy)
+			this.context.effects.createResourceTransfer(this.getResourceFromFraction(this.conversion), screenxy, screenxy)
+			this.context.audio.playSound(`hollow`, pan, loudness)
 
 		}
 	}

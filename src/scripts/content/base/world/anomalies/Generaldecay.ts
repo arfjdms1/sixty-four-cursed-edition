@@ -40,16 +40,16 @@ export class Generaldecay extends Entity {
 
 		if (this.capacity >= this.maxCapacity){
 
-			const screenxy = this.master.uvToXYUntranslated(this.position)
-			const pan = this.master.getPanValueFromX(screenxy[0])
-			const loudness = this.master.getLoudnessFromXY(screenxy)
-			this.master.playSound(`geiger`, pan, loudness)
+			const screenxy = this.context.coordinates.uvToXYUntranslated(this.position)
+			const pan = this.context.audio.getPanValueFromX(screenxy[0])
+			const loudness = this.context.audio.getLoudnessFromXY(screenxy)
+			this.context.audio.playSound(`geiger`, pan, loudness)
 
 			
 			if (this.master.chasm && (this.master.chasm as { chasmNetwork?: unknown }).chasmNetwork === this.chasmNetwork){
-				this.master.createChasmTransfer(this.resources, [...(this.chasmPath || []), this.position].reverse() as unknown as Vec2)
+				this.context.effects.createChasmTransfer(this.resources, [...(this.chasmPath || []), this.position].reverse() as unknown as Vec2)
 			} else {
-				this.master.createResourceTransfer(this.resources, screenxy, screenxy, false, [0,0])
+				this.context.effects.createResourceTransfer(this.resources, screenxy, screenxy, false, [0,0])
 			}
 			
 			this.resources = [0,0,0,0,0]

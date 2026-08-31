@@ -53,10 +53,10 @@ export class Silo extends Entity{
 			if (this.fill <= 0){
 				this.fill = 0
 				if (this.state === 2) {
-					const screenxy = this.master.uvToXYUntranslated(this.position)
-					const pan = this.master.getPanValueFromX(screenxy[0])
-					const loudness = this.master.getLoudnessFromXY(screenxy)
-					this.master.playSound(`silo2`, pan, loudness)
+					const screenxy = this.context.coordinates.uvToXYUntranslated(this.position)
+					const pan = this.context.audio.getPanValueFromX(screenxy[0])
+					const loudness = this.context.audio.getLoudnessFromXY(screenxy)
+					this.context.audio.playSound(`silo2`, pan, loudness)
 					this.shootExhaust()
 				}
 				this.state = 4 //Bubbling
@@ -72,7 +72,7 @@ export class Silo extends Entity{
 			
 			const good = this.refill()
 			if (good){
-				this.master.createChasmTransfer(this.fuel, [...this.chasmPath, this.position], (_?: unknown) => {})
+				this.context.effects.createChasmTransfer(this.fuel, [...this.chasmPath, this.position], (_?: unknown) => {})
 			}
 		}
 
@@ -151,10 +151,10 @@ export class Silo extends Entity{
 	}
 
 	activate(){
-		const screenxy = this.master.uvToXYUntranslated(this.position)
-		const pan = this.master.getPanValueFromX(screenxy[0])
-		const loudness = this.master.getLoudnessFromXY(screenxy)
-		this.master.playSound(`silo`, pan, loudness)
+		const screenxy = this.context.coordinates.uvToXYUntranslated(this.position)
+		const pan = this.context.audio.getPanValueFromX(screenxy[0])
+		const loudness = this.context.audio.getLoudnessFromXY(screenxy)
+		this.context.audio.playSound(`silo`, pan, loudness)
 
 		this.fill = 1
 		this.state = 3

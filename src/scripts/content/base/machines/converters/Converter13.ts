@@ -39,7 +39,7 @@ export class Converter13 extends Entity{
 	}
 
 	onDelete(){
-		if (this.sfxPlaying) this.master.stopSound(this.sfxPlaying,1)
+		if (this.sfxPlaying) this.context.audio.stopSound(this.sfxPlaying,1)
 		this.master.activeConverters.delete(this)
 	}
 
@@ -47,9 +47,9 @@ export class Converter13 extends Entity{
 
 		if (this.state === 2){
 			if (!this.sfxPlaying){
-				const screenxy = this.master.uvToXYUntranslated(this.position)
-				const pan = this.master.getPanValueFromX(screenxy[0])
-				const loudness = this.master.getLoudnessFromXY(screenxy)
+				const screenxy = this.context.coordinates.uvToXYUntranslated(this.position)
+				const pan = this.context.audio.getPanValueFromX(screenxy[0])
+				const loudness = this.context.audio.getLoudnessFromXY(screenxy)
 				this.sfxPlaying = this.master.startSound(`bubble`, pan, loudness)
 			}
 			let multiplicator = 1
@@ -64,14 +64,14 @@ export class Converter13 extends Entity{
 				this.conversion = 0
 				this.fill = 0
 				this.master.activeConverters.delete(this)
-				const screenxy = this.master.uvToXYUntranslated(this.position)
-				const pan = this.master.getPanValueFromX(screenxy[0])
-				const loudness = this.master.getLoudnessFromXY(screenxy)
-				this.master.createResourceTransfer(this.getConversionOutput(), screenxy)
+				const screenxy = this.context.coordinates.uvToXYUntranslated(this.position)
+				const pan = this.context.audio.getPanValueFromX(screenxy[0])
+				const loudness = this.context.audio.getLoudnessFromXY(screenxy)
+				this.context.effects.createResourceTransfer(this.getConversionOutput(), screenxy)
 				this.sprite.switchSequence(0)
-				this.master.playSound(`break`, pan, loudness)
-				this.master.playSound(`tap3`, pan, loudness)
-				this.master.stopSound(this.sfxPlaying,3)
+				this.context.audio.playSound(`break`, pan, loudness)
+				this.context.audio.playSound(`tap3`, pan, loudness)
+				this.context.audio.stopSound(this.sfxPlaying,3)
 				delete this.sfxPlaying
 			}
 

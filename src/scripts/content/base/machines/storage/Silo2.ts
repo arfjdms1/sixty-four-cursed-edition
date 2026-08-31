@@ -50,10 +50,10 @@ export class Silo2 extends Silo{
 				this.fill = 0
 				if (this.state === 2) {
 
-					const screenxy = this.master.uvToXYUntranslated(this.position)
-					const pan = this.master.getPanValueFromX(screenxy[0])
-					const loudness = this.master.getLoudnessFromXY(screenxy)
-					this.master.playSound(`silo2`, pan, loudness)
+					const screenxy = this.context.coordinates.uvToXYUntranslated(this.position)
+					const pan = this.context.audio.getPanValueFromX(screenxy[0])
+					const loudness = this.context.audio.getLoudnessFromXY(screenxy)
+					this.context.audio.playSound(`silo2`, pan, loudness)
 					this.shootExhaust()
 
 					this.shootExhaust()
