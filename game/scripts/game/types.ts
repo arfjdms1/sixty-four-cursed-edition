@@ -19,9 +19,12 @@ import type { ResourceSystem } from '../resources/ResourceSystem.js'
 import type { EntityManager } from '../entities/EntityManager.js'
 import type { InteractionSystem } from '../interaction/InteractionSystem.js'
 import type { AutonomySystem } from '../autonomy/AutonomySystem.js'
+import type { WorldEventSystem } from '../events/WorldEventSystem.js'
+import type { HollowEvent } from '../events/types.js'
 
 export type { PlayingSound, SoundState, AudioSample, MouseState, PointerInput }
 export type { AnalyticsGraph, AnalyticsState } from '../resources/types.js'
+export type { HollowEvent } from '../events/types.js'
 
 export interface GameEntity extends Entity {
 	eraser?: boolean
@@ -31,14 +34,6 @@ export interface GameEntity extends Entity {
 
 export interface HeldItem extends GameEntity {
 	eraser?: boolean
-}
-
-export interface HollowEvent {
-	max: number
-	time: number
-	color: string
-	imageTime: number
-	maxImageTime: number
 }
 
 export interface GlState {
@@ -72,6 +67,7 @@ export interface GameRuntimeState {
 	entityManager: EntityManager
 	interaction: InteractionSystem
 	autonomy: AutonomySystem
+	worldEvents: WorldEventSystem
 	backups: SaveBackup[]
 	spaceport: GameSpaceport
 	pixelRatio: number

@@ -33,6 +33,8 @@ import { InteractionSystem } from './interaction/InteractionSystem.js'
 import type { InteractionHost } from './interaction/types.js'
 import { AutonomySystem } from './autonomy/AutonomySystem.js'
 import type { AutonomyHost } from './autonomy/types.js'
+import { WorldEventSystem } from './events/WorldEventSystem.js'
+import type { WorldEventHost } from './events/types.js'
 
 export { VFX, Exhaust, ResourceExplosion, ResourceSpark, ResourceTransfer, ChasmTransfer, Lightning }
 
@@ -83,7 +85,18 @@ function installInteractionAccessor<K extends InteractionOwnedField>(game: Game,
 	})
 }
 
-export class Game implements SaveHost, AudioHost, EffectHost, InputHost, RenderHost, ResourceHost, EntityManagerHost, InteractionHost, AutonomyHost {
+type EventOwnedField = 'slowdown' | 'hollowEvents' | 'darkHollowEvents' | 'surgeSpawnTimer'
+
+function installEventAccessor<K extends EventOwnedField>(game: Game, property: K): void {
+	Object.defineProperty(game, property, {
+		configurable: true,
+		enumerable: true,
+		get: () => game.worldEvents[property],
+		set: (value: WorldEventSystem[K]) => { game.worldEvents[property] = value },
+	})
+}
+
+export class Game implements SaveHost, AudioHost, EffectHost, InputHost, RenderHost, ResourceHost, EntityManagerHost, InteractionHost, AutonomyHost, WorldEventHost {
 
 	constructor(canvas: HTMLCanvasElement, preload: GameStartupPayload){
 
@@ -106,6 +119,7 @@ export class Game implements SaveHost, AudioHost, EffectHost, InputHost, RenderH
 		this.entityManager = new EntityManager(this, this as EntityHost)
 		this.interaction = new InteractionSystem(this, this.entityManager, this.resourceSystem)
 		this.autonomy = new AutonomySystem(this, this.entityManager)
+		this.worldEvents = new WorldEventSystem(this, this.entityManager, this.resourceSystem)
 
 		try {
 			if (typeof window.require !== `function`) throw new ReferenceError(`require is not defined`)
@@ -148,6 +162,11 @@ export class Game implements SaveHost, AudioHost, EffectHost, InputHost, RenderH
 		installInteractionAccessor(this, `pressedQOnBlank`)
 		installInteractionAccessor(this, `pressedQOnMachine`)
 
+		installEventAccessor(this, `slowdown`)
+		installEventAccessor(this, `hollowEvents`)
+		installEventAccessor(this, `darkHollowEvents`)
+		installEventAccessor(this, `surgeSpawnTimer`)
+
 		this.unlockedEntities = {}
 		this.plane = 0
 		this.bridge = false
@@ -170,12 +189,8 @@ export class Game implements SaveHost, AudioHost, EffectHost, InputHost, RenderH
 
 		this.hollowSite = false
 		this.hollowHardness = 64
-		this.hollowEvents = []
-		this.darkHollowEvents = []
 		this.hollowImage = new Image()
 		this.hollowImage.src = `img/hollowEvent.png`
-
-		this.surgeSpawnTimer = 30000 + Math.random() * 120000
 
 		this.voidsculpture = false
 		this.switchedplanes = false
@@ -1060,50 +1075,7 @@ export class Game implements SaveHost, AudioHost, EffectHost, InputHost, RenderH
 	}
 
 	updateSlowdownEvent(){
-
-		if (this.slowdown.state){
-
-			this.slowdown.timer -= this.time.dt
-
-			const f = this.slowdown.timer / this.slowdown.totalTime
-			this.slowdown.f = f < .2 ? f * 5 : f < .8 ? 1 : 1 - (f - .8) * 5
-
-			this.time.dt *= (1 * (1 - this.slowdown.f) + this.slowdown.multiplyer * this.slowdown.f)
-
-
-			//zzz I don't remember why it was !this.plane. Weird.
-			if (this.slowdown.timer <= 0 || this.plane){
-				this.slowdown.state = false
-			}
-
-		} else if (!this.slowdown.cooldown && !this.entitiesInGame.pinhole){
-
-			const hollows = this.entitiesInGame.hollow || 0
-			const flowers = (this.entitiesInGame.flower || 0) + (this.entitiesInGame.fruit || 0)
-			const threshold = Math.max(0, hollows - flowers) * this.time.dt * 1e-6
-
-			if (Math.random() < threshold && !this.plane){
-
-				const dice = Math.random()
-				const power = (dice < .1 && hollows > 8) ? .02 : dice < .3 ? .1 : dice < .7 ? .5 : 2
-
-			const time = (10000 + Math.random() * 10000 * hollows) * ((power as number) === .01 ? .5 : 1)
-
-				// const fast = Math.random() < .333
-				// const veryslow = hollows > 8 && fast && (Math.random() < .333)
-
-				// const time = (20000 + Math.random() * 20000 * hollows) * (veryslow ? .5 : 1)
-				this.slowdown.cooldown = 96000
-				this.initiateSlowdown( time, power )
-				
-			}
-
-		} else {
-
-			this.slowdown.cooldown = Math.max(0, this.slowdown.cooldown - this.time.dt)
-
-		}
-
+		this.worldEvents.updateSlowdownEvent()
 	}
 
 	updateResourceInteractions(dt: number){
@@ -1429,49 +1401,15 @@ export class Game implements SaveHost, AudioHost, EffectHost, InputHost, RenderH
 	}
 
 	createHollowEvent(color = `#FFBB36`, time = 6000, sound: string | number | false = false, image = false){
-
-		if (sound) this.playSound(sound, 0, 1)
-
-		this.hollowEvents.push({max: time, time: time, color: color, imageTime: image ? 250 : 0, maxImageTime: 200})
-
+		this.worldEvents.createHollowEvent(color, time, sound, image)
 	}
+
 	createDarkHollowEvent(color = `#FFBB36`, time = 6000, sound: string | number | false = false, image = false){
-
-		if (sound) this.playSound(sound, 0, 1)
-
-		this.darkHollowEvents.push({max: time, time: time, color: color, imageTime: image ? 250 : 0, maxImageTime: 200})
-
+		this.worldEvents.createDarkHollowEvent(color, time, sound, image)
 	}
 
 	updateHollowEvents(dt: number){
-
-		for (let i = 0; i < this.hollowEvents.length; i++){
-
-			const e = this.hollowEvents[i]
-			e.time -= dt
-			e.imageTime -= dt
-			if (e.time <= 0){
-				
-				this.hollowEvents.splice(i,1)
-				i--
-
-			}
-
-		}
-		for (let i = 0; i < this.darkHollowEvents.length; i++){
-
-			const e = this.darkHollowEvents[i]
-			e.time -= dt
-			e.imageTime -= dt
-			if (e.time <= 0){
-				
-				this.darkHollowEvents.splice(i,1)
-				i--
-
-			}
-
-		}
-
+		this.worldEvents.updateHollowEvents(dt)
 	}
 
 	renderHollowEvents(){
@@ -1483,69 +1421,15 @@ export class Game implements SaveHost, AudioHost, EffectHost, InputHost, RenderH
 	}
 
 	initiateSlowdown(t: number, m: number){
-
-		this.stats.timeEvents++
-
-		this.slowdown.state = true 
-		this.slowdown.timer = t
-		this.slowdown.totalTime = t
-		this.slowdown.multiplyer = m
-
+		this.worldEvents.initiateSlowdown(t, m)
 	}
 
 	updateSurge(dt: number){
-		if (this.currentlyExtracting) this.surgeSpawnTimer -= dt
-		if (this.surgeSpawnTimer <= 0){
-			this.spawnSurge()
-			this.surgeSpawnTimer = 20000 + Math.random() * 80000
-		}
+		this.worldEvents.updateSurge(dt)
 	}
 
-	spawnSurge(){
-
-		if (!this.resources[1]) return
-
-		const dice = Math.random()
-		const multiplyer = dice < .75 ? .1 : dice < .9 ? .3 : .5
-
-		let maxId = 0
-		for (let i = 9; i >=0; i--){
-			if (this.resources[i] > 0){
-				maxId = i
-				break
-			}
-		}
-		const rid = Math.floor(Math.random() * (maxId + 1))
-		const source = rid > 6 ? Math.min(this.resources[rid], 512) : rid === 5 ? Math.min(this.resources[rid], 16384) : Math.min(this.resources[rid], 262144)
-		const base = this.stats.totalResourcesMined[rid] > 2048 ? 512 + multiplyer * source : multiplyer * source
-		const amount = Math.max(1, base + source * multiplyer * Math.random())
-
-		const resources = []
-		resources[rid] = amount
-		const colors = this.codex.resources[rid].surgeTriplet ? this.codex.resources[rid].surgeTriplet : this.codex.resources[rid].triplet
-
-		const origin = this.xyToUV(this.mouse.offsetxy)
-		const radius = 6
-
-		for (let i = 0; i < 32; i++){
-
-			const u = Math.floor((Math.random() * 2 - 1) * radius + origin[0])
-			const v = Math.floor((Math.random() * 2 - 1) * radius + origin[1])
-			const rayNumber = 1 + Math.floor(multiplyer * 24)
-			const grade = rayNumber < 5 ? 0 : rayNumber < 10 ? 1 : 2
-
-			const placed = this.addEntity(`surge`, [u,v], {
-				resources: resources,
-				rayNumber: rayNumber,
-				grade: grade,
-				colors: colors,
-				type: rid
-			}, {skipShopUpdate: true})
-
-			if (placed) break
-
-		}
-
+	spawnSurge(type?: number){
+		this.worldEvents.spawnSurge(type)
 	}
 
 }
