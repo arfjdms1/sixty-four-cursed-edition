@@ -35,6 +35,7 @@ import { AutonomySystem } from './autonomy/AutonomySystem.js'
 import type { AutonomyHost } from './autonomy/types.js'
 import { WorldEventSystem } from './events/WorldEventSystem.js'
 import type { WorldEventHost } from './events/types.js'
+import { EntityRegistry } from './registry/EntityRegistry.js'
 
 export { VFX, Exhaust, ResourceExplosion, ResourceSpark, ResourceTransfer, ChasmTransfer, Lightning }
 
@@ -110,14 +111,16 @@ export class Game implements SaveHost, AudioHost, EffectHost, InputHost, RenderH
 		if (this.languageId === null) this.languageId = (preload && preload.languageId !== null) ? preload.languageId : 0
 		this.language = this.languages[this.languageId]
 		this.hasSteam = this.steamId ? true : false
+		this.codex = abstract_getCodex()
+		this.entityRegistry = new EntityRegistry(this.codex)
 		this.saves = new SaveSystem(this)
 		this.audio = new AudioSystem(this)
 		this.effects = new EffectSystem(this)
 		this.input = new InputSystem(this)
 		this.renderer = new RenderSystem(this)
 		this.resourceSystem = new ResourceSystem(this)
-		this.entityManager = new EntityManager(this, this as EntityHost)
-		this.interaction = new InteractionSystem(this, this.entityManager, this.resourceSystem)
+		this.entityManager = new EntityManager(this, this as EntityHost, this.entityRegistry)
+		this.interaction = new InteractionSystem(this, this.entityManager, this.resourceSystem, this.entityRegistry)
 		this.autonomy = new AutonomySystem(this, this.entityManager)
 		this.worldEvents = new WorldEventSystem(this, this.entityManager, this.resourceSystem)
 
@@ -195,15 +198,6 @@ export class Game implements SaveHost, AudioHost, EffectHost, InputHost, RenderH
 		this.voidsculpture = false
 		this.switchedplanes = false
 
-		this.slowdown = {
-			state: false,
-			timer: 0,
-			totalTime: 0,
-			multiplyer: .1,
-			f: 0,
-			cooldown: 0
-		}
-
 		this.initAnalytics()
 
 		this.waypointList = []
@@ -233,7 +227,6 @@ export class Game implements SaveHost, AudioHost, EffectHost, InputHost, RenderH
 			excavatorWasBuilt: false
 		}
 
-		this.codex = abstract_getCodex()
 		this.images = this.preloadImages()
 		this.words = abstract_getWords()[this.language]
 		this.initResources()

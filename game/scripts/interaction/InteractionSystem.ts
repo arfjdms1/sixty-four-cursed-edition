@@ -5,6 +5,7 @@ import { Gradient } from '../entities/Gradient.js'
 import { Pump } from '../entities/Pump.js'
 import type { GameEntity, HeldItem } from '../game/types.js'
 import type { PointerInput } from '../input/types.js'
+import type { EntityRegistry } from '../registry/EntityRegistry.js'
 import type { ResourceSystem } from '../resources/ResourceSystem.js'
 import { Cloud } from '../ui.js'
 import type { InteractionHost } from './types.js'
@@ -13,6 +14,7 @@ export class InteractionSystem {
 	host: InteractionHost
 	entities: EntityManager
 	resources: ResourceSystem
+	registry: EntityRegistry
 
 	selectedCell: Vec2 | false = false
 	selectedEntity: GameEntity | false = false
@@ -27,22 +29,24 @@ export class InteractionSystem {
 	pressedQOnBlank?: boolean
 	pressedQOnMachine?: boolean
 
-	constructor(host: InteractionHost, entities: EntityManager, resources: ResourceSystem){
+	constructor(host: InteractionHost, entities: EntityManager, resources: ResourceSystem, registry: EntityRegistry){
 		this.host = host
 		this.entities = entities
 		this.resources = resources
+		this.registry = registry
 	}
 
 	pickupItem(name: string): void {
 		if (name === `eraser` || name === `eraser2` || name === `eraser3`){
 			this.itemInHand = {name: name, eraser: true} as HeldItem
 		} else {
-			this.itemInHand = new this.host.codex.entities[name].class!(this.host.entityHost) as HeldItem
+			const constructor = this.registry.getConstructor(name)
+			if (constructor) this.itemInHand = new constructor(this.host.entityHost) as HeldItem
 		}
 
 		delete this.transportedEntity
 
-		if (!this.itemInHand.eraser){
+		if (this.itemInHand && !this.itemInHand.eraser){
 			this.itemInHandPriceTag = new Cloud(this.host.entityHost as ConstructorParameters<typeof Cloud>[0])
 			this.itemInHandPriceTag.addResourceList(this.resources.getRealPrice(this.itemInHand.name))
 		}
@@ -158,7 +162,8 @@ export class InteractionSystem {
 	processE(): void {
 		if (this.entities.entitiesInGame.mega3 > 0 && this.resources.resources[4] >= 1 && this.hoveredEntity && this.canRelocate(this.hoveredEntity) && !this.host.plane && !this.entities.entitiesInGame.pinhole){
 			this.transportedEntity = this.hoveredEntity
-			this.itemInHand = new this.host.codex.entities[this.hoveredEntity.name].class!(this.host.entityHost) as HeldItem
+			const constructor = this.registry.getConstructor(this.hoveredEntity.name)
+			if (constructor) this.itemInHand = new constructor(this.host.entityHost) as HeldItem
 			delete this.itemInHandPriceTag
 		}
 	}

@@ -1,5 +1,6 @@
 import type { Vec2 } from '../../types/core.js'
 import type { GameEntity } from '../game/types.js'
+import type { EntityRegistry } from '../registry/EntityRegistry.js'
 import { Cube } from './Cube.js'
 import { Vessel } from './Vessel.js'
 import type { EntityManagerHost } from './manager-types.js'
@@ -8,14 +9,16 @@ import type { EntityHost } from './types.js'
 export class EntityManager {
 	host: EntityManagerHost
 	entityHost: EntityHost
+	registry: EntityRegistry
 	declare stuff: GameEntity[]
 	declare stuffMap: Record<string, GameEntity | undefined>
 	declare entitiesInGame: Record<string, number>
 	declare chromaToContain: number
 
-	constructor(host: EntityManagerHost, entityHost: EntityHost){
+	constructor(host: EntityManagerHost, entityHost: EntityHost, registry: EntityRegistry){
 		this.host = host
 		this.entityHost = entityHost
+		this.registry = registry
 	}
 
 	initEntities(): void {
@@ -31,10 +34,11 @@ export class EntityManager {
 
 	addEntity(name: string, position: Vec2, misc?: unknown, options: { skipShopUpdate?: boolean } = {}): GameEntity | false {
 		//Make check for bigger entities zzz
-		if (this.host.codex.entities[name] && !this.entityAtCoordinates(position)){
+		const constructor = this.registry.getConstructor(name)
+		if (constructor && !this.entityAtCoordinates(position)){
 			let entity: GameEntity | false
 			try {
-				entity = new this.host.codex.entities[name].class!(this.entityHost, misc) as GameEntity
+				entity = new constructor(this.entityHost, misc)
 			} catch {
 				entity = false
 			}
