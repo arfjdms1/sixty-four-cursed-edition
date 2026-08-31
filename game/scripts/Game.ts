@@ -1,13 +1,6 @@
 import { Bezier } from './bezier.js'
 import { abstract_getCodex } from './codex.js'
 import { Sprite } from './sprites.js'
-import { Auxpump } from './entities/Auxpump.js'
-import { Auxpump2 } from './entities/Auxpump2.js'
-import { Cube } from './entities/Cube.js'
-import { Entropic } from './entities/Entropic.js'
-import { Entropic2a } from './entities/Entropic2a.js'
-import { Pump } from './entities/Pump.js'
-import { Silo } from './entities/Silo.js'
 import { Achiever, Cloud, Explainer, Messenger, Shop, Splash } from './ui.js'
 import { abstract_getWords } from './words.js'
 import { SaveSystem } from './save/SaveSystem.js'
@@ -38,6 +31,8 @@ import { EntityManager } from './entities/EntityManager.js'
 import type { EntityManagerHost } from './entities/manager-types.js'
 import { InteractionSystem } from './interaction/InteractionSystem.js'
 import type { InteractionHost } from './interaction/types.js'
+import { AutonomySystem } from './autonomy/AutonomySystem.js'
+import type { AutonomyHost } from './autonomy/types.js'
 
 export { VFX, Exhaust, ResourceExplosion, ResourceSpark, ResourceTransfer, ChasmTransfer, Lightning }
 
@@ -88,7 +83,7 @@ function installInteractionAccessor<K extends InteractionOwnedField>(game: Game,
 	})
 }
 
-export class Game implements SaveHost, AudioHost, EffectHost, InputHost, RenderHost, ResourceHost, EntityManagerHost, InteractionHost {
+export class Game implements SaveHost, AudioHost, EffectHost, InputHost, RenderHost, ResourceHost, EntityManagerHost, InteractionHost, AutonomyHost {
 
 	constructor(canvas: HTMLCanvasElement, preload: GameStartupPayload){
 
@@ -110,6 +105,7 @@ export class Game implements SaveHost, AudioHost, EffectHost, InputHost, RenderH
 		this.resourceSystem = new ResourceSystem(this)
 		this.entityManager = new EntityManager(this, this as EntityHost)
 		this.interaction = new InteractionSystem(this, this.entityManager, this.resourceSystem)
+		this.autonomy = new AutonomySystem(this, this.entityManager)
 
 		try {
 			if (typeof window.require !== `function`) throw new ReferenceError(`require is not defined`)
@@ -503,132 +499,7 @@ export class Game implements SaveHost, AudioHost, EffectHost, InputHost, RenderH
 	}
 
 	getAutonomy(){
-
-		if (!this.chasm) return false
-
-		const key = this.chasm.chasmNetwork
-		const silos: Silo[] = []
-		const automatedStuff = new Set<GameEntity>()
-		const auxes = new Set<Auxpump | Auxpump2>()
-		const pumps = new Set<Pump>()
-		const mapTiles = new Set<string>()
-		const pumpZones: Array<{ pump: Pump; speed: number; uvs: Vec2[] }> = []
-
-		//Get all connected silos
-		for (let i = 0; i < this.stuff.length; i++){
-
-			const s = this.stuff[i]
-			if (s instanceof Silo && s.chasmNetwork === key){
-				silos.push(s)
-			}
-
-		}
-
-		//Get all supplied auxes
-		for (let i = 0; i < silos.length; i++){
-
-			const s = silos[i]
-			const m = s.getNeighbours()
-
-			for (let j = 0; j < m.length; j++){
-
-				if (m[j] && m[j] instanceof Auxpump) auxes.add(m[j] as Auxpump)
-				if (m[j] && !(m[j] instanceof Cube)) automatedStuff.add(m[j] as GameEntity)
-
-			}
-
-		}
-
-		//Get all automated pumps
-		for (let a of auxes){
-
-			for (let i = 0; i < a.soi.length; i++){
-
-				const uv: Vec2 = [a.position[0] + a.soi[i][0], a.position[1] + a.soi[i][1]]
-				const entity = this.entityAtCoordinates(uv)
-				if (entity instanceof Pump) pumps.add(entity)
-
-			}
-
-
-		}
-
-		//Get zones available for cubes with pump speeds
-		for (let p of pumps){
-
-			const range = p.soe ? p.soe : p.soi
-
-			//Hardcode for auxes
-			let auxMult = .25
-			for (let i = 0; i < p.auxes.length; i++){
-
-				if (auxes.has(p.auxes[i] as Auxpump | Auxpump2) && p.auxes[i] instanceof Auxpump2){
-					auxMult = 1
-					break
-				}
-
-			}
-
-			const zone: { pump: Pump; speed: number; uvs: Vec2[] } = {
-				pump: p,
-				speed: p.pumpSpeed * (1 + auxMult),
-				uvs: []
-			}
-
-			for (let i = 0; i < range.length; i++){
-
-				const uv: Vec2 = [p.position[0] + range[i][0], p.position[1] + range[i][1]]
-				const uvString = `u${uv[0]}v${uv[1]}`
-				const entity = this.entityAtCoordinates(uv)
-
-				if (!entity || entity instanceof Cube || !mapTiles.has(uvString)) {
-					zone.uvs.push(uv)
-					mapTiles.add(uvString)
-				}
-
-			}
-
-			pumpZones.push(zone)
-
-		}
-
-		//Check for bonuses and breakers for each spot
-		const soi: Vec2[] = [[0,-1], [1,-1],[1,0],[1,1],[0,1],[-1,1],[-1,0],[-1,-1]]
-		for (let i = 0; i < pumpZones.length; i++){
-
-			const pz = pumpZones[i]
-
-			for (let j = 0; j < pz.uvs.length; j++){
-
-				const c = pz.uvs[j]
-
-				let cubeBreakpower = .08
-				let initialPower = 0
-				let powerRate = 0
-				let breakSpeed = 0
-
-				for (let k = 0; k < soi.length; k++){
-
-					const entity = this.entityAtCoordinates( [c[0] + soi[k][0], c[1] + soi[k][1]] )
-					if (!entity || !automatedStuff.has(entity)) continue
-					if (entity instanceof Entropic2a) {
-					initialPower += entity.power as number
-				} else if (entity instanceof Entropic) {
-					initialPower += entity.power as number
-					powerRate += (entity.power as number) / entity.interval
-					}
-
-				}
-
-				if(!initialPower || !powerRate) console.log(c)
-
-			}
-
-		}
-
-
-		// console.log(automatedStuff)
-
+		return this.autonomy.getAutonomy()
 	}
 
 	get entityHost(): EntityHost {

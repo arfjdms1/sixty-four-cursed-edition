@@ -18,6 +18,7 @@ import type { AnalyticsState } from '../resources/types.js'
 import type { ResourceSystem } from '../resources/ResourceSystem.js'
 import type { EntityManager } from '../entities/EntityManager.js'
 import type { InteractionSystem } from '../interaction/InteractionSystem.js'
+import type { AutonomySystem } from '../autonomy/AutonomySystem.js'
 
 export type { PlayingSound, SoundState, AudioSample, MouseState, PointerInput }
 export type { AnalyticsGraph, AnalyticsState } from '../resources/types.js'
@@ -70,6 +71,7 @@ export interface GameRuntimeState {
 	resourceSystem: ResourceSystem
 	entityManager: EntityManager
 	interaction: InteractionSystem
+	autonomy: AutonomySystem
 	backups: SaveBackup[]
 	spaceport: GameSpaceport
 	pixelRatio: number
