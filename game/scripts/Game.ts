@@ -36,9 +36,8 @@ import type { AutonomyHost } from './autonomy/types.js'
 import { WorldEventSystem } from './events/WorldEventSystem.js'
 import type { WorldEventHost } from './events/types.js'
 import { EntityRegistry } from './registry/EntityRegistry.js'
-import { getBaseEntityDefinitions } from './content/base/registerBaseEntities.js'
 import { ResourceRegistry } from './registry/ResourceRegistry.js'
-import { assertBaseResourceRegistry, getBaseResourceDefinitions } from './content/base/registerBaseResources.js'
+import type { ContentContext } from './content/types.js'
 
 export { VFX, Exhaust, ResourceExplosion, ResourceSpark, ResourceTransfer, ChasmTransfer, Lightning }
 
@@ -102,7 +101,7 @@ function installEventAccessor<K extends EventOwnedField>(game: Game, property: K
 
 export class Game implements SaveHost, AudioHost, EffectHost, InputHost, RenderHost, ResourceHost, EntityManagerHost, InteractionHost, AutonomyHost, WorldEventHost {
 
-	constructor(canvas: HTMLCanvasElement, preload: GameStartupPayload){
+	constructor(canvas: HTMLCanvasElement, preload: GameStartupPayload, content: ContentContext){
 
 		this.canvas = canvas
 		this.ctx = this.canvas.getContext(`2d`) as CanvasRenderingContext2D
@@ -114,9 +113,8 @@ export class Game implements SaveHost, AudioHost, EffectHost, InputHost, RenderH
 		if (this.languageId === null) this.languageId = (preload && preload.languageId !== null) ? preload.languageId : 0
 		this.language = this.languages[this.languageId]
 		this.hasSteam = this.steamId ? true : false
-		this.entityRegistry = new EntityRegistry(getBaseEntityDefinitions())
-		this.resourceRegistry = new ResourceRegistry(getBaseResourceDefinitions())
-		assertBaseResourceRegistry(this.resourceRegistry)
+		this.entityRegistry = new EntityRegistry(content.entityDefinitions)
+		this.resourceRegistry = new ResourceRegistry(content.resourceDefinitions)
 		this.codex = abstract_getCodex(this.entityRegistry, this.resourceRegistry)
 		this.saves = new SaveSystem(this)
 		this.audio = new AudioSystem(this)

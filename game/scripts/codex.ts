@@ -1,6 +1,4 @@
 import type { ResourceAmounts } from '../types/core.js'
-import { getBaseEntityDefinitions } from './content/base/registerBaseEntities.js'
-import { assertBaseResourceRegistry, BASE_RESOURCE_IDS, getBaseResourceDefinitions } from './content/base/registerBaseResources.js'
 import { EntityRegistry } from './registry/EntityRegistry.js'
 import { ResourceRegistry } from './registry/ResourceRegistry.js'
 import type { ResourceMetadata } from './registry/resource-types.js'
@@ -79,13 +77,15 @@ export interface CodexData {
 }
 
 export function abstract_getCodex(
-	registry: EntityRegistry = new EntityRegistry(getBaseEntityDefinitions()),
-	resourceRegistry: ResourceRegistry = new ResourceRegistry(getBaseResourceDefinitions()),
+	registry: EntityRegistry,
+	resourceRegistry: ResourceRegistry,
 ): CodexData {
 	const Cube = registry.getConstructor('cube')
-	assertBaseResourceRegistry(resourceRegistry)
-	const resources = BASE_RESOURCE_IDS.map(id => {
-		const { id: _id, legacyIndex: _legacyIndex, ...resource } = resourceRegistry.get(id)!
+	const resources = resourceRegistry.legacyDefinitions().map((definition, legacyIndex) => {
+		if (definition.legacyIndex !== legacyIndex){
+			throw new Error(`Missing legacy resource definition at index ${legacyIndex}`)
+		}
+		const { id: _id, legacyIndex: _legacyIndex, ...resource } = definition
 		return resource
 	})
 	return {

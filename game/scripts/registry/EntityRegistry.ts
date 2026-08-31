@@ -1,21 +1,21 @@
 import type { EntityCapability, EntityDefinition, EntityFamilyId, EntityKind, RuntimeEntityConstructor } from './types.js'
 
 export class EntityRegistry {
-	private definitionsMap: Map<string, EntityDefinition> = new Map()
+	private definitionsMap: Map<string, Readonly<EntityDefinition>> = new Map()
 	private orderedIds: string[] = []
 
-	constructor(definitions: readonly EntityDefinition[]){
+	constructor(definitions: readonly Readonly<EntityDefinition>[]){
 		this.populate(definitions)
 	}
 
-	private populate(definitions: readonly EntityDefinition[]): void {
+	private populate(definitions: readonly Readonly<EntityDefinition>[]): void {
 		for (const def of definitions){
 			this.definitionsMap.set(def.id, def)
 			this.orderedIds.push(def.id)
 		}
 	}
 
-	get(id: string): EntityDefinition | undefined {
+	get(id: string): Readonly<EntityDefinition> | undefined {
 		return this.definitionsMap.get(id)
 	}
 
@@ -27,12 +27,12 @@ export class EntityRegistry {
 		return this.definitionsMap.get(id)?.constructor
 	}
 
-	definitions(): IterableIterator<EntityDefinition> {
+	definitions(): IterableIterator<Readonly<EntityDefinition>> {
 		return this.definitionsMap.values()
 	}
 
 	ids(): readonly string[] {
-		return this.orderedIds
+		return [...this.orderedIds]
 	}
 
 	get size(): number {

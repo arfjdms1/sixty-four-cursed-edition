@@ -1,5 +1,4 @@
 import type { ResourceDefinition } from '../../registry/resource-types.js'
-import type { ResourceRegistry } from '../../registry/ResourceRegistry.js'
 
 export const BASE_RESOURCE_IDS = [
 	'charonite',
@@ -247,16 +246,18 @@ export function getBaseResourceDefinitions(): ResourceDefinition[] {
 	]
 }
 
-export function assertBaseResourceRegistry(registry: ResourceRegistry): void {
+export function assertBaseResourceDefinitions(definitions: readonly ResourceDefinition[]): void {
+	if (definitions.length !== BASE_RESOURCE_IDS.length){
+		throw new Error(`Invalid base resource definition count: ${definitions.length}`)
+	}
 	for (let legacyIndex = 0; legacyIndex < BASE_RESOURCE_IDS.length; legacyIndex++){
 		const id = BASE_RESOURCE_IDS[legacyIndex]
-		const definition = registry.get(id)
-		if (!definition) throw new Error(`Missing base resource definition: ${id}`)
+		const definition = definitions[legacyIndex]
+		if (definition.id !== id){
+			throw new Error(`Invalid base resource order at index ${legacyIndex}: ${definition.id}`)
+		}
 		if (definition.legacyIndex !== legacyIndex){
 			throw new Error(`Invalid legacy index for base resource ${id}: ${definition.legacyIndex}`)
-		}
-		if (registry.getByLegacyIndex(legacyIndex) !== definition){
-			throw new Error(`Base resource legacy index ${legacyIndex} does not resolve to ${id}`)
 		}
 	}
 }

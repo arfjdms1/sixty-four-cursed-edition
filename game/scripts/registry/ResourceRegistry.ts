@@ -5,11 +5,11 @@ export class ResourceRegistry {
 	private legacyDefinitionsMap: Map<number, Readonly<ResourceDefinition>> = new Map()
 	private orderedIds: ResourceTypeId[] = []
 
-	constructor(definitions: readonly ResourceDefinition[]){
+	constructor(definitions: readonly Readonly<ResourceDefinition>[]){
 		this.populate(definitions)
 	}
 
-	private populate(definitions: readonly ResourceDefinition[]): void {
+	private populate(definitions: readonly Readonly<ResourceDefinition>[]): void {
 		for (const definition of definitions){
 			if (typeof definition.id !== 'string' || !definition.id.trim() || definition.id !== definition.id.trim()){
 				throw new Error(`Invalid resource ID: ${String(definition.id)}`)

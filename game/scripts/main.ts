@@ -1,4 +1,6 @@
 import type { GameStartupPayload } from '../types/platform.js'
+import { ContentBuilder } from './content/ContentContext.js'
+import { registerBaseContent } from './content/registerBaseContent.js'
 import * as BezierModule from './bezier.js'
 import * as UiModule from './ui.js'
 import * as SpritesModule from './sprites.js'
@@ -146,7 +148,10 @@ globalThis.game = game
 function startGame(preload?: GameStartupPayload){
 	const canvas = document.querySelector<HTMLCanvasElement>(`.canvas`)
 	if (canvas) {
-		game = new Game(canvas, preload)
+		const contentBuilder = new ContentBuilder()
+		registerBaseContent(contentBuilder)
+		const content = contentBuilder.finalize()
+		game = new Game(canvas, preload, content)
 		globalThis.game = game
 	}
 }
