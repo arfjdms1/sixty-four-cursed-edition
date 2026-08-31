@@ -1,5 +1,5 @@
 import { BASE_ENTITY_CONSTRUCTORS, getBaseEntityDefinitions } from './base/registerBaseEntities.js'
-import { assertBaseResourceDefinitions, getBaseResourceDefinitions } from './base/registerBaseResources.js'
+import { assertBaseResourceDefinitions, getBaseResourceDefinitions } from './base/resources/registerBaseResources.js'
 import type { ContentRegistration } from './types.js'
 
 export function registerBaseContent(content: ContentRegistration): void {

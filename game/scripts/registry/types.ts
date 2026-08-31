@@ -1,5 +1,5 @@
-import type { EntityHost } from '../entities/types.js'
-import type { GameEntity } from '../game/types.js'
+import type { EntityHost } from '../engine/entities/types.js'
+import type { GameEntity } from '../core/types.js'
 
 export type EntityKind = 'machine' | 'entity' | 'world'
 
