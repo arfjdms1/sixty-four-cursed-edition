@@ -9,7 +9,7 @@
 
 ---
 
-## ⚡ The 15-Second Summary
+## The 15-Second Summary
 
 - **What is this?** A fully decompiled, modernized, strictly typed TypeScript codebase for the automation game *Sixty Four*.
 - **Does it work?** Yes. 100% gameplay, simulation, rendering, audio, and save compatibility with the desktop release.
@@ -26,7 +26,7 @@ Open `http://127.0.0.1:6464` in your browser.
 
 ---
 
-## 📖 Table of Contents
+## Table of Contents
 
 - [Why "Cursed Edition"?](#-why-cursed-edition)
 - [Current Project Status](#-current-project-status)
@@ -46,7 +46,7 @@ Open `http://127.0.0.1:6464` in your browser.
 
 ---
 
-## 🔮 Why "Cursed Edition"?
+## Why "Cursed Edition"?
 
 This project began with what seemed like a standard software engineering plan:
 
@@ -73,7 +73,7 @@ Rather than a simple wrapper, **Cursed Edition** evolved into a complete moderni
 
 ---
 
-## 📊 Current Project Status
+## Current Project Status
 
 ### What Exists Today (Completed)
 
@@ -95,7 +95,7 @@ Rather than a simple wrapper, **Cursed Edition** evolved into a complete moderni
 
 ---
 
-## 🚀 Quick Start & Commands
+## Quick Start & Commands
 
 All development and build operations use standard `npm` scripts:
 
@@ -112,7 +112,7 @@ All development and build operations use standard `npm` scripts:
 
 ---
 
-## 📦 Build Targets
+## Build Targets
 
 ### Hosted Web Build
 
@@ -148,7 +148,7 @@ Modern browser security policies enforce strict restrictions on `file:///` URLs:
 
 ---
 
-## 🏗️ Architecture Overview
+## Architecture Overview
 
 The source tree is organized into clearly defined architectural layers:
 
@@ -217,7 +217,7 @@ Base content is categorized according to verified structural metadata:
 
 ---
 
-## 🧩 Modding & Modernization
+## Modding & Modernization
 
 ### Modding Architecture
 
@@ -239,7 +239,7 @@ Base content is categorized according to verified structural metadata:
 
 ---
 
-## 🧪 Validation & Regression Testing
+## Validation & Regression Testing
 
 To guarantee zero behavioral regression during extensive refactoring, all architectural milestones are validated against frozen semantic fixtures:
 
@@ -259,7 +259,7 @@ All 10 internal regression test suites verify:
 
 ---
 
-## ⚖️ Legal & Upstream Notice
+## Legal & Upstream Notice
 
 **Sixty Four: Cursed Edition is an independent, unofficial community modernization project.**
 
@@ -270,6 +270,6 @@ All 10 internal regression test suites verify:
 
 ---
 
-## 📄 License
+## License
 
 Modernization code and architectural infrastructure are provided for educational and community development purposes. Original Sixty Four assets and intellectual property remain subject to their original copyright and commercial licensing. See [LICENSE](LICENSE) (or upstream distribution terms) for details.
