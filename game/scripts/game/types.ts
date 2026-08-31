@@ -22,6 +22,7 @@ import type { AutonomySystem } from '../autonomy/AutonomySystem.js'
 import type { WorldEventSystem } from '../events/WorldEventSystem.js'
 import type { HollowEvent } from '../events/types.js'
 import type { EntityRegistry } from '../registry/EntityRegistry.js'
+import type { ResourceRegistry } from '../registry/ResourceRegistry.js'
 
 export type { PlayingSound, SoundState, AudioSample, MouseState, PointerInput }
 export type { AnalyticsGraph, AnalyticsState } from '../resources/types.js'
@@ -70,6 +71,7 @@ export interface GameRuntimeState {
 	autonomy: AutonomySystem
 	worldEvents: WorldEventSystem
 	entityRegistry: EntityRegistry
+	resourceRegistry: ResourceRegistry
 	backups: SaveBackup[]
 	spaceport: GameSpaceport
 	pixelRatio: number

@@ -37,6 +37,8 @@ import { WorldEventSystem } from './events/WorldEventSystem.js'
 import type { WorldEventHost } from './events/types.js'
 import { EntityRegistry } from './registry/EntityRegistry.js'
 import { getBaseEntityDefinitions } from './content/base/registerBaseEntities.js'
+import { ResourceRegistry } from './registry/ResourceRegistry.js'
+import { assertBaseResourceRegistry, getBaseResourceDefinitions } from './content/base/registerBaseResources.js'
 
 export { VFX, Exhaust, ResourceExplosion, ResourceSpark, ResourceTransfer, ChasmTransfer, Lightning }
 
@@ -113,7 +115,9 @@ export class Game implements SaveHost, AudioHost, EffectHost, InputHost, RenderH
 		this.language = this.languages[this.languageId]
 		this.hasSteam = this.steamId ? true : false
 		this.entityRegistry = new EntityRegistry(getBaseEntityDefinitions())
-		this.codex = abstract_getCodex(this.entityRegistry)
+		this.resourceRegistry = new ResourceRegistry(getBaseResourceDefinitions())
+		assertBaseResourceRegistry(this.resourceRegistry)
+		this.codex = abstract_getCodex(this.entityRegistry, this.resourceRegistry)
 		this.saves = new SaveSystem(this)
 		this.audio = new AudioSystem(this)
 		this.effects = new EffectSystem(this)
