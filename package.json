@@ -14,7 +14,8 @@
     "preview": "npm run preview:hosted",
     "preview:hosted": "vite preview --outDir dist/hosted",
     "preview:offline": "vite preview --outDir dist/offline",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "validate:achievement-icons": "node tests/validate_achievement_icons.mjs"
   },
   "dependencies": {
     "electron-squirrel-startup": "^1.0.0",

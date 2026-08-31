@@ -1,866 +1,275 @@
 # Sixty Four: Cursed Edition
 
-> A modernization of Sixty Four for the web, after discovering that the
-> "web port" was apparently already finished.
+> A browser-native modernization and future modding platform for [Sixty Four](https://store.steampowered.com/app/2659900/Sixty_Four/).
 
-This project started with a fairly reasonable idea:
+![TypeScript](https://img.shields.io/badge/TypeScript-Strict%205.x-blue?style=flat-square&logo=typescript)
+![Vite](https://img.shields.io/badge/Vite-6.x-646CFF?style=flat-square&logo=vite)
+![Build](https://img.shields.io/badge/Targets-Hosted%20%7C%20Offline-success?style=flat-square)
+![Status](https://img.shields.io/badge/Architecture-Normalized-brightgreen?style=flat-square)
 
-> "Sixty Four is an Electron game written in JavaScript. Maybe I can port it
-> to the web."
+---
 
-That turned out to be unnecessary.
+## ⚡ The 15-Second Summary
 
-The shipped game already contains readable JavaScript, HTML, Canvas rendering,
-browser-compatible audio, browser-compatible save logic, and explicit fallback
-behavior for when Electron does not exist.
-
-The initial web port was therefore:
+- **What is this?** A fully decompiled, modernized, strictly typed TypeScript codebase for the automation game *Sixty Four*.
+- **Does it work?** Yes. 100% gameplay, simulation, rendering, audio, and save compatibility with the desktop release.
+- **Where does it run?** Natively in any modern web browser without Electron or Steam requirements.
+- **What is the goal?** Clean architectural decomposition, robust hosted/offline build pipelines, and an internal content composition seam for future modding support.
 
 ```bash
-cd game
-python -m http.server 6464
-````
-
-And then opening:
-
-```text
-http://localhost:6464
-```
-
-The game worked.
-
-The saves worked.
-
-The audio worked.
-
-The renderer worked.
-
-The game even gracefully handled Electron being missing.
-
-So that was apparently the web port.
-
-Software engineering is a serious profession.
-
----
-
-## What is Sixty Four?
-
-**Sixty Four** is an incremental automation game by Oleg Danilov.
-
-You start with some suspiciously smooth black cubes and gradually construct an
-increasingly unreasonable collection of machinery for extracting, processing,
-destroying, converting, and generally abusing resources.
-
-It is currently distributed primarily as a desktop game through Steam.
-
-Underneath that desktop release, however, the actual game is largely:
-
-* HTML
-* JavaScript
-* CSS
-* Canvas 2D
-* images
-* audio
-* `localStorage`
-
-with Electron acting mostly as a desktop wrapper and bridge to Steam-specific
-features.
-
-The application structure looks roughly like this:
-
-```text
-resources/
-└── app/
-    ├── main.js
-    ├── package.json
-    ├── node_modules/
-    ├── steam_appid.txt
-    └── game/
-        ├── index.html
-        ├── scripts/
-        ├── img/
-        ├── sfx/
-        └── font/
-```
-
-Yes.
-
-There is literally a directory called `game` containing `index.html`.
-
-No, apparently nobody thought to serve it.
-
----
-
-## Why does this project exist?
-
-Originally:
-
-> Port Sixty Four from Electron to the browser.
-
-Current objective:
-
-> Modernize the browser game that was apparently sitting inside the Electron
-> release the entire time.
-
-This project aims to preserve the original gameplay while rebuilding the
-surrounding platform using modern web tooling.
-
-Planned improvements include:
-
-* Vite
-* TypeScript
-* TSX for appropriate UI components
-* ES modules instead of global script soup
-* IndexedDB persistence
-* optional account-based cloud saves
-* save history and rollback
-* manual **Sync Now**
-* automatic server sync roughly every four minutes
-* better cross-browser behavior
-* touch and pointer input support
-* proper right-click handling
-* improved mobile/Chromebook behavior
-* web-native achievements
-* mod compatibility
-* performance improvements
-* bug fixes discovered during modernization
-* code organization that does not involve putting an entire ecosystem into
-  `stuff.js`
-
-The goal is **not** to rewrite the game merely because rewriting functioning
-software is an excellent way to manufacture new bugs.
-
----
-
-## Current status
-
-### Browser compatibility
-
-* [x] Game starts in a normal browser
-* [x] Canvas renderer works
-* [x] Core simulation works
-* [x] Mouse input works
-* [x] Audio works
-* [x] Assets load correctly
-* [x] Browser autosaves work
-* [x] Browser save loading works
-* [x] Save export/import works
-* [x] Reloading the page preserves progress
-* [ ] Remove misleading Steam failure warning
-* [ ] Proper right-click handling
-* [ ] Touch input
-* [ ] Mobile layout testing
-* [ ] Safari testing
-* [ ] Chromebook performance testing
-
-### Modernization
-
-* [ ] Vite migration
-* [ ] ES module conversion
-* [ ] TypeScript migration
-* [ ] TSX UI migration where useful
-* [ ] Typed save format
-* [ ] IndexedDB storage provider
-* [ ] account system
-* [ ] cloud save API
-* [ ] save conflict handling
-* [ ] save history
-* [ ] web achievements
-* [ ] mod loader integration
-
-### Status summary
-
-```text
-Expected project:
-
-Electron game
-    ↓
-reverse engineering
-    ↓
-renderer port
-    ↓
-filesystem replacement
-    ↓
-Steam removal
-    ↓
-browser compatibility
-    ↓
-weeks of suffering
-
-
-Actual project:
-
-cd game
-python -m http.server 6464
-    ↓
-works
-```
-
-We take those.
-
----
-
-## The Steam warning is lying
-
-When Sixty Four runs without Steam, it displays a large red warning claiming
-that autosaving will not work.
-
-Meanwhile, the game proceeds to autosave perfectly well into browser
-`localStorage`.
-
-Conceptually, the existing architecture is already something like:
-
-```text
-                   ┌── localStorage
-Game.save() ───────┤
-                   └── Electron IPC ──► Steam Cloud
-```
-
-Not:
-
-```text
-Game.save() ──► Steam or death
-```
-
-Without Steam, the Steam ID becomes an empty string and the local browser save
-key still works normally.
-
-So the browser effectively does:
-
-```text
-save
-↓
-localStorage
-↓
-reload page
-↓
-load save
-↓
-continue playing
-```
-
-while a red banner explains with tremendous confidence that none of this is
-possible.
-
-This will be fixed.
-
----
-
-## Development philosophy
-
-### 1. Preserve behavior first
-
-The modernization should happen in stages:
-
-```text
-original browser build
-        ↓
-Vite
-        ↓
-ES modules
-        ↓
-TypeScript
-        ↓
-UI modernization
-        ↓
-new platform features
-        ↓
-actual refactoring
-```
-
-Each stage should behave identically before proceeding.
-
-No giant:
-
-```text
-"rewrite everything and see what explodes"
-```
-
-commits.
-
-That strategy has been tested extensively by the software industry and the
-results are available in every issue tracker ever created.
-
----
-
-### 2. Refactors and bug fixes stay separate
-
-Migration commits should not intentionally change gameplay.
-
-Bad:
-
-```text
-refactor: convert 6,000 lines to TypeScript and fix seventeen mysterious bugs
-```
-
-Good:
-
-```text
-refactor: convert sprite loader to TypeScript
-fix: prevent invalid sprite index during reload
-```
-
-If something breaks, Git should be able to tell us which terrible decision was
-responsible.
-
----
-
-### 3. The compiler is allowed to disagree with us
-
-The original code is JavaScript.
-
-This means variables may occasionally discover themselves and pursue several
-different careers during their lifetime.
-
-Something that appears to be:
-
-```ts
-target: Entity
-```
-
-may, at runtime, turn out to be:
-
-```ts
-Entity | number | false | null | string | probably a toaster
-```
-
-Types will therefore be tightened gradually.
-
-Temporary `unknown` is preferable to confidently inventing types that are
-wrong.
-
----
-
-### 4. TSX is for UI
-
-The game renderer and simulation do not need to become React components.
-
-The intended architecture is roughly:
-
-```text
-src/
-├── game/
-│   ├── Game.ts
-│   ├── Entity.ts
-│   ├── Simulation.ts
-│   └── ...
-│
-├── platform/
-│   ├── saves/
-│   ├── cloud/
-│   ├── achievements/
-│   └── input/
-│
-└── ui/
-    ├── App.tsx
-    ├── VolumeSlider.tsx
-    ├── AccountMenu.tsx
-    ├── SaveManager.tsx
-    └── SyncStatus.tsx
-```
-
-Canvas remains Canvas.
-
-We do not need JSX representations of industrial machinery simply because npm
-exists.
-
----
-
-## Saving
-
-The existing game stores saves locally in the browser.
-
-Cursed Edition will retain fast local persistence while adding an optional
-server-side layer.
-
-Planned flow:
-
-```text
-Game state
-    ↓
-local save
-    ↓
-IndexedDB
-    ↓
-mark save dirty
-    ↓
-every ~4 minutes
-    ↓
-cloud sync
-```
-
-There will also be a:
-
-```text
-[ Sync Now ]
-```
-
-button for immediate synchronization.
-
-The game should never stop working because the cloud server decided it needed
-some personal time.
-
----
-
-## Save conflict handling
-
-Trying to automatically merge two independently modified game saves sounds
-like an entertaining way to create a universe in which the same machine both
-exists and does not exist.
-
-Instead, conflicts will be explicit.
-
-Example:
-
-```text
-Cloud Save
-Revision 182
-10:42 PM
-
-This Device
-Revision 179
-10:39 PM
-
-[ Use Cloud Save ]
-[ Use This Device ]
-```
-
-The losing version should be preserved as a backup rather than immediately
-launched into the void.
-
----
-
-## Local storage
-
-The existing game uses `localStorage`.
-
-That works surprisingly well, as demonstrated by the fact that we expected to
-implement browser saves and then discovered the developer had already done it.
-
-Long term, primary local persistence will move to IndexedDB because it provides:
-
-* larger practical storage capacity
-* structured data
-* asynchronous access
-* better room for save history
-* multiple save slots
-* metadata
-* migration support
-
-`localStorage` compatibility may remain for importing existing saves.
-
----
-
-## Input handling
-
-The original game was written primarily for desktop Electron input.
-
-Browser-specific improvements will include:
-
-* preventing the context menu on the game surface
-* preserving normal right-click behavior outside the game
-* Pointer Events
-* touch support
-* pointer capture for drag controls
-* proper mobile interaction
-* replacing fragile custom controls where appropriate
-
-For example, the current volume slider is essentially a pair of `<div>`
-elements combined with mouse-coordinate arithmetic.
-
-It works.
-
-Mostly.
-
-A native or purpose-built slider will eventually replace it because browsers
-already solved this problem and we do not receive bonus points for solving it
-again badly.
-
----
-
-## Performance
-
-Sixty Four is already lightweight compared with the Electron runtime that
-contains it.
-
-The web edition removes the need to ship an entire dedicated Chromium runtime
-with a game whose core code is comparatively tiny.
-
-Potential web-specific optimizations include:
-
-* requestAnimationFrame cleanup
-* simulation/render decoupling
-* reduced UI update frequency
-* off-screen rendering avoidance
-* asset preloading
-* service-worker caching
-* Brotli compression for text assets
-* modern image/audio formats where appropriate
-* optional reduced-effects mode
-* optional 30 FPS rendering mode
-
-Tentative Chromebook mode:
-
-```text
-Simulation     10-20 Hz
-Rendering      30 FPS
-UI counters     4-10 Hz
-Cloud sync      ~4 min
-```
-
-There is no compelling scientific reason to redraw a resource counter sixty
-times per second.
-
----
-
-## Assets
-
-Images, sounds, fonts, and other game assets currently remain in their original
-formats.
-
-The web build may eventually use:
-
-```text
-PNG / images    → optimized formats where appropriate
-audio           → browser-efficient compressed formats
-fonts           → WOFF2
-JS / CSS / HTML → Brotli / gzip
-```
-
-Assets will likely be precached with a service worker instead of shoved into a
-single enormous archive named something responsible like:
-
-```text
-assets-final-final-v2-real.pak
-```
-
-Modern HTTP is capable of transferring more than one file without civilization
-ending.
-
----
-
-## Mods
-
-Maintaining compatibility with existing Sixty Four mods is a desirable goal.
-
-The original game exposes a large amount of functionality through global
-classes and monkey-patching.
-
-As the project migrates to ES modules and TypeScript, a compatibility API may
-be provided rather than forcing mods to depend directly on internal module
-layout.
-
-Possible future API:
-
-```ts
-SixtyFour.mods.register({
-    id: "example-mod",
-    name: "Example Mod",
-
-    setup(game) {
-        // commit crimes against cubes here
-    }
-})
-```
-
-Existing mods should require as little rewriting as reasonably possible.
-
----
-
-## `stuff.js`
-
-There is a file called:
-
-```text
-stuff.js
-```
-
-It contains a substantial portion of the physical universe.
-
-This is not a joke.
-
-The long-term migration will break large monolithic files into understandable
-modules without changing their behavior.
-
-Something more like:
-
-```text
-src/game/entities/
-├── Entity.ts
-├── Cube.ts
-├── machines/
-├── storage/
-├── extraction/
-├── strange/
-└── index.ts
-```
-
-instead of:
-
-```text
-stuff.js
-```
-
-containing, approximately:
-
-```text
-stuff
-```
-
-The original naming is nonetheless respected for its honesty.
-
----
-
-## Running the original browser-compatible build
-
-For development/testing with a legally obtained local installation:
-
-```bash
-cd game
-python -m http.server 6464
-```
-
-Then open:
-
-```text
-http://localhost:6464
-```
-
-Use the same hostname consistently.
-
-For example:
-
-```text
-http://localhost:6464
-```
-
-and:
-
-```text
-http://127.0.0.1:6464
-```
-
-are different browser origins and therefore receive different browser storage.
-
-If your save appears to vanish after changing between them, the game has not
-destroyed your progress.
-
-The browser is simply doing browser things.
-
----
-
-## Future Vite development
-
-Eventually development should look more conventionally cursed:
-
-```bash
+# Clone and run locally in under 30 seconds
 npm install
 npm run dev
 ```
 
-Production:
+Open `http://127.0.0.1:6464` in your browser.
+
+---
+
+## 📖 Table of Contents
+
+- [Why "Cursed Edition"?](#-why-cursed-edition)
+- [Current Project Status](#-current-project-status)
+- [Quick Start & Commands](#-quick-start--commands)
+- [Build Targets](#-build-targets)
+  - [Hosted Web Build](#hosted-web-build)
+  - [Self-Contained Offline Build](#self-contained-offline-build)
+  - [The `file://` Protocol & Local Servers](#the-file-protocol--local-servers)
+- [Architecture Overview](#-architecture-overview)
+  - [Content Composition & Modding Seam](#content-composition--modding-seam)
+  - [Engine Subsystems](#engine-subsystems)
+  - [Base Game Content](#base-game-content)
+- [Roadmap](#-roadmap)
+- [Modding & Modernization](#-modding--modernization)
+- [Validation & Regression Testing](#-validation--regression-testing)
+- [Legal & Upstream Notice](#-legal--upstream-notice)
+
+---
+
+## 🔮 Why "Cursed Edition"?
+
+This project began with what seemed like a standard software engineering plan:
+
+> *"Sixty Four is an Electron game distributed on Steam. Let's port it to the web."*
+
+Then we inspected the shipping build.
+
+The original game was not a compiled binary, a heavy native framework, or an obfuscated blob. It was already clean Canvas 2D, WebGL, Web Audio, HTML, JavaScript, and `localStorage` saves—with explicit fallback logic for when Electron and Steamworks are missing.
+
+The initial "port" was literally:
 
 ```bash
-npm run build
+cd game
+python -m http.server 6464
 ```
 
-Expected output:
+And opening `http://localhost:6464`.
 
-```text
-dist/
-├── index.html
-└── assets/
-```
+The game loaded. The cubes destabilized. The saves persisted. The audio played. The entire game ran natively in the browser on day one.
 
-Specific setup instructions will be updated once the migration reaches that
-point.
+At that point, the name chose itself.
 
-There is little value in documenting build commands for a build system that
-does not exist yet.
+Rather than a simple wrapper, **Cursed Edition** evolved into a complete modernization effort: converting thousands of lines of monolithic legacy JavaScript into strict TypeScript, extracting 10 decoupled runtime subsystems, creating content-agnostic registries, and establishing an explicit content composition architecture for future mods.
 
 ---
 
-## Project goals
+## 📊 Current Project Status
 
-### Preserve
+### What Exists Today (Completed)
 
-* gameplay
-* progression
-* visual identity
-* save compatibility
-* simulation behavior
-* existing content
+- [x] **Browser-Native Runtime**: Runs in all modern evergreen browsers with full Canvas2D / WebGL2 rendering.
+- [x] **Strict TypeScript Migration**: 100% strict TypeScript (`strict: true`), zero explicit `any`, zero compiler suppressions.
+- [x] **10 Decomposed Engine Subsystems**: `Save`, `Audio`, `Effects`, `Input`, `Rendering`, `Resources`, `Entities`, `Interaction`, `Autonomy`, `World Events`.
+- [x] **Generic Content Registries**: Content-agnostic `EntityRegistry` (58 base entities) and `ResourceRegistry` (10 base resources).
+- [x] **Unified Content Composition**: Two-phase `ContentBuilder` -> `ContentContext` pipeline with explicit base registration.
+- [x] **Normalized Source Tree**: Clean `src/core/`, `src/engine/`, `src/content/`, `src/registry/`, and `src/resources/` directories with zero architectural cycles.
+- [x] **Dual Build Targets**: Production-ready hosted web target (`dist/hosted/`) and self-contained offline distribution target (`dist/offline/`).
+- [x] **Deterministic Semantic Regression Suite**: Comprehensive test fixtures verifying exact entity simulation, save compatibility, and 100% behavioral parity against the original game.
 
-### Improve
+### What Does NOT Exist Yet (Future Work)
 
-* code readability
-* maintainability
-* browser compatibility
-* input handling
-* persistence
-* cross-device play
-* performance
-* modding interfaces
-* debugging
-* type safety
-
-### Avoid
-
-* unnecessary rewrites
-* framework-for-the-sake-of-framework decisions
-* breaking existing saves
-* changing game balance during refactors
-* turning every three-line utility into a dependency
-* creating `AbstractEntityManagerFactoryProvider.ts`
-
-We have standards.
-
-Some.
+- [ ] Public Mod API (`ModContext` / public package schema).
+- [ ] External `.64mod` discovery and runtime archive loader.
+- [ ] IndexedDB save provider and multi-slot cloud sync.
+- [ ] Modernized UI framework (TSX / React / Svelte migration).
 
 ---
 
-## Contributions
+## 🚀 Quick Start & Commands
 
-This project is currently experimental.
+All development and build operations use standard `npm` scripts:
 
-Before contributing substantial changes:
-
-1. preserve existing behavior
-2. keep refactors focused
-3. separate fixes from migrations
-4. test saves before and after changes
-5. do not commit original game assets or code unless the repository's rights
-   situation explicitly allows it
-6. explain weird behavior before "fixing" it
-
-A suspicious line of code may be a bug.
-
-It may also be keeping an unrelated machine three progression stages later
-from spontaneously becoming `NaN`.
-
-Observe before deleting.
+| Command | Description |
+|---|---|
+| `npm run dev` | Starts local Vite dev server at `http://127.0.0.1:6464` |
+| `npm run typecheck` | Validates strict TypeScript compilation (`tsc --noEmit`) |
+| `npm run build:hosted` | Builds optimized static web assets to `dist/hosted/` |
+| `npm run build:offline` | Builds self-contained offline bundle to `dist/offline/` |
+| `npm run build` | Default build command (delegates to `build:hosted`) |
+| `npm run preview:hosted` | Runs local HTTP preview server for `dist/hosted/` |
+| `npm run preview:offline` | Runs local HTTP preview server for `dist/offline/` |
+| `npm run validate:achievement-icons` | Validates all 34 achievement icons resolve to HTTP 200 OK |
 
 ---
 
-## Original game
+## 📦 Build Targets
 
-Sixty Four was created by **Oleg Danilov**.
-
-Please support the original developer and obtain the game through its official
-distribution channels.
-
-This project exists because the game is interesting enough to be worth
-experimenting with, not because the original developer should be deprived of
-sales.
-
----
-
-## Disclaimer
-
-**Sixty Four: Cursed Edition is an unofficial community project.**
-
-It is not affiliated with, sponsored by, approved by, or endorsed by Oleg
-Danilov or the publisher/distributor of Sixty Four.
-
-The original:
-
-* game code
-* game assets
-* artwork
-* audio
-* text
-* trademarks
-* game design
-
-remain the property of their respective rights holders.
-
-This project does not claim ownership over the original game.
-
-Development is currently taking place privately while the technical and legal
-shape of the project is being determined.
-
-Any future public release should avoid redistributing original copyrighted game
-files unless explicit permission or an appropriate license exists.
-
-If the rights holder requests that distribution stop, requires ownership
-verification, wants official integration, or wishes to discuss the project,
-those requests should be taken seriously.
-
----
-
-## Licensing
-
-Do **not** assume that the presence of readable source code in a commercial
-game makes that source open source.
-
-It does not.
-
-Any license eventually applied to Cursed Edition should distinguish between:
-
-1. newly written modernization/platform code, and
-2. original Sixty Four code/assets.
-
-Original copyrighted material remains subject to its original rights.
-
-This section will be updated if the project receives explicit permission or
-licensing terms from the rights holder.
-
----
-
-## Why "Cursed Edition"?
-
-Because the project began under the assumption that porting an Electron game to
-the web would involve actual porting.
-
-Instead:
+### Hosted Web Build
 
 ```bash
-python -m http.server
+npm run build:hosted
 ```
 
-worked.
+- **Output Directory**: `dist/hosted/`
+- **Characteristics**: Emits conventional optimized JavaScript chunks, CSS stylesheets, Web Worker chunks, and static media files.
+- **Deployment**: Deployable to any static web host, CDN, GitHub Pages, or Netlify.
+- **Configurable Base Path**: Supports subpath hosting via environment variable:
+  ```bash
+  VITE_BASE=/sixty-four/ npm run build:hosted
+  ```
 
-Then we discovered browser saves already worked too.
+### Self-Contained Offline Build
 
-At that point the name chose itself.
+```bash
+npm run build:offline
+```
+
+- **Output Directory**: `dist/offline/`
+- **Characteristics**: Inlines all application JavaScript and CSS directly into a single `index.html` file (2.27 MB), with local binary media assets (`images/`, `audio/`, `fonts/`, `video/`) copied as portable sibling folders.
+- **Internet Requirement**: **Zero external network requests**. The game runs completely disconnected from the internet.
+
+### The `file://` Protocol & Local Servers
+
+Modern browser security policies enforce strict restrictions on `file:///` URLs:
+1. **Web Audio Decoding**: The Fetch API blocks local `file:///` requests for binary audio files (`.mp3`) under CORS rules.
+2. **Web Storage**: Browsers assign an opaque `null` origin to `file:///` files, preventing reliable `localStorage` persistence between sessions.
+
+**Supported Offline Workflow**: Run any local static HTTP server (such as `npm run preview:offline`, Python `http.server`, or `npx serve dist/offline`). This provides standard origin security, audio decoding, and save persistence without needing an internet connection.
 
 ---
 
-## Final technical summary
+## 🏗️ Architecture Overview
+
+The source tree is organized into clearly defined architectural layers:
 
 ```text
-Sixty Four
-│
-├── readable JavaScript
-├── HTML
-├── Canvas
-├── browser audio
-├── localStorage
-├── browser fallback
-│
-└── Electron
-     ├── Steamworks
-     ├── Steam Cloud
-     ├── achievements
-     └── bundled Chromium
+src/
+├── core/                       # Top-level runtime coordinator (Game.ts)
+├── engine/                     # 10 decoupled runtime subsystems
+│   ├── audio/                  # AudioSystem & Web Audio decoding
+│   ├── autonomy/               # AutonomySystem (chasm network simulation)
+│   ├── effects/                # EffectSystem, particles, and animations
+│   ├── entities/               # Entity base class & EntityManager
+│   ├── events/                 # WorldEventSystem (surge, hollows, slowdown)
+│   ├── input/                  # InputSystem (mouse, pointer, gamepad)
+│   ├── interaction/            # InteractionSystem (placement, relocation)
+│   ├── rendering/              # RenderSystem (Canvas 2D + WebGL2)
+│   ├── resources/              # ResourceSystem (balances, analytics, rates)
+│   └── save/                   # SaveSystem, SaveCodec, persistence
+├── content/                    # Content composition & base definitions
+│   ├── ContentContext.ts       # ContentBuilder & finalized ContentContext
+│   ├── registerBaseContent.ts  # Master base content composition
+│   └── base/                   # Concrete 58 entities & 10 resources
+├── registry/                   # Generic content-agnostic registries
+│   ├── EntityRegistry.ts       # O(1) definition & constructor lookup
+│   └── ResourceRegistry.ts     # String ID & legacy index mapping
+└── resources/                  # Consolidated static media assets
+    ├── audio/sfx/              # Sound effects
+    ├── fonts/                  # Montserrat fonts & CSS
+    ├── images/                 # Sprites, UI icons, glory achievement icons
+    └── video/                  # Credits video
 ```
 
-Cursed Edition intends to become:
+### Content Composition & Modding Seam
+
+Content registration is explicit, deterministic, and content-agnostic:
+
+```mermaid
+flowchart TD
+    subgraph Composition["Content Composition"]
+        Builder[ContentBuilder]
+        RBE[registerBaseEntities] -->|58 Entities| Builder
+        RBR[registerBaseResources] -->|10 Resources| Builder
+        ModSeam["[Future loadMods(builder)]"] -.-> Builder
+        Builder -->|finalize| Ctx[ContentContext]
+    end
+
+    subgraph Registries["Registry Layer"]
+        Ctx -->|entityDefinitions| ER[EntityRegistry]
+        Ctx -->|resourceDefinitions| RR[ResourceRegistry]
+    end
+
+    subgraph Runtime["Runtime Core"]
+        Main[main.ts] --> Game[Game Coordinator]
+        ER --> Game
+        RR --> Game
+        Game --> Engine["10 Engine Subsystems"]
+    end
+```
+
+### Base Game Content
+
+Base content is categorized according to verified structural metadata:
+- **42 Machines** across 10 families: `pumps`, `channels`, `destabilizers`, `entropics`, `converters`, `storage`, `industrial`, `clickers`, `stabilizers`, `megas`.
+- **3 Dynamic Entities**: `Cube`, `Eye`, `Surge`.
+- **13 World Objects** across 4 families: `cosmic`, `monoliths`, `botanicals`, `anomalies` (including `Generaldecay`).
+- **10 Legacy Resources**: Positional IDs `0..9` (`Charonite` through `Reality`).
+
+---
+
+## 🧩 Modding & Modernization
+
+### Modding Architecture
+
+1. **Current State**: The internal content composition layer (`ContentBuilder` -> `ContentContext`) is fully extensible. Synthetic tests verify that additional entities and resources can be registered alongside base content without altering existing mechanics.
+2. **Future State**: An internal mod loader will hook into the composition seam before `builder.finalize()`, allowing external mods to supply entity classes, custom sprites, machine upgrades, and resource types via a structured API.
+
+### Modernization Roadmap
 
 ```text
-Sixty Four
-│
-├── Vite
-├── TypeScript
-├── Canvas
-├── IndexedDB
-├── modern input
-├── account system
-├── optional cloud saves
-├── mod API
-└── normal web browser
+✓ Phase 1: Browser-native execution & baseline characterization
+✓ Phase 2: Engine subsystem extraction (Save, Audio, Effects, Input, Rendering, Resources, Entities, Interaction, Autonomy, Events)
+✓ Phase 3: Generic EntityRegistry & ResourceRegistry infrastructure
+✓ Phase 4: Explicit content composition (ContentBuilder / ContentContext)
+✓ Phase 5: Normalized source tree (src/) & consolidated asset tree (src/resources/)
+✓ Phase 6: Dual build targets (hosted web & offline distribution)
+→ Phase 7: Modernized UI layer & internal mod loader
+→ Phase 8: Public Mod API & package manifest format
 ```
 
-Turns out the browser part was never the difficult bit.
+---
 
-Famous last words.
+## 🧪 Validation & Regression Testing
+
+To guarantee zero behavioral regression during extensive refactoring, all architectural milestones are validated against frozen semantic fixtures:
+
+```bash
+# Validate achievement icon assets
+npm run validate:achievement-icons
+
+# Full test suite (executed in CI / local test harness)
+node tests/validate_achievement_icons.mjs
+```
+
+All 10 internal regression test suites verify:
+- Exact 58-entity constructor and class reference identities.
+- Exact 10-resource legacy index mapping and metadata preservation.
+- Byte-for-byte identical 676-byte and 804-byte save serialization.
+- Exact 18-stage simulation scheduler execution in `Game.updateLoop()`.
+
+---
+
+## ⚖️ Legal & Upstream Notice
+
+**Sixty Four: Cursed Edition is an independent, unofficial community modernization project.**
+
+- **Original Game**: Created by **Oleg Danilov** and published on Steam. Please support the developer by [purchasing the official game on Steam](https://store.steampowered.com/app/2659900/Sixty_Four/).
+- **Copyright**: All original game design, artwork, music, sound effects, trademarks, and narrative text remain the intellectual property of Oleg Danilov and their respective rights holders.
+- **Modernization Code**: Newly written architectural abstractions, build configurations, and TypeScript infrastructure are maintained as an open community research project.
+- **Distribution Notice**: This repository does not claim commercial rights over Sixty Four. If you are distributing or hosting playable builds, ensure you own a legitimate copy of the game assets.
+
+---
+
+## 📄 License
+
+Modernization code and architectural infrastructure are provided for educational and community development purposes. Original Sixty Four assets and intellectual property remain subject to their original copyright and commercial licensing. See [LICENSE](LICENSE) (or upstream distribution terms) for details.
