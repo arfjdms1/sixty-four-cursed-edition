@@ -43,7 +43,7 @@ export class Voidsculpture extends Entity{
 		return (this.master.plane === 0 && this.master.bridge) ? this.hints[0] : false
 	}
 	getDarkHint(){
-		return this.master.resources[9] >= this.threshold ? this.hints[1] : false
+		return this.context.resources.amount('reality') >= this.threshold ? this.hints[1] : false
 	}
 
 	initHint(){
@@ -65,10 +65,10 @@ export class Voidsculpture extends Entity{
 	}
 
 	canHit(){
-		return (this.master.plane === 0 && this.master.bridge && this.master.resources[8] >= 1) || (this.master.plane === 1)
+		return (this.master.plane === 0 && this.master.bridge && this.context.resources.amount('void') >= 1) || (this.master.plane === 1)
 	}
 	canDarkHit(){
-		return this.master.resources[9] >= this.threshold
+		return this.context.resources.amount('reality') >= this.threshold
 	}
 
 	onDelete(){
@@ -78,9 +78,9 @@ export class Voidsculpture extends Entity{
 	}
 
 	ondarkmousedown(){
-		if (this.master.resources[9] >= this.threshold){
+		if (this.context.resources.amount('reality') >= this.threshold){
 			this.master.bridge = true
-			this.master.substractResourcesFromArray([0,0,0,0,0,0,0,0,0,1])
+			this.context.resources.subtractResourcesFromArray([0,0,0,0,0,0,0,0,0,1])
 			this.master.switchPlane(0)
 			this.context.audio.playSound(`teleport`,undefined,undefined,undefined,true)
 			this.master.createHollowEvent(`#FFF`, 20000)
@@ -100,8 +100,8 @@ export class Voidsculpture extends Entity{
 	}
 
 	onmousedown(){
-		if (this.master.bridge && this.master.resources[8] >= 1){
-			this.master.substractResourcesFromArray([0,0,0,0,0,0,0,0,1])
+		if (this.master.bridge && this.context.resources.amount('void') >= 1){
+			this.context.resources.subtractResourcesFromArray([0,0,0,0,0,0,0,0,1])
 			this.master.switchPlane(1)
 			this.context.audio.playSound(`teleport`,undefined,undefined,undefined,true)
 
@@ -155,7 +155,7 @@ export class Voidsculpture extends Entity{
 	darkrender(dt?: number, vposition?: Vec2){
 
 		const position = vposition ? vposition : this.position
-		const radius = this.master.unit * (Math.min(1, this.master.resources[9] / this.threshold) + .01)
+		const radius = this.master.unit * (Math.min(1, this.context.resources.amount('reality') / this.threshold) + .01)
 		const da = .05
 		const time = performance.now() / 1000
 
@@ -179,7 +179,7 @@ export class Voidsculpture extends Entity{
 		ctx.closePath()
 		ctx.fill()
 
-		if (this.master.resources[9] >= this.threshold){
+		if (this.context.resources.amount('reality') >= this.threshold){
 			const gradient = ctx.createRadialGradient(0,0,0,0,0,this.master.unit * 8)
 			gradient.addColorStop(0,`#FFF9`)
 			gradient.addColorStop(1,`#FFF0`)
@@ -199,7 +199,7 @@ export class Voidsculpture extends Entity{
 
 
 		const startAngle = -Math.PI / 2
-		const endAngle = Math.PI * 2 * Math.min(1, this.master.resources[9] / this.threshold) + startAngle
+		const endAngle = Math.PI * 2 * Math.min(1, this.context.resources.amount('reality') / this.threshold) + startAngle
 		
 		const radius = this.master.pixelRatio * 10
 
@@ -211,7 +211,7 @@ export class Voidsculpture extends Entity{
 		ctx.arc(0, 0, radius, startAngle, endAngle)
 		ctx.stroke()
 
-		if (this.master.resources[9] > this.threshold){
+		if (this.context.resources.amount('reality') > this.threshold){
 			ctx.fillStyle = `#FFF`
 			ctx.beginPath()
 			ctx.arc(0, 0, this.master.unit * .06, 0, Math.PI * 2)

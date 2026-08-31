@@ -53,7 +53,7 @@ export class Waypoint extends Entity{
 
 	onmousedown(){
 
-		const good = this.master.requestResources([0,0,0,0,512],this.position)
+		const good = this.context.resources.requestResources([0,0,0,0,512],this.position)
 
 		if (good){
 			const prerequisites = this.master.voidsculpture && !this.master.switchedplanes && (Math.random() < .5)
@@ -131,7 +131,7 @@ export class Waypoint extends Entity{
 	// 	const origin = sprite.origins[sprite.sequences[sprite.currentSequence][sprite.currentFrame]]
 	// 	const scale = this.master.unit * 1.737 / mask[2] * sprite.scale
 
-	// 	ctx.globalAlpha = this.master.resources[4] >= 512 ? 1 : .3
+	// 	ctx.globalAlpha = this.context.resources.amount('hell-gem') >= 512 ? 1 : .3
 
 	// 	ctx.drawImage(
 	// 		sprite.img, 

@@ -1,5 +1,6 @@
 import type { Vec2 } from '../../../../types/core.js'
 import type { EffectCompletion, EffectVisibility } from '../../effects/types.js'
+import type { ResourceTypeId } from '../../../registry/resource-types.js'
 
 export interface EntityAudioContext {
 	playSound(id: string | number, panning?: number, loudness?: number, dark?: boolean, forced?: boolean): void
@@ -51,8 +52,30 @@ export interface EntityCoordinateContext {
 	readonly translation: Vec2
 }
 
+export interface EntityResourceContext {
+	amount(id: ResourceTypeId): number
+	amountByLegacyIndex(index: number): number
+	requestResources(
+		r: number[],
+		d: Vec2,
+		f?: EffectCompletion | false,
+		skip?: boolean,
+	): boolean
+	askForResources(
+		r: number[],
+		d: Vec2,
+		f?: ((resources: number[]) => void) | false,
+		skip?: boolean,
+	): boolean
+	addResourcesFromArray(a: number[], skipAnalytics?: boolean): void
+	subtractResourcesFromArray(a: number[], skipAnalytics?: boolean): void
+	add(id: ResourceTypeId, amount: number, skipAnalytics?: boolean): void
+	subtract(id: ResourceTypeId, amount: number, skipAnalytics?: boolean): void
+}
+
 export interface EntityContext {
 	readonly audio: EntityAudioContext
 	readonly effects: EntityEffectContext
 	readonly coordinates: EntityCoordinateContext
+	readonly resources: EntityResourceContext
 }

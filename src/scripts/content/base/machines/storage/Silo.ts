@@ -89,7 +89,7 @@ export class Silo extends Entity{
 					const request = cell.fuel
 					let ok = true
 					for (let j = 0; j < cell.fuel.length; j++){
-						if (cell.fuel[j] && this.master.resources[j] < cell.fuel[j]){
+						if (cell.fuel[j] && this.context.resources.amountByLegacyIndex(j) < cell.fuel[j]){
 							ok = false
 							break
 						}
@@ -135,7 +135,7 @@ export class Silo extends Entity{
 	refill(){
 		if (this.state === 0){
 
-			const resources = this.master.requestResources?.(this.fuel!, this.position, (_?: unknown) => {
+			const resources = this.context.resources.requestResources?.(this.fuel!, this.position, (_?: unknown) => {
 				this.activate()
 			})
 

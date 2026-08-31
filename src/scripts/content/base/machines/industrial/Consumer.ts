@@ -13,7 +13,7 @@ export class Consumer extends Entity{
 		this.timer = 0
 		this.maxMultiplicator = 9
 		this.multiplicator = 1
-		this.resources = new Array(this.master.resources.length).fill(0)
+		this.resources = new Array(10).fill(0)
 		this.maxResourceCount = 1024
 		this.resourceCount = 0
 		this.bonus = .11111 // *9=1
@@ -96,7 +96,7 @@ export class Consumer extends Entity{
 
 		this.context.effects.createResourceTransfer(this.resources, this.context.coordinates.uvToXYUntranslated(this.position))
 		this.resourceCount = 0
-		this.resources = new Array(this.master.resources.length).fill(0)
+		this.resources = new Array(10).fill(0)
 		this.multiplicator = Math.min(this.multiplicator + 1, this.maxMultiplicator)
 
 	}
@@ -114,7 +114,7 @@ export class Consumer extends Entity{
 	refill(){
 		if (this.state === 0){
 
-			const resources = this.master.requestResources?.(this.fuel, this.position, (_event?: unknown)=>{
+			const resources = this.context.resources.requestResources?.(this.fuel, this.position, (_event?: unknown)=>{
 				this.activate()
 			})
 			if (resources) this.state = 1

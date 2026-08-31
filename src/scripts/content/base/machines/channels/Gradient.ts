@@ -52,7 +52,7 @@ export class Gradient extends Entity{
 		const r = this.getDiscrete(power)
 		const scoords = this.context.coordinates.uvToXYUntranslated(this.position)
 		this.context.effects.createChasmTransfer(scoords, (this.chasmPath ? [...this.chasmPath, this.position] : [this.position]).reverse()[0])
-		// this.master.addResourcesFromArray(r)
+		// this.context.resources.addResourcesFromArray(r)
 
 	}
 

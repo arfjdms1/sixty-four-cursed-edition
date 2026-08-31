@@ -1,5 +1,8 @@
 import type { Vec2 } from '../../../../types/core.js'
 import type { EffectCompletion, EffectVisibility } from '../../effects/types.js'
+import type { ResourceTypeId } from '../../../registry/resource-types.js'
+import type { ResourceRegistry } from '../../../registry/ResourceRegistry.js'
+import type { ResourceSystem } from '../../resources/ResourceSystem.js'
 import type { EntityContext } from './types.js'
 
 export interface EntityContextHost {
@@ -44,6 +47,22 @@ export interface EntityContextHost {
 	uvToXY(uv: Vec2): Vec2
 	uvToXYUntranslated(uv: Vec2): Vec2
 	translation: Vec2
+	readonly resourceRegistry: ResourceRegistry
+	readonly resourceSystem: ResourceSystem
+	requestResources(
+		r: number[],
+		d: Vec2,
+		f?: EffectCompletion | false,
+		skip?: boolean,
+	): boolean
+	askForResources(
+		r: number[],
+		d: Vec2,
+		f?: ((resources: number[]) => void) | false,
+		skip?: boolean,
+	): boolean
+	addResourcesFromArray(a: number[], skipAnalytics?: boolean): void
+	substractResourcesFromArray(a: number[], skipAnalytics?: boolean): void
 }
 
 export function createEntityContext(host: EntityContextHost): EntityContext {
@@ -73,6 +92,44 @@ export function createEntityContext(host: EntityContextHost): EntityContext {
 			uvToXYUntranslated: (uv) => host.uvToXYUntranslated(uv),
 			get translation() {
 				return host.translation
+			},
+		},
+		resources: {
+			amount(id: ResourceTypeId): number {
+				const index = host.resourceRegistry.getLegacyIndex(id)
+				if (index === undefined) return 0
+				return host.resourceSystem.resources[index] ?? 0
+			},
+			amountByLegacyIndex(index: number): number {
+				return host.resourceSystem.resources[index] ?? 0
+			},
+			requestResources(r, d, f, skip) {
+				return host.requestResources(r, d, f, skip)
+			},
+			askForResources(r, d, f, skip) {
+				return host.askForResources(r, d, f, skip)
+			},
+			addResourcesFromArray(a, skipAnalytics) {
+				host.addResourcesFromArray(a, skipAnalytics)
+			},
+			subtractResourcesFromArray(a, skipAnalytics) {
+				host.substractResourcesFromArray(a, skipAnalytics)
+			},
+			add(id: ResourceTypeId, amount: number, skipAnalytics?: boolean): void {
+				const index = host.resourceRegistry.getLegacyIndex(id)
+				if (index !== undefined) {
+					const a = new Array(10).fill(0)
+					a[index] = amount
+					host.addResourcesFromArray(a, skipAnalytics)
+				}
+			},
+			subtract(id: ResourceTypeId, amount: number, skipAnalytics?: boolean): void {
+				const index = host.resourceRegistry.getLegacyIndex(id)
+				if (index !== undefined) {
+					const a = new Array(10).fill(0)
+					a[index] = amount
+					host.substractResourcesFromArray(a, skipAnalytics)
+				}
 			},
 		},
 	}

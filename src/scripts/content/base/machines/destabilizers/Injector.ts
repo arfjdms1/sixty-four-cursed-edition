@@ -66,7 +66,7 @@ export class Injector extends Entity{
 
 		if (this.state === 0){
 
-			const resources = this.master.requestResources?.(this.fuel!, this.position, (_?: unknown) => {
+			const resources = this.context.resources.requestResources?.(this.fuel!, this.position, (_?: unknown) => {
 				this.activate()
 			})
 

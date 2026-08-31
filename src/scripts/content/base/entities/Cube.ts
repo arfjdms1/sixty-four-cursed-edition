@@ -118,7 +118,7 @@ export class Cube extends Entity{
 						
 					}
 				} else {
-					const resources = new Array(this.master.resources.length).fill(0)
+					const resources = new Array(10).fill(0)
 					for (let i = 0; i < this.resources.length; i++){
 						resources[this.resources[i]]++
 					}

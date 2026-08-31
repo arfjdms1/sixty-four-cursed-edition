@@ -84,7 +84,7 @@ export class Converter13 extends Entity{
 	refill(){
 		if (this.state === 0){
 
-			const resources = this.master.requestResources?.(this.fuel, this.position, (_event?: unknown)=>{
+			const resources = this.context.resources.requestResources?.(this.fuel, this.position, (_event?: unknown)=>{
 				this.activate()
 			})
 			if (resources) this.state = 1
