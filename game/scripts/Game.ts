@@ -36,6 +36,7 @@ import type { AutonomyHost } from './autonomy/types.js'
 import { WorldEventSystem } from './events/WorldEventSystem.js'
 import type { WorldEventHost } from './events/types.js'
 import { EntityRegistry } from './registry/EntityRegistry.js'
+import { getBaseEntityDefinitions } from './content/base/registerBaseEntities.js'
 
 export { VFX, Exhaust, ResourceExplosion, ResourceSpark, ResourceTransfer, ChasmTransfer, Lightning }
 
@@ -111,8 +112,8 @@ export class Game implements SaveHost, AudioHost, EffectHost, InputHost, RenderH
 		if (this.languageId === null) this.languageId = (preload && preload.languageId !== null) ? preload.languageId : 0
 		this.language = this.languages[this.languageId]
 		this.hasSteam = this.steamId ? true : false
-		this.codex = abstract_getCodex()
-		this.entityRegistry = new EntityRegistry(this.codex)
+		this.entityRegistry = new EntityRegistry(getBaseEntityDefinitions())
+		this.codex = abstract_getCodex(this.entityRegistry)
 		this.saves = new SaveSystem(this)
 		this.audio = new AudioSystem(this)
 		this.effects = new EffectSystem(this)

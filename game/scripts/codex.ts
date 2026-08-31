@@ -1,62 +1,9 @@
 import type { ColorTriplet, ResourceAmounts } from '../types/core.js'
-import { Annihilator } from './entities/Annihilator.js'
-import { Auxpump } from './entities/Auxpump.js'
-import { Auxpump2 } from './entities/Auxpump2.js'
-import { Chasm } from './entities/Chasm.js'
-import { Clicker1 } from './entities/Clicker1.js'
-import { Clicker2 } from './entities/Clicker2.js'
-import { Clicker3 } from './entities/Clicker3.js'
-import { Conductor } from './entities/Conductor.js'
-import { Consumer } from './entities/Consumer.js'
-import { Converter13 } from './entities/Converter13.js'
-import { Converter32 } from './entities/Converter32.js'
-import { Converter41 } from './entities/Converter41.js'
-import { Converter64 } from './entities/Converter64.js'
-import { Converter76 } from './entities/Converter76.js'
-import { Cookie } from './entities/Cookie.js'
-import { Cube } from './entities/Cube.js'
-import { Destabilizer } from './entities/Destabilizer.js'
-import { Destabilizer2 } from './entities/Destabilizer2.js'
-import { Destabilizer2a } from './entities/Destabilizer2a.js'
-import { Doublechannel } from './entities/Doublechannel.js'
-import { Doublechannel2 } from './entities/Doublechannel2.js'
-import { Entropic } from './entities/Entropic.js'
-import { Entropic2 } from './entities/Entropic2.js'
-import { Entropic2a } from './entities/Entropic2a.js'
-import { Entropic3 } from './entities/Entropic3.js'
-import { Eye } from './entities/Eye.js'
-import { Flower } from './entities/Flower.js'
-import { Fruit } from './entities/Fruit.js'
-import { Generaldecay } from './entities/Generaldecay.js'
-import { Gradient } from './entities/Gradient.js'
-import { Hollow } from './entities/Hollow.js'
-import { Injector } from './entities/Injector.js'
-import { Mega1 } from './entities/Mega1.js'
-import { Mega1a } from './entities/Mega1a.js'
-import { Mega1b } from './entities/Mega1b.js'
-import { Mega2 } from './entities/Mega2.js'
-import { Mega3 } from './entities/Mega3.js'
-import { Pinhole } from './entities/Pinhole.js'
-import { Preheater } from './entities/Preheater.js'
-import { Pump } from './entities/Pump.js'
-import { Pump2 } from './entities/Pump2.js'
-import { Reflector } from './entities/Reflector.js'
-import { Silo } from './entities/Silo.js'
-import { Silo2 } from './entities/Silo2.js'
-import { Stabilizer } from './entities/Stabilizer.js'
-import { Stabilizer2 } from './entities/Stabilizer2.js'
-import { Stabilizer3 } from './entities/Stabilizer3.js'
-import { Strange } from './entities/Strange.js'
-import { Strange1 } from './entities/Strange1.js'
-import { Strange2 } from './entities/Strange2.js'
-import { Strange3 } from './entities/Strange3.js'
-import { Surge } from './entities/Surge.js'
-import { Valve } from './entities/Valve.js'
-import { Vault } from './entities/Vault.js'
-import { Vessel } from './entities/Vessel.js'
-import { Vessel2 } from './entities/Vessel2.js'
-import { Voidsculpture } from './entities/Voidsculpture.js'
-import { Waypoint } from './entities/Waypoint.js'
+import { getBaseEntityDefinitions } from './content/base/registerBaseEntities.js'
+import { EntityRegistry } from './registry/EntityRegistry.js'
+import type { RuntimeEntityConstructor as EntityConstructor } from './registry/types.js'
+
+export type { EntityConstructor }
 
 export interface ResourceChance {
 	type: number
@@ -118,66 +65,6 @@ export interface CodexConditionHost {
 	chasm?: unknown
 }
 
-export type EntityConstructor =
-	| typeof Annihilator
-	| typeof Auxpump
-	| typeof Auxpump2
-	| typeof Chasm
-	| typeof Clicker1
-	| typeof Clicker2
-	| typeof Clicker3
-	| typeof Conductor
-	| typeof Consumer
-	| typeof Converter13
-	| typeof Converter32
-	| typeof Converter41
-	| typeof Converter64
-	| typeof Converter76
-	| typeof Cookie
-	| typeof Cube
-	| typeof Destabilizer
-	| typeof Destabilizer2
-	| typeof Destabilizer2a
-	| typeof Doublechannel
-	| typeof Doublechannel2
-	| typeof Entropic
-	| typeof Entropic2
-	| typeof Entropic2a
-	| typeof Entropic3
-	| typeof Eye
-	| typeof Flower
-	| typeof Fruit
-	| typeof Generaldecay
-	| typeof Gradient
-	| typeof Hollow
-	| typeof Injector
-	| typeof Mega1
-	| typeof Mega1a
-	| typeof Mega1b
-	| typeof Mega2
-	| typeof Mega3
-	| typeof Pinhole
-	| typeof Preheater
-	| typeof Pump
-	| typeof Pump2
-	| typeof Reflector
-	| typeof Silo
-	| typeof Silo2
-	| typeof Stabilizer
-	| typeof Stabilizer2
-	| typeof Stabilizer3
-	| typeof Strange
-	| typeof Strange1
-	| typeof Strange2
-	| typeof Strange3
-	| typeof Surge
-	| typeof Valve
-	| typeof Vault
-	| typeof Vessel
-	| typeof Vessel2
-	| typeof Voidsculpture
-	| typeof Waypoint
-
 export interface CodexEntity {
 	class?: EntityConstructor
 	price: number[]
@@ -213,7 +100,9 @@ export interface CodexData {
 	preload: string[]
 }
 
-export function abstract_getCodex(): CodexData {return {
+export function abstract_getCodex(registry: EntityRegistry = new EntityRegistry(getBaseEntityDefinitions())): CodexData {
+	const Cube = registry.getConstructor('cube')
+	return {
 	resources: [
 		{
 			name: `Charonite`,
@@ -424,7 +313,7 @@ export function abstract_getCodex(): CodexData {return {
 	],
 	entities: {
 		pinhole: {
-			class: Pinhole,
+			class: registry.getConstructor('pinhole'),
 			price: [64, 64, 64, 64, 64, 640000, 64e9, 64, 64, 64],
 			priceExponent: 1,
 			canPurchase: true,
@@ -433,12 +322,12 @@ export function abstract_getCodex(): CodexData {return {
 			shouldUnlock: m=>m.entitiesInGame.gradient > 0
 		},
 		strange: {
-			class: Strange,
+			class: registry.getConstructor('strange'),
 			price: [0],
 			canPurchase: false
 		},
 		strange1: {
-			class: Strange1,
+			class: registry.getConstructor('strange1'),
 			price: [16384,16384,16384,16384,0,0,16384],
 			onlyone: true,
 			canPurchase: true,
@@ -446,7 +335,7 @@ export function abstract_getCodex(): CodexData {return {
 			shouldUnlock: m=>m.resources[6] > 0
 		},
 		strange2: {
-			class: Strange2,
+			class: registry.getConstructor('strange2'),
 			price: [8388608,4194304,4194304,4194304,0,32768,262054,16,64],
 			onlyone: true,
 			canPurchase: true,
@@ -454,7 +343,7 @@ export function abstract_getCodex(): CodexData {return {
 			shouldUnlock: m=>m.resources[8] > 0 && m.entitiesInGame.strange1 > 0
 		},
 		strange3: {
-			class: Strange3,
+			class: registry.getConstructor('strange3'),
 			price: [0,0,0,0,2048,0,0,128,2048,2048],
 			onlyone: true,
 			canPurchase: true,
@@ -462,14 +351,14 @@ export function abstract_getCodex(): CodexData {return {
 			shouldUnlock: m=>m.resources[9] > 0 && m.entitiesInGame.strange2 > 0
 		},
 		voidsculpture: {
-			class: Voidsculpture,
+			class: registry.getConstructor('voidsculpture'),
 			price: [0, 0, 0, 0, 0, 0, 0, 0, 1024],
 			canPurchase: true,
 			onlyone: true,
 			shouldUnlock: m=>m.resources[8] > 0 && (m.entitiesInGame.strange2 > 0 || m.entitiesInGame.strange3 > 0)
 		},
 		gradient: {
-			class: Gradient,
+			class: registry.getConstructor('gradient'),
 			price: [8e7, 4e7, 4e7, 0, 0, 0, 0, 0, 2e4, 1e4],
 			priceExponent: 1.2,
 			canPurchase: true,
@@ -477,7 +366,7 @@ export function abstract_getCodex(): CodexData {return {
 			shouldUnlock: m=>m.chasm ? true : false
 		},
 		chasm: {
-			class: Chasm,
+			class: registry.getConstructor('chasm'),
 			price: [20000000,20000000,20000000,20000000,4000,20000,2000000,2000,2000,4000],
 			priceExponent: 2,
 			canPurchase: true,
@@ -486,7 +375,7 @@ export function abstract_getCodex(): CodexData {return {
 			shouldUnlock: m=>m.entitiesInGame.strange3 > 0
 		},
 		conductor: {
-			class: Conductor,
+			class: registry.getConstructor('conductor'),
 			price: [0,0,0,0,0,0,0,0,1,1],
 			priceExponent: 1.06,
 			canPurchase: true,
@@ -494,14 +383,14 @@ export function abstract_getCodex(): CodexData {return {
 			shouldUnlock: m=>m.entitiesInGame.chasm > 0
 		},
 		vault: {
-			class: Vault,
+			class: registry.getConstructor('vault'),
 			price: [0,131072,131072,1048576,0,32,131072,4],
 			priceExponent: 3,
 			canPurchase: true,
 			shouldUnlock: m=>m.resources[7] > 0
 		},
 		pump: {
-			class: Pump,
+			class: registry.getConstructor('pump'),
 			price: [0,0,256],
 			priceExponent: 2,
 			canPurchase: true,
@@ -510,7 +399,7 @@ export function abstract_getCodex(): CodexData {return {
 			merge: true
 		},
 		pump2: {
-			class: Pump2,
+			class: registry.getConstructor('pump2'),
 			price: [65536,0,0,0,128],
 			priceExponent: 1.65,
 			canPurchase: true,
@@ -519,11 +408,11 @@ export function abstract_getCodex(): CodexData {return {
 			shouldUnlock: m=>m.resources[4] > 0
 		},
 		cube: {
-			class: Cube,
+			class: registry.getConstructor('cube'),
 			price: [0,0,0]
 		},
 		destabilizer: {
-			class: Destabilizer,
+			class: registry.getConstructor('destabilizer'),
 			price: [512,0,0],
 			priceExponent: 1.1,
 			canPurchase: true,
@@ -532,7 +421,7 @@ export function abstract_getCodex(): CodexData {return {
 			merge: true
 		},
 		destabilizer2: {
-			class: Destabilizer2,
+			class: registry.getConstructor('destabilizer2'),
 			price: [2048,128],
 			priceExponent: 1.2,
 			canPurchase: true,
@@ -542,7 +431,7 @@ export function abstract_getCodex(): CodexData {return {
 			merge: true
 		},
 		destabilizer2a: {
-			class: Destabilizer2a,
+			class: registry.getConstructor('destabilizer2a'),
 			price: [16384,256,128,4096,4],
 			priceExponent: 1.2,
 			canPurchase: true,
@@ -551,7 +440,7 @@ export function abstract_getCodex(): CodexData {return {
 			shouldUnlock: m=>m.resources[4] > 0 && m.entitiesInGame.destabilizer2 > 0
 		},
 		injector: {
-			class: Injector,
+			class: registry.getConstructor('injector'),
 			price: [16384,512,512,4096,32],
 			priceExponent: 1.3,
 			canPurchase: true,
@@ -559,7 +448,7 @@ export function abstract_getCodex(): CodexData {return {
 			shouldUnlock: m=>m.resources[4] > 0
 		},
 		doublechannel: {
-			class: Doublechannel,
+			class: registry.getConstructor('doublechannel'),
 			priceExponent: 1.1,
 			price: [1024,4],
 			canPurchase: true,
@@ -568,7 +457,7 @@ export function abstract_getCodex(): CodexData {return {
 			merge: true
 		},
 		doublechannel2: {
-			class: Doublechannel2,
+			class: registry.getConstructor('doublechannel2'),
 			price: [65536,2048,2048,0,0,128],
 			priceExponent: 1.1,
 			canPurchase: true,
@@ -577,7 +466,7 @@ export function abstract_getCodex(): CodexData {return {
 			shouldUnlock: m=>m.resources[5] > 0 && m.entitiesInGame.doublechannel > 0
 		},
 		valve: {
-			class: Valve,
+			class: registry.getConstructor('valve'),
 			price: [1024],
 			priceExponent: 2,
 			canPurchase: true,
@@ -586,7 +475,7 @@ export function abstract_getCodex(): CodexData {return {
 			merge: true
 		},
 		auxpump: {
-			class: Auxpump,
+			class: registry.getConstructor('auxpump'),
 			price: [2048,16],
 			priceExponent: 2,
 			canPurchase: true,
@@ -596,7 +485,7 @@ export function abstract_getCodex(): CodexData {return {
 			merge: true
 		},
 		auxpump2: {
-			class: Auxpump2,
+			class: registry.getConstructor('auxpump2'),
 			price: [8192,1024,512,1],
 			priceExponent: 1.3,
 			canPurchase: true,
@@ -605,7 +494,7 @@ export function abstract_getCodex(): CodexData {return {
 			shouldUnlock: m=>m.resources[3] > 0 && m.entitiesInGame.auxpump > 0
 		},
 		entropic: {
-			class: Entropic,
+			class: registry.getConstructor('entropic'),
 			price: [2048,64,1],
 			priceExponent: 1.1,
 			canPurchase: true,
@@ -614,7 +503,7 @@ export function abstract_getCodex(): CodexData {return {
 			merge: true
 		},
 		entropic2: {
-			class: Entropic2,
+			class: registry.getConstructor('entropic2'),
 			price: [32768,0,1024,0,0,64],
 			priceExponent: 1.2,
 			canPurchase: true,
@@ -624,7 +513,7 @@ export function abstract_getCodex(): CodexData {return {
 			merge: true
 		},
 		entropic2a: {
-			class: Entropic2a,
+			class: registry.getConstructor('entropic2a'),
 			price: [32768,1024,1024,0,0,128],
 			priceExponent: 1.2,
 			canPurchase: true,
@@ -634,7 +523,7 @@ export function abstract_getCodex(): CodexData {return {
 			merge: true
 		},
 		entropic3: {
-			class: Entropic3,
+			class: registry.getConstructor('entropic3'),
 			price: [524288,0,0,0,0,8192,16384,4,64],
 			priceExponent: 1.3,
 			canPurchase: true,
@@ -643,7 +532,7 @@ export function abstract_getCodex(): CodexData {return {
 			shouldUnlock: m=>m.resources[8] > 0
 		},
 		converter32: {
-			class: Converter32,
+			class: registry.getConstructor('converter32'),
 			price: [2048,0,8],
 			priceExponent: 1.2,
 			canPurchase: true,
@@ -652,7 +541,7 @@ export function abstract_getCodex(): CodexData {return {
 			merge: true
 		},
 		converter13: {
-			class: Converter13,
+			class: registry.getConstructor('converter13'),
 			price: [4096,128,0,16],
 			priceExponent: 1.1,
 			canPurchase: true,
@@ -661,7 +550,7 @@ export function abstract_getCodex(): CodexData {return {
 			merge: true
 		},
 		converter41: {
-			class: Converter41,
+			class: registry.getConstructor('converter41'),
 			price: [128,128,128,4096],
 			priceExponent: 1.1,
 			canPurchase: true,
@@ -670,7 +559,7 @@ export function abstract_getCodex(): CodexData {return {
 			merge: true
 		},
 		converter76: {
-			class: Converter76,
+			class: registry.getConstructor('converter76'),
 			price: [262144,0,0,0,128,256,65536],
 			priceExponent: 1.5,
 			canPurchase: true,
@@ -679,7 +568,7 @@ export function abstract_getCodex(): CodexData {return {
 			merge: true
 		},
 		converter64: {
-			class: Converter64,
+			class: registry.getConstructor('converter64'),
 			price: [1048576,0,0,524288,256,4096,131027],
 			priceExponent: 1.3,
 			canPurchase: true,
@@ -688,7 +577,7 @@ export function abstract_getCodex(): CodexData {return {
 			merge: true
 		},
 		reflector: {
-			class: Reflector,
+			class: registry.getConstructor('reflector'),
 			price: [0,0,0,524288,0,2048,8192],
 			priceExponent: 1.1,
 			canPurchase: true,
@@ -697,7 +586,7 @@ export function abstract_getCodex(): CodexData {return {
 			merge: true
 		},
 		preheater: {
-			class: Preheater,
+			class: registry.getConstructor('preheater'),
 			price: [524288, 16384, 32768, 524288, 256, 2048, 32768],
 			priceExponent: 1.1,
 			canPurchase: true,
@@ -705,14 +594,14 @@ export function abstract_getCodex(): CodexData {return {
 			shouldUnlock: m=>m.resources[6] > 0
 		},
 		mega1: {
-			class: Mega1,
+			class: registry.getConstructor('mega1'),
 			price: [32768,512,512,32768],
 			canPurchase: true,
 			onlyone: true,
 			shouldUnlock: m=>m.resources[3] > 0
 		},
 		mega1a: {
-			class: Mega1a,
+			class: registry.getConstructor('mega1a'),
 			price: [524288,2048,2048,131027,256],
 			canPurchase: true,
 			isUpgradeTo: `mega1`,
@@ -720,7 +609,7 @@ export function abstract_getCodex(): CodexData {return {
 			shouldUnlock: m=>m.resources[4] > 0 && m.entitiesInGame.mega1 > 0
 		},
 		mega1b: {
-			class: Mega1b,
+			class: registry.getConstructor('mega1b'),
 			price: [2097152,16384,16384,524288,256,128,64],
 			canPurchase: true,
 			isUpgradeTo: `mega1a`,
@@ -728,14 +617,14 @@ export function abstract_getCodex(): CodexData {return {
 			shouldUnlock: m=>m.resources[6] > 0 && m.entitiesInGame.mega1a > 0
 		},
 		mega2: {
-			class: Mega2,
+			class: registry.getConstructor('mega2'),
 			price: [4096,128,128,32],
 			canPurchase: true,
 			onlyone: true,
 			shouldUnlock: m=>m.resources[3] > 0
 		},
 		mega3: {
-			class: Mega3,
+			class: registry.getConstructor('mega3'),
 			price: [131027,2048,2048,65536,64],
 			canPurchase: true,
 			isUpgradeTo: `mega2`,
@@ -743,19 +632,19 @@ export function abstract_getCodex(): CodexData {return {
 			shouldUnlock: m=>m.resources[4] > 0 && m.entitiesInGame.mega2 > 0
 		},
 		eye: {
-			class: Eye,
+			class: registry.getConstructor('eye'),
 			price: [65536,512,1024,16385,16],
 			canPurchase: true,
 			onlyone: true,
 			shouldUnlock: m=>m.resources[4] > 0
 		},
 		cookie: {
-			class: Cookie,
+			class: registry.getConstructor('cookie'),
 			price: [1],
 			canPurchase: false
 		},
 		silo: {
-			class: Silo,
+			class: registry.getConstructor('silo'),
 			price: [32768, 0, 0, 0, 64],
 			priceExponent: 1.1,
 			canPurchase: true,
@@ -764,7 +653,7 @@ export function abstract_getCodex(): CodexData {return {
 			merge: true
 		},
 		silo2: {
-			class: Silo2,
+			class: registry.getConstructor('silo2'),
 			price: [524288, 0, 0, 0, 64, 32, 128],
 			priceExponent: 1.1,
 			canPurchase: true,
@@ -773,7 +662,7 @@ export function abstract_getCodex(): CodexData {return {
 			shouldUnlock: m=>m.resources[6] > 0 && m.entitiesInGame.silo > 0
 		},
 		vessel: {
-			class: Vessel,
+			class: registry.getConstructor('vessel'),
 			price: [65513, 2048, 1024, 0, 0, 16],
 			priceExponent: 1.3,
 			canPurchase: true,
@@ -782,7 +671,7 @@ export function abstract_getCodex(): CodexData {return {
 			merge: true
 		},
 		vessel2: {
-			class: Vessel2,
+			class: registry.getConstructor('vessel2'),
 			price: [268435456, 134217728, 134217728, 0, 0, 16384, 0, 0, 0, 4096],
 			priceExponent: 1.3,
 			canPurchase: true,
@@ -791,7 +680,7 @@ export function abstract_getCodex(): CodexData {return {
 			shouldUnlock: m=>m.chasm ? true : false
 		},
 		consumer: {
-			class: Consumer,
+			class: registry.getConstructor('consumer'),
 			price: [131027, 1024, 8192, 131027, 32, 256],
 			priceExponent: 1.2,
 			canPurchase: true,
@@ -799,12 +688,12 @@ export function abstract_getCodex(): CodexData {return {
 			shouldUnlock: m=>m.resources[5] > 0
 		},
 		hollow: {
-			class: Hollow,
+			class: registry.getConstructor('hollow'),
 			price: [0],
 			canPurchase: false
 		},
 		generaldecay: {
-			class: Generaldecay,
+			class: registry.getConstructor('generaldecay'),
 			price: [0,524288,524288,0,0,0,1048576],
 			canPurchase: true,
 			onlyone: true,
@@ -812,14 +701,14 @@ export function abstract_getCodex(): CodexData {return {
 			shouldUnlock: m=>m.resources[6] > 0
 		},
 		waypoint: {
-			class: Waypoint,
+			class: registry.getConstructor('waypoint'),
 			price: [524288,0,262054,262054,0,0,0,8],
 			priceExponent: 2,
 			canPurchase: true,
 			shouldUnlock: m=>m.resources[7] > 0
 		},
 		annihilator: {
-			class: Annihilator,
+			class: registry.getConstructor('annihilator'),
 			price: [8388608,524288,1048576,256,2048,16384,0,32],
 			priceExponent: 1.2,
 			canPurchase: true,
@@ -827,7 +716,7 @@ export function abstract_getCodex(): CodexData {return {
 			shouldUnlock: m=>m.resources[7] > 0
 		},
 		flower: {
-			class: Flower,
+			class: registry.getConstructor('flower'),
 			price: [0,0,0,0,0,0,0,1,8],
 			priceExponent: 1.2,
 			canPurchase: true,
@@ -836,7 +725,7 @@ export function abstract_getCodex(): CodexData {return {
 			merge: true
 		},
 		fruit: {
-			class: Fruit,
+			class: registry.getConstructor('fruit'),
 			price: [0,0,0,0,0,0,0,16,256,512],
 			priceExponent: 1.1,
 			canPurchase: true,
@@ -844,7 +733,7 @@ export function abstract_getCodex(): CodexData {return {
 			shouldUnlock: m=>m.resources[9] > 0 && m.entitiesInGame.flower > 0
 		},
 		clicker1: {
-			class: Clicker1,
+			class: registry.getConstructor('clicker1'),
 			price: [2048,64,128],
 			canPurchase: true,
 			onlyone: true,
@@ -852,7 +741,7 @@ export function abstract_getCodex(): CodexData {return {
 			merge: true
 		},
 		clicker2: {
-			class: Clicker2,
+			class: registry.getConstructor('clicker2'),
 			price: [0,0,4096,32768,128],
 			canPurchase: true,
 			onlyone: true,
@@ -861,7 +750,7 @@ export function abstract_getCodex(): CodexData {return {
 			merge: true
 		},
 		clicker3: {
-			class: Clicker3,
+			class: registry.getConstructor('clicker3'),
 			price: [0,0,0,0,0,2048],
 			canPurchase: true,
 			onlyone: true,
@@ -869,7 +758,7 @@ export function abstract_getCodex(): CodexData {return {
 			shouldUnlock: m=>m.resources[5] > 0 && m.entitiesInGame.clicker2 > 0
 		},
 		stabilizer: {
-			class: Stabilizer,
+			class: registry.getConstructor('stabilizer'),
 			price: [64,1024],
 			priceExponent: 8,
 			shouldUnlock: m=>m.entitiesInGame.surge > 0 && m.resources[1] > 0,
@@ -877,7 +766,7 @@ export function abstract_getCodex(): CodexData {return {
 			merge: true
 		},
 		stabilizer2: {
-			class: Stabilizer2,
+			class: registry.getConstructor('stabilizer2'),
 			price: [64,1024,1024,8192,48,128],
 			priceExponent: 8,
 			isUpgradeTo: `stabilizer`,
@@ -885,7 +774,7 @@ export function abstract_getCodex(): CodexData {return {
 			canPurchase: true
 		},
 		stabilizer3: {
-			class: Stabilizer3,
+			class: registry.getConstructor('stabilizer3'),
 			price: [64,1024,1024,8192,48,128],
 			canPurchase: false
 		},
@@ -905,7 +794,7 @@ export function abstract_getCodex(): CodexData {return {
 			shouldUnlock: m=>m.resources[4] > 0
 		},
 		surge: {
-			class: Surge,
+			class: registry.getConstructor('surge'),
 			price: [1],
 			canPurchase: false
 		}
@@ -921,7 +810,7 @@ export function abstract_getCodex(): CodexData {return {
 				condition: m=>{
 					if (m.entitiesInGame.cube < 1) return false
 					for (let i = 0; i < m.stuff.length; i++){
-						if (m.stuff[i] instanceof Cube && m.stuff[i].state === 2) return true
+						if (Cube && m.stuff[i] instanceof Cube && m.stuff[i].state === 2) return true
 					}
 					return false
 				},

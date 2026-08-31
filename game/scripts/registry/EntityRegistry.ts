@@ -1,34 +1,17 @@
-import type { CodexData } from '../codex.js'
-import { baseEntityMetadata } from './baseEntityMetadata.js'
 import type { EntityCapability, EntityDefinition, EntityFamilyId, EntityKind, RuntimeEntityConstructor } from './types.js'
 
 export class EntityRegistry {
 	private definitionsMap: Map<string, EntityDefinition> = new Map()
 	private orderedIds: string[] = []
 
-	constructor(codex: Pick<CodexData, 'entities'>){
-		this.populateFromCodex(codex)
+	constructor(definitions: readonly EntityDefinition[]){
+		this.populate(definitions)
 	}
 
-	private populateFromCodex(codex: Pick<CodexData, 'entities'>): void {
-		const metaMap = new Map(baseEntityMetadata.map(m => [m.id, m]))
-
-		for (const [id, def] of Object.entries(codex.entities)){
-			if (typeof def.class === 'function'){
-				const meta = metaMap.get(id)
-				const definition: EntityDefinition = {
-					id,
-					constructor: def.class as RuntimeEntityConstructor,
-					kind: meta?.kind || 'machine',
-					family: meta?.family || 'anomalies',
-					capabilities: meta?.capabilities || [],
-					isUpgradeTo: def.isUpgradeTo,
-					onlyone: def.onlyone,
-					canPurchase: def.canPurchase !== undefined ? def.canPurchase : true,
-				}
-				this.definitionsMap.set(id, definition)
-				this.orderedIds.push(id)
-			}
+	private populate(definitions: readonly EntityDefinition[]): void {
+		for (const def of definitions){
+			this.definitionsMap.set(def.id, def)
+			this.orderedIds.push(def.id)
 		}
 	}
 
