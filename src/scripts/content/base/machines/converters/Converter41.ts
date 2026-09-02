@@ -55,7 +55,7 @@ export class Converter41 extends Entity{
 				this.state = 0
 				this.conversion = 0
 				this.fill = 0
-				this.master.activeConverters.delete(this)
+				this.context.roles.activeConverters.delete(this)
 				const screenxy = this.context.coordinates.uvToXYUntranslated(this.position)
 				const pan = this.context.audio.getPanValueFromX(screenxy[0])
 				const loudness = this.context.audio.getLoudnessFromXY(screenxy)
@@ -85,11 +85,11 @@ export class Converter41 extends Entity{
 		this.fill = 1
 		this.state = 2
 		this.sprite.switchSequence(1)
-		this.master.activeConverters.add(this)
+		this.context.roles.activeConverters.add(this)
 	}
 
 	onDelete(){
-		this.master.activeConverters.delete(this)
+		this.context.roles.activeConverters.delete(this)
 	}
 
 	onmousedown(){

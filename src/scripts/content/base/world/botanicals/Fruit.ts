@@ -73,7 +73,7 @@ export class Fruit extends Flower {
 	}
 
 	init(): void {
-		this.master.fruits.add(this)
+		this.context.roles.fruits.add(this)
 	}
 
 	onmousedown(): void {
@@ -90,7 +90,7 @@ export class Fruit extends Flower {
 	}
 
 	onDelete(): void {
-		this.master.fruits.delete(this)
+		this.context.roles.fruits.delete(this)
 	}
 
 	render(dt?: number, vposition?: Vec2): void {

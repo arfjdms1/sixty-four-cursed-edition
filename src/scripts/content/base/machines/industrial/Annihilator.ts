@@ -35,12 +35,12 @@ export class Annihilator extends Entity{
 	}
 
 	onDelete(){
-		this.master.annihilators.delete(this)
+		this.context.roles.annihilators.delete(this)
 	}
 
 	init(){
 
-		this.master.annihilators.add(this)
+		this.context.roles.annihilators.add(this)
 		if (this.state === 2 && this.sprite.currentSequence === 0) {
 			this.timer = this.transitionTime
 			this.sprite.switchSequence(2)

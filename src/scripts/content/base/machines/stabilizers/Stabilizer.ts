@@ -75,7 +75,7 @@ export class Stabilizer extends Entity{
 	init(){
 
 		let previousSurge = -1
-		this.master.stabilizers.add(this)
+		this.context.roles.stabilizers.add(this)
 
 		if (this.surge) {
 			previousSurge = this.surge as unknown as number
@@ -84,7 +84,7 @@ export class Stabilizer extends Entity{
 		}
 
 		let multipleSurgeSpawner = false
-		const stabilizers = Array.from(this.master.stabilizers)
+		const stabilizers = Array.from(this.context.roles.stabilizers)
 		for (let i = 0; i < stabilizers.length; i++){
 			if ((stabilizers[i] as unknown as { surge?: { type?: number } }).surge?.type === 5) {
 				multipleSurgeSpawner = true
@@ -141,7 +141,7 @@ export class Stabilizer extends Entity{
 			]
 			const functions: Array<(m?: unknown) => void> = [
 				(m?: unknown) => {
-					const pumps = Array.from(this.master.pumps)
+					const pumps = Array.from(this.context.roles.pumps)
 					const dice = Math.floor(Math.random() * pumps.length)
 					if (pumps[dice]) {
 						pumps[dice].boost?.()
@@ -166,7 +166,7 @@ export class Stabilizer extends Entity{
 					}
 				},
 				(m?: unknown) => {
-					const cubes = Array.from(this.master.activeCubes)
+					const cubes = Array.from(this.context.roles.activeCubes)
 					const dice = Math.floor(Math.random() * cubes.length)
 					if (cubes[dice]) {
 						cubes[dice].onmousedown(strength)
@@ -178,7 +178,7 @@ export class Stabilizer extends Entity{
 					}
 				},
 				(m?: unknown) => {
-					const cubes = Array.from(this.master.activeCubes)
+					const cubes = Array.from(this.context.roles.activeCubes)
 					const dice = Math.floor(Math.random() * cubes.length)
 					if (cubes[dice] && cubes[dice].composition[3]) {
 						cubes[dice].broken = cubes[dice].broken + (1 - cubes[dice].broken) * .8
@@ -211,7 +211,7 @@ export class Stabilizer extends Entity{
 					}
 				},
 				(m?: unknown) => {
-					const converters = Array.from(this.master.activeConverters)
+					const converters = Array.from(this.context.roles.activeConverters)
 					const dice = Math.floor(Math.random() * converters.length)
 					if (converters[dice]) {
 						
@@ -237,7 +237,7 @@ export class Stabilizer extends Entity{
 					}
 				},
 				(m?: unknown) => {
-					const stabilizers = Array.from(this.master.stabilizers)
+		const stabilizers = Array.from(this.context.roles.stabilizers)
 					const stabilizers2 = []
 					let theone: Entity | false = false
 					for (let i = 0; i < stabilizers.length; i++){
@@ -294,7 +294,7 @@ export class Stabilizer extends Entity{
 	onDelete(){
 
 		if (this.surge) (this.surge as unknown as { stabilizer: unknown }).stabilizer = false
-		this.master.stabilizers.delete(this)
+		this.context.roles.stabilizers.delete(this)
 
 	}
 

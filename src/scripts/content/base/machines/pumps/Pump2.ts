@@ -43,13 +43,13 @@ export class Pump2 extends Pump{
 
 	init(){
 		this.master.stats.excavatorWasBuilt = true
-		this.master.pumps.add(this)
+		this.context.roles.pumps.add(this)
 		this.checkForModifiers()
 	}
 
 	onDelete(){
 		this.master.stats.excavatorWasBuilt = true
-		this.master.pumps.delete(this)
+		this.context.roles.pumps.delete(this)
 	}
 
 	update(dt?: number){

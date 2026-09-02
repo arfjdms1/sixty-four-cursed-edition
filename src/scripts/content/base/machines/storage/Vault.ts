@@ -50,15 +50,15 @@ export class Vault extends Entity{
 
 	onDelete(){
 
-		this.master.vaults.delete(this)
-		this.master.annihilationMachines.delete(this)
+		this.context.roles.vaults.delete(this)
+		this.context.roles.annihilationMachines.delete(this)
 
 	}
 
 	init(){
 
-		this.master.vaults.add(this)
-		this.master.annihilationMachines.add(this)
+		this.context.roles.vaults.add(this)
+		this.context.roles.annihilationMachines.add(this)
 
 	}
 

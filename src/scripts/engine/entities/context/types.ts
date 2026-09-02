@@ -3,6 +3,7 @@ import type { EffectCompletion, EffectVisibility } from '../../effects/types.js'
 import type { ResourceTypeId } from '../../../registry/resource-types.js'
 import type { GameEntity } from '../../../core/types.js'
 import type { Sprite } from '../../../sprites.js'
+import type { Entity } from '../Entity.js'
 
 export interface EntityAudioContext {
 	playSound(id: string | number, panning?: number, loudness?: number, dark?: boolean, forced?: boolean): void
@@ -99,6 +100,20 @@ export interface EntityRenderContext {
 	readonly ctx: CanvasRenderingContext2D
 }
 
+export interface EntityRoleContext {
+	readonly activeCubes: Set<Entity>
+	readonly activeConverters: Set<Entity>
+	readonly pumps: Set<Entity>
+	readonly vaults: Set<Entity>
+	readonly conductors: Set<Entity>
+	readonly stabilizers: Set<Entity>
+	readonly annihilators: Set<Entity>
+	readonly annihilationMachines: Set<Entity>
+	readonly fruits: Set<Entity>
+	vaultCount(): number
+	hasPump(entity: Entity): boolean
+}
+
 export interface EntityContext {
 	readonly audio: EntityAudioContext
 	readonly effects: EntityEffectContext
@@ -106,4 +121,5 @@ export interface EntityContext {
 	readonly resources: EntityResourceContext
 	readonly spatial: EntitySpatialContext
 	readonly render: EntityRenderContext
+	readonly roles: EntityRoleContext
 }

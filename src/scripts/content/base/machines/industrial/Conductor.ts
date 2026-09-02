@@ -59,13 +59,13 @@ export class Conductor extends Entity{
 
 		this.variant = (this.variantMap as Record<string, number>)[map] || 0
 		if (this.master.chasm && "updateChain" in (this.master.chasm as object)) ((this.master.chasm as unknown as { updateChain: () => void }).updateChain())
-		this.master.conductors.add(this)
+		this.context.roles.conductors.add(this)
 
 	}
 
 	onDelete(){
 
-		this.master.conductors.delete(this)
+		this.context.roles.conductors.delete(this)
 
 	}
 

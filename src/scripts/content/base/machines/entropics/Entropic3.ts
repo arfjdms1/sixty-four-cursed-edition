@@ -34,7 +34,7 @@ export class Entropic3 extends Entity{
 	}
 
 	init(){
-		this.master.annihilationMachines.add(this)
+		this.context.roles.annihilationMachines.add(this)
 		this.isNextToSilo = false
 		for (let i = 0; i < this.soi.length; i++){
 			const cell = this.context.spatial.entityAt([this.position[0] + this.soi[i][0], this.position[1] + this.soi[i][1]])
@@ -46,7 +46,7 @@ export class Entropic3 extends Entity{
 	}
 
 	onDelete(){
-		this.master.annihilationMachines.delete(this)
+		this.context.roles.annihilationMachines.delete(this)
 	}
 
 	tap(){

@@ -5,6 +5,7 @@ import type { ResourceRegistry } from '../../../registry/ResourceRegistry.js'
 import type { ResourceSystem } from '../../resources/ResourceSystem.js'
 import type { GameEntity } from '../../../core/types.js'
 import type { Sprite } from '../../../sprites.js'
+import type { Entity } from '../Entity.js'
 import type { EntityContext } from './types.js'
 
 export interface EntityContextHost {
@@ -80,6 +81,15 @@ export interface EntityContextHost {
 	readonly ctx: CanvasRenderingContext2D
 	drawPrism(pos: Vec2, size: number, height: number, triplet?: ColorTriplet): void
 	resourcesSprites: Sprite[] & Record<string | number, Sprite>
+	activeCubes: Set<Entity>
+	activeConverters: Set<Entity>
+	pumps: Set<Entity>
+	vaults: Set<Entity>
+	conductors: Set<Entity>
+	stabilizers: Set<Entity>
+	annihilators: Set<Entity>
+	annihilationMachines: Set<Entity>
+	fruits: Set<Entity>
 }
 
 export function createEntityContext(host: EntityContextHost): EntityContext {
@@ -169,6 +179,19 @@ export function createEntityContext(host: EntityContextHost): EntityContext {
 			},
 			resourceSpriteByLegacyIndex: (index) => host.resourcesSprites[index],
 			get ctx() { return host.ctx },
+		},
+		roles: {
+			get activeCubes() { return host.activeCubes },
+			get activeConverters() { return host.activeConverters },
+			get pumps() { return host.pumps },
+			get vaults() { return host.vaults },
+			get conductors() { return host.conductors },
+			get stabilizers() { return host.stabilizers },
+			get annihilators() { return host.annihilators },
+			get annihilationMachines() { return host.annihilationMachines },
+			get fruits() { return host.fruits },
+			vaultCount: () => host.vaults.size,
+			hasPump: (entity) => host.pumps.has(entity),
 		},
 	}
 }

@@ -48,7 +48,7 @@ export class Cube extends Entity{
 	}
 
 	onDelete(){
-		this.master.activeCubes.delete(this)
+		this.context.roles.activeCubes.delete(this)
 	}
 
 	onmousedown(power = 1){
@@ -88,8 +88,8 @@ export class Cube extends Entity{
 			if (this.broken >= 1){
 				this.broken = 1
 				this.state = 3
-				this.master.activeCubes.delete(this)
-				if (this.master.plane === 1) {
+			this.context.roles.activeCubes.delete(this)
+			if (this.master.plane === 1) {
 					this.context.effects.createExhaust(this.position, `#FFF`)
 				}
 
@@ -180,7 +180,7 @@ export class Cube extends Entity{
 		}
 
 		if (this.state === 2){
-			this.master.activeCubes.add(this)
+			this.context.roles.activeCubes.add(this)
 		}
 
 	}
@@ -209,8 +209,8 @@ export class Cube extends Entity{
 			if (this.unveilProgress >= 1){
 				this.unveilProgress = 1
 				this.state = 2
-				this.master.processMousemove()
-				this.master.activeCubes.add(this)
+			this.master.processMousemove()
+			this.context.roles.activeCubes.add(this)
 
 				//Checking for injectors
 				for (let i = 0; i < this.soi.length; i++){

@@ -342,12 +342,12 @@ export class Pump extends Entity{
 
 	init(){
 
-		this.master.pumps.add(this)
+		this.context.roles.pumps.add(this)
 		this.checkForModifiers()
 	}
 
 	onDelete(){
-		this.master.pumps.delete(this)
+		this.context.roles.pumps.delete(this)
 	}
 
 	checkForModifiers(){

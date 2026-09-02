@@ -33,9 +33,9 @@ export class Strange3 extends Strange2{
 
 		let consumed = false
 
-		if (this.master.fruits.size){
+		if (this.context.roles.fruits.size){
 
-			for (const f of this.master.fruits){
+			for (const f of this.context.roles.fruits){
 				if (f && (f as unknown as { seed?: () => void }).seed) {
 					(f as unknown as { seed: () => void }).seed();
 					consumed = true;
