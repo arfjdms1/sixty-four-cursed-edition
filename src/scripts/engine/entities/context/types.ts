@@ -1,6 +1,7 @@
 import type { Vec2 } from '../../../../types/core.js'
 import type { EffectCompletion, EffectVisibility } from '../../effects/types.js'
 import type { ResourceTypeId } from '../../../registry/resource-types.js'
+import type { GameEntity } from '../../../core/types.js'
 
 export interface EntityAudioContext {
 	playSound(id: string | number, panning?: number, loudness?: number, dark?: boolean, forced?: boolean): void
@@ -73,9 +74,24 @@ export interface EntityResourceContext {
 	subtract(id: ResourceTypeId, amount: number, skipAnalytics?: boolean): void
 }
 
+export interface EntitySpatialContext {
+	entityAt(uv: Vec2): GameEntity | undefined
+	hasEntityAt(uv: Vec2): boolean
+	entities(): readonly GameEntity[]
+	entityCount(): number
+	addEntity(
+		name: string,
+		position: Vec2,
+		misc?: unknown,
+		options?: { skipShopUpdate?: boolean },
+	): GameEntity | false
+	clearCell(uv: Vec2): void
+}
+
 export interface EntityContext {
 	readonly audio: EntityAudioContext
 	readonly effects: EntityEffectContext
 	readonly coordinates: EntityCoordinateContext
 	readonly resources: EntityResourceContext
+	readonly spatial: EntitySpatialContext
 }

@@ -250,8 +250,8 @@ export class Stabilizer extends Entity{
 
 						if (theone) {
 						const uv = (theone as { position: Vec2 }).position;
-						this.master.clearCell(uv);
-						this.master.addEntity(`stabilizer3`, uv);
+						this.context.spatial.clearCell(uv);
+						this.context.spatial.addEntity(`stabilizer3`, uv);
 					}
 						
 
@@ -270,8 +270,9 @@ export class Stabilizer extends Entity{
 					}
 				},
 				(m?: unknown) => {
-					for (let i = 0; i < this.master.stuff.length; i++){
-						this.master.stuff[i].updateSoul(strength * 16000)
+					const entities = this.context.spatial.entities()
+					for (let i = 0; i < entities.length; i++){
+						entities[i].updateSoul(strength * 16000)
 					}
 				}
 			]

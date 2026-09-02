@@ -36,7 +36,7 @@ export class Silo extends Entity{
 	init(){
 
 		for (let i = 0; i < this.soi.length; i++){
-			const cell = this.master.entityAtCoordinates([this.position[0] + this.soi[i][0], this.position[1] + this.soi[i][1]])
+			const cell = this.context.spatial.entityAt([this.position[0] + this.soi[i][0], this.position[1] + this.soi[i][1]])
 			if (cell && cell instanceof Silo){
 				this.master.perpetum = true
 				break
@@ -83,7 +83,7 @@ export class Silo extends Entity{
 
 			for (let i = 0; i < this.soi.length; i++){
 
-				const cell = this.master.stuffMap[`u${this.position[0] + this.soi[i][0]}v${this.position[1] + this.soi[i][1]}`]
+				const cell = this.context.spatial.entityAt([this.position[0] + this.soi[i][0], this.position[1] + this.soi[i][1]])
 				if (cell && cell.canHit() && (cell as unknown as { refill?: () => void }).refill && !(cell as unknown instanceof Silo)){
 
 					const request = cell.fuel

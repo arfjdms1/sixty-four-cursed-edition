@@ -3,6 +3,7 @@ import type { EffectCompletion, EffectVisibility } from '../../effects/types.js'
 import type { ResourceTypeId } from '../../../registry/resource-types.js'
 import type { ResourceRegistry } from '../../../registry/ResourceRegistry.js'
 import type { ResourceSystem } from '../../resources/ResourceSystem.js'
+import type { GameEntity } from '../../../core/types.js'
 import type { EntityContext } from './types.js'
 
 export interface EntityContextHost {
@@ -63,6 +64,15 @@ export interface EntityContextHost {
 	): boolean
 	addResourcesFromArray(a: number[], skipAnalytics?: boolean): void
 	substractResourcesFromArray(a: number[], skipAnalytics?: boolean): void
+	entityAtCoordinates(pos: Vec2): GameEntity | undefined
+	stuff: GameEntity[]
+	addEntity(
+		name: string,
+		position: Vec2,
+		misc?: unknown,
+		options?: { skipShopUpdate?: boolean },
+	): GameEntity | false
+	clearCell(uv: Vec2): void
 }
 
 export function createEntityContext(host: EntityContextHost): EntityContext {
@@ -131,6 +141,14 @@ export function createEntityContext(host: EntityContextHost): EntityContext {
 					host.substractResourcesFromArray(a, skipAnalytics)
 				}
 			},
+		},
+		spatial: {
+			entityAt: (uv) => host.entityAtCoordinates(uv),
+			hasEntityAt: (uv) => Boolean(host.entityAtCoordinates(uv)),
+			entities: () => host.stuff,
+			entityCount: () => host.stuff.length,
+			addEntity: (name, position, misc, options) => host.addEntity(name, position, misc, options),
+			clearCell: (uv) => host.clearCell(uv),
 		},
 	}
 }

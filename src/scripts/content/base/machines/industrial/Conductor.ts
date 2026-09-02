@@ -51,7 +51,7 @@ export class Conductor extends Entity{
 		let map = ``
 
 		for (let i = 0; i < this.soi.length; i+=2){
-			const cell = this.master.entityAtCoordinates([this.position[0] + this.soi[i][0], this.position[1] + this.soi[i][1]])
+			const cell = this.context.spatial.entityAt([this.position[0] + this.soi[i][0], this.position[1] + this.soi[i][1]])
 			const condition = Boolean(cell && (cell instanceof Conductor || cell instanceof Chasm || cell instanceof Silo2 || cell instanceof Gradient || cell instanceof Generaldecay))
 			map += (condition ? `a` : `b`)
 

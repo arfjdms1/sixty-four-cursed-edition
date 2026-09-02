@@ -169,7 +169,7 @@ export class Cube extends Entity{
 		this.destabilizers = []
 		for (let i = 0; i < this.soi.length; i++){
 
-			const cell = this.master.stuffMap[`u${this.position[0] + this.soi[i][0]}v${this.position[1] + this.soi[i][1]}`]
+			const cell = this.context.spatial.entityAt([this.position[0] + this.soi[i][0], this.position[1] + this.soi[i][1]])
 
 			if (cell && cell instanceof Destabilizer) {
 				this.destabilizers.push(cell)
@@ -198,7 +198,7 @@ export class Cube extends Entity{
 				if (dt) this.fill -= (this.reverseSpeed || 1) * dt
 				if (this.fill <= 0) {
 					this.fill = 0
-					this.master.clearCell(this.position)
+					this.context.spatial.clearCell(this.position)
 				}
 
 			}
@@ -214,7 +214,7 @@ export class Cube extends Entity{
 
 				//Checking for injectors
 				for (let i = 0; i < this.soi.length; i++){
-					const cell = this.master.stuffMap[`u${this.position[0] + this.soi[i][0]}v${this.position[1] + this.soi[i][1]}`]
+					const cell = this.context.spatial.entityAt([this.position[0] + this.soi[i][0], this.position[1] + this.soi[i][1]])
 					if (cell && cell instanceof Injector && cell.state === 2){
 
 						this.swapRandomResource(cell, 4)

@@ -63,9 +63,10 @@ export class Gradient extends Entity{
 		if (this.flashTimer <= 0){
 			this.flashTimer = this.maxFlashTimer + Math.random() * this.maxFlashTimer
 
-			const entity = this.master.stuff[Math.floor(Math.random() * this.master.stuff.length)]
+			const entities = this.context.spatial.entities()
+			const entity = entities[Math.floor(Math.random() * entities.length)]
 			
-			if (entity.soul === 1){
+			if (entity && entity.soul === 1){
 
 				const exy = this.context.coordinates.uvToXYUntranslated(entity.position)
 				const gxy = this.context.coordinates.uvToXYUntranslated(this.position)
@@ -90,7 +91,7 @@ export class Gradient extends Entity{
 		this.destabilizers = []
 		for (let i = 0; i < this.soi.length; i++){
 
-			const cell = this.master.stuffMap[`u${this.position[0] + this.soi[i][0]}v${this.position[1] + this.soi[i][1]}`]
+			const cell = this.context.spatial.entityAt([this.position[0] + this.soi[i][0], this.position[1] + this.soi[i][1]])
 
 			if (cell && cell instanceof Destabilizer && !(cell instanceof Destabilizer2a)) {
 				this.destabilizers.push(cell)

@@ -359,7 +359,7 @@ export class Pump extends Entity{
 
 		for (let i = 0; i < this.soi.length; i++){
 
-			const cell = this.master.stuffMap[`u${this.position[0] + this.soi[i][0]}v${this.position[1] + this.soi[i][1]}`]
+			const cell = this.context.spatial.entityAt([this.position[0] + this.soi[i][0], this.position[1] + this.soi[i][1]])
 
 			if (cell){
 				if (cell instanceof Doublechannel){
@@ -442,7 +442,7 @@ export class Pump extends Entity{
 				for (let i = 0; i < this.soi.length; i++){
 
 					const p: Vec2 = [this.position[0] + this.soi[i][0], this.position[1] + this.soi[i][1]]
-					const cell = this.master.entityAtCoordinates(p)
+					const cell = this.context.spatial.entityAt(p)
 
 					if (cell && cell instanceof Cube && cell.state === 0 && cell.pump === this){
 						cubes.push(cell)
@@ -474,7 +474,7 @@ export class Pump extends Entity{
 					for (let r = 0; r < 64; r++){
 						resources.push(this.getResource())
 					}
-					this.master.addEntity(`cube`, spotPosition, {pump: this, resources: resources})
+					this.context.spatial.addEntity(`cube`, spotPosition, {pump: this, resources: resources})
 					this.master.processMousemove()
 
 				} else {
@@ -492,7 +492,7 @@ export class Pump extends Entity{
 				for (let i = 0; i < this.soi.length; i++){
 
 					// const cell = this.master.stuffMap[`u${this.position[0] + this.soi[i][0]}v${this.position[1] + this.soi[i][1]}`]
-					const cell = this.master.entityAtCoordinates([this.position[0] + this.soi[i][0], this.position[1] + this.soi[i][1]] as Vec2)
+					const cell = this.context.spatial.entityAt([this.position[0] + this.soi[i][0], this.position[1] + this.soi[i][1]] as Vec2)
 
 					if (cell && cell instanceof Valve && cell.state === 2){
 						(cell as unknown as { tap?: (d?: number) => void })?.tap?.(dt)

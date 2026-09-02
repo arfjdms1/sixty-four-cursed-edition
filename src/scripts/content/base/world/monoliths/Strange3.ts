@@ -57,9 +57,9 @@ export class Strange3 extends Strange2{
 				const rx = this.position[0] + dx
 				const ry = this.position[1] + dy
 
-				if (!this.master.entityAtCoordinates([rx, ry])){
+				if (!this.context.spatial.hasEntityAt([rx, ry])){
 
-					this.master.addEntity(`hollow`, [rx, ry])
+					this.context.spatial.addEntity(`hollow`, [rx, ry])
 					this.spawnedHollows++
 					break
 
@@ -78,7 +78,7 @@ export class Strange3 extends Strange2{
 		this.context.audio.playSound(`horn`, pan, loudness)
 		this.master.stats.strangeRockPoked++
 
-		if (this.master.pinhole && this.master.stuff.length < 3){
+		if (this.master.pinhole && this.context.spatial.entityCount() < 3){
 			this.master.watchCredits()
 		}
 	}

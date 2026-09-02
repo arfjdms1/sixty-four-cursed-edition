@@ -31,7 +31,7 @@ export class Silo2 extends Silo{
 	init(){
 
 		for (let i = 0; i < this.soi.length; i++){
-			const cell = this.master.entityAtCoordinates([this.position[0] + this.soi[i][0], this.position[1] + this.soi[i][1]])
+			const cell = this.context.spatial.entityAt([this.position[0] + this.soi[i][0], this.position[1] + this.soi[i][1]])
 			if (cell && cell instanceof Silo){
 				this.master.perpetum = true
 				break

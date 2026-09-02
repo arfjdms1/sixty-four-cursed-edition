@@ -38,7 +38,7 @@ export class Entropic extends Entity{
 	init(){
 		this.isNextToSilo = false
 		for (let i = 0; i < this.soi.length; i++){
-			const cell = this.master.entityAtCoordinates([this.position[0] + this.soi[i][0], this.position[1] + this.soi[i][1]])
+			const cell = this.context.spatial.entityAt([this.position[0] + this.soi[i][0], this.position[1] + this.soi[i][1]])
 			if (cell instanceof Silo){
 				this.isNextToSilo = true
 				break
@@ -88,7 +88,7 @@ export class Entropic extends Entity{
 				//Find cubes to break
 				for (let i = 0; i < this.soi.length; i++){
 
-					const cell = this.master.stuffMap[`u${this.position[0] + this.soi[i][0]}v${this.position[1] + this.soi[i][1]}`]
+					const cell = this.context.spatial.entityAt([this.position[0] + this.soi[i][0], this.position[1] + this.soi[i][1]])
 					if (cell && cell instanceof Cube && cell.state === 2){
 						this.tap()
 						cell.onmousedown(this.power as number)

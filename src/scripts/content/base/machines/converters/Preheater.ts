@@ -58,7 +58,7 @@ export class Preheater extends Entity{
 		this.isNextToSilo = false
 
 		for (let i = 0; i < this.soi.length; i++){
-			const cell = this.master.entityAtCoordinates([this.position[0] + this.soi[i][0], this.position[1] + this.soi[i][1]])
+			const cell = this.context.spatial.entityAt([this.position[0] + this.soi[i][0], this.position[1] + this.soi[i][1]])
 			if (cell && (cell instanceof Converter32 || cell instanceof Converter13 || cell instanceof Converter41 || cell instanceof Converter76 || cell instanceof Converter64) ){
 				this.convertersNearby++
 			} else if (cell && (cell instanceof Silo)){

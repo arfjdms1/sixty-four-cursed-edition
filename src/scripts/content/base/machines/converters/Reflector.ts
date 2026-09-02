@@ -31,7 +31,7 @@ export class Reflector extends Entity{
 	init(){
 
 		for (let i = 0; i < this.soi.length; i++){
-			const cell = this.master.entityAtCoordinates([this.position[0] + this.soi[i][0], this.position[1] + this.soi[i][1]])
+			const cell = this.context.spatial.entityAt([this.position[0] + this.soi[i][0], this.position[1] + this.soi[i][1]])
 			if (cell && cell instanceof Converter64){
 				this.variant = (this.variantMap as number[])[i] || 0
 				break

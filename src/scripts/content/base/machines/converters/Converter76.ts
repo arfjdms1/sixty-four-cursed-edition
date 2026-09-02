@@ -103,7 +103,7 @@ export class Converter76 extends Entity{
 		this.isNextToSilo = false
 
 		for (let i = 0; i < this.soi.length; i++){
-			const cell = this.master.entityAtCoordinates([this.position[0] + this.soi[i][0], this.position[1] + this.soi[i][1]])
+			const cell = this.context.spatial.entityAt([this.position[0] + this.soi[i][0], this.position[1] + this.soi[i][1]])
 			if (cell && cell instanceof Preheater){
 				this.preheaters.push(cell)
 			} else if (cell && cell instanceof Silo){

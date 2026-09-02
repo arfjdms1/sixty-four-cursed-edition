@@ -315,7 +315,7 @@ export class Entity {
 		const n: Array<Entity | undefined> = []
 
 		for (let i = 0; i < this.soi.length; i++){
-			n.push(this.master.stuffMap[`u${this.position[0] + this.soi[i][0]}v${this.position[1] + this.soi[i][1]}`])
+			n.push(this.context.spatial.entityAt([this.position[0] + this.soi[i][0], this.position[1] + this.soi[i][1]]) as Entity | undefined)
 		}
 
 		return n

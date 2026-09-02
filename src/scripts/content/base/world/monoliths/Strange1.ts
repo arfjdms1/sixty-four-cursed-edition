@@ -94,9 +94,9 @@ export class Strange1 extends Entity{
 				const rx = this.position[0] + dx
 				const ry = this.position[1] + dy
 
-				if (!this.master.entityAtCoordinates([rx, ry])){
+				if (!this.context.spatial.hasEntityAt([rx, ry])){
 
-					this.master.addEntity(`hollow`, [rx, ry])
+					this.context.spatial.addEntity(`hollow`, [rx, ry])
 					this.spawnedHollows++
 					this.master.createHollowEvent(`#FFBB36`, 6000, `horn`, true)
 					break

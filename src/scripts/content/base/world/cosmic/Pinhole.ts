@@ -49,14 +49,14 @@ export class Pinhole extends Entity{
 			this.master.createHollowEvent(`#000`, 50000)
 			this.happened = true
 
-			if (this.master.voidsculpture) this.master.clearCell(this.master.voidsculpture.position)
+			if (this.master.voidsculpture) this.context.spatial.clearCell(this.master.voidsculpture.position)
 			if (this.master.shop?.vessel) this.master.shop.vessel.style.display = `none`
 			if (this.master.shop?.shopToggle) this.master.shop.shopToggle.style.display = `none`
 			if (this.master.hollowSite) (this.master.hollowSite as { spawnTimerBase?: number }).spawnTimerBase = 2000
 			this.master.pinhole = this
 			this.context.audio.playSound(`endingMusic`,undefined,undefined,undefined,true)
 
-			this.totalCount = this.master.stuff.length
+			this.totalCount = this.context.spatial.entityCount()
 
 			//TST
 			this.finalTimer = 300000
@@ -74,12 +74,13 @@ export class Pinhole extends Entity{
 		if (dt) this.switchTimer -= dt
 		if (dt) this.finalTimer -= dt
 
-		this.maxFlashTimer = Math.max(250, this.finalTimer / (this.master.stuff.length + 1) * 2)
+		this.maxFlashTimer = Math.max(250, this.finalTimer / (this.context.spatial.entityCount() + 1) * 2)
 
 		if (this.flashTimer <= 0){
-			this.flashTimer = this.maxFlashTimer * Math.random()// * (this.master.stuff.length < 4 ? .2 : 1)
+			this.flashTimer = this.maxFlashTimer * Math.random()// * (this.context.spatial.entityCount() < 4 ? .2 : 1)
 
-			const entity = this.master.stuff[Math.floor(Math.random() * this.master.stuff.length)]
+			const entities = this.context.spatial.entities()
+			const entity = entities[Math.floor(Math.random() * entities.length)]
 			
 			const exy = this.context.coordinates.uvToXYUntranslated(entity.position)
 			const gxy = this.context.coordinates.uvToXYUntranslated([this.position[0] - 1, this.position[1] - 1])
@@ -102,7 +103,7 @@ export class Pinhole extends Entity{
 			//(entity.name === `mega1b` && this.master.stuff.length > 4)
 			if (entity.name !== `pinhole` && entity.name !== `strange3`){
 				this.context.effects.createResourceExplosion(this.master.getRealPrice(entity.name), exy)
-				this.master.clearCell(entity.position)
+				this.context.spatial.clearCell(entity.position)
 			} else if (entity.name === `strange3`){
 				this.context.audio.playSound(`horn`)
 			}
@@ -115,7 +116,7 @@ export class Pinhole extends Entity{
 			this.master.switchPlane(this.master.plane ? 0 : 1)
 		}
 
-		this.f = 1 - ((this.master.stuff.length - 2) / this.totalCount)
+		this.f = 1 - ((this.context.spatial.entityCount() - 2) / this.totalCount)
 
 
 	}

@@ -39,8 +39,9 @@ export class Entropic2a extends Entropic{
 			//Find cubes to break
 			for (let i = 0; i < this.soi.length; i++){
 
-				const hash = `u${this.position[0] + this.soi[i][0]}v${this.position[1] + this.soi[i][1]}`
-				const cell = this.master.stuffMap[hash]
+				const neighborPos: Vec2 = [this.position[0] + this.soi[i][0], this.position[1] + this.soi[i][1]]
+				const hash = `u${neighborPos[0]}v${neighborPos[1]}`
+				const cell = this.context.spatial.entityAt(neighborPos)
 				if (cell && cell instanceof Cube){
 
 					if (cell.state === 2 && this.candidates[hash]){

@@ -114,7 +114,7 @@ export class Chasm extends Entity{
 			if (!specimen) break;
 
 			for (let i = 0; i < specimen.soi.length; i+=2){
-				const cell = this.master.entityAtCoordinates([((specimen as unknown as { position: Vec2 }).position)[0] + specimen.soi[i][0], ((specimen as unknown as { position: Vec2 }).position)[1] + specimen.soi[i][1]])
+				const cell = this.context.spatial.entityAt([((specimen as unknown as { position: Vec2 }).position)[0] + specimen.soi[i][0], ((specimen as unknown as { position: Vec2 }).position)[1] + specimen.soi[i][1]])
 				const condition = Boolean(cell && (cell.chasmNetwork as unknown) !== this.chasmNetworkKey && (cell instanceof Conductor || cell instanceof Silo2 || cell instanceof Gradient || cell instanceof Generaldecay))
 				if (condition){
 					if (cell) cell.chasmNetwork = this.chasmNetworkKey
