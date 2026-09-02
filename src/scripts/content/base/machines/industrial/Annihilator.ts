@@ -72,7 +72,7 @@ export class Annihilator extends Entity{
 			this.context.effects.createResourceSpark([0,0,0,0,0,0,0,0,1], screenxy)
 			this.context.effects.createResourceTransfer([0,0,0,0,0,0,0,0,1], screenxy, screenxy, false, [0,0])
 			this.context.effects.createResourceExplosion([0,0,0,0,0,0,0,0,16], screenxy)
-			if (!this.master.voidsculpture) this.master.createHollowEvent(`#60F1`,500)
+			if (!this.context.references.hasVoidsculpture()) this.master.createHollowEvent(`#60F1`,500)
 
 			return true
 		}

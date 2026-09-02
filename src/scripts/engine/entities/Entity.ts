@@ -293,7 +293,10 @@ export class Entity {
 			this.context.audio.playSound(`soul`, pan, loudness, true)
 
 			this.soul = 0
-			if (this.master.voidsculpture) this.context.effects.createResourceTransfer([0,0,0,0,0,0,0,0,0,this.soulPower], screenxy, this.context.coordinates.uvToXYUntranslated([(this.master.voidsculpture as { position: Vec2 }).position[0] - 1, (this.master.voidsculpture as { position: Vec2 }).position[1] - 1]), false, [0,1])
+			if (this.context.references.hasVoidsculpture()) {
+				const vsPos = this.context.references.voidsculpturePosition()
+				if (vsPos) this.context.effects.createResourceTransfer([0,0,0,0,0,0,0,0,0,this.soulPower], screenxy, this.context.coordinates.uvToXYUntranslated([vsPos[0] - 1, vsPos[1] - 1]), false, [0,1])
+			}
 		}
 	}
 

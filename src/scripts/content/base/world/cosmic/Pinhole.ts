@@ -49,11 +49,13 @@ export class Pinhole extends Entity{
 			this.master.createHollowEvent(`#000`, 50000)
 			this.happened = true
 
-			if (this.master.voidsculpture) this.context.spatial.clearCell(this.master.voidsculpture.position)
+			const vsPos = this.context.references.voidsculpturePosition()
+			if (vsPos) this.context.spatial.clearCell(vsPos)
 			if (this.master.shop?.vessel) this.master.shop.vessel.style.display = `none`
 			if (this.master.shop?.shopToggle) this.master.shop.shopToggle.style.display = `none`
-			if (this.master.hollowSite) (this.master.hollowSite as { spawnTimerBase?: number }).spawnTimerBase = 2000
-			this.master.pinhole = this
+			const hollowSite = this.context.references.hollowSite()
+			if (hollowSite) hollowSite.spawnTimerBase = 2000
+			this.context.references.registerPinhole(this)
 			this.context.audio.playSound(`endingMusic`,undefined,undefined,undefined,true)
 
 			this.totalCount = this.context.spatial.entityCount()

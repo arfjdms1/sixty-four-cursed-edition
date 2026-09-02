@@ -230,10 +230,9 @@ export class Stabilizer extends Entity{
 					this.master.forcedAnnihilation = true
 				},
 				(m?: unknown) => {
-					if (this.master.hollowSite && (this.master.hollowSite as unknown as { spawnHollow?: () => void; spawnedHollows: number; maxSpawnedHollows: number }).spawnHollow && (this.master.hollowSite as unknown as { spawnedHollows: number; maxSpawnedHollows: number }).spawnedHollows < (this.master.hollowSite as unknown as { spawnedHollows: number; maxSpawnedHollows: number }).maxSpawnedHollows){
-
-						(this.master.hollowSite as unknown as { spawnHollow: () => void }).spawnHollow()
-
+					const hollowSite = this.context.references.hollowSite()
+					if (hollowSite && hollowSite.spawnedHollows < hollowSite.maxSpawnedHollows){
+						hollowSite.spawnHollow()
 					}
 				},
 				(m?: unknown) => {

@@ -6,7 +6,7 @@ import type { ResourceSystem } from '../../resources/ResourceSystem.js'
 import type { GameEntity } from '../../../core/types.js'
 import type { Sprite } from '../../../sprites.js'
 import type { Entity } from '../Entity.js'
-import type { EntityContext } from './types.js'
+import type { EntityContext, HollowSiteAccess } from './types.js'
 
 export interface EntityContextHost {
 	playSound(id: string | number, panning?: number, loudness?: number, dark?: boolean, forced?: boolean): void
@@ -94,6 +94,9 @@ export interface EntityContextHost {
 	bridge: boolean
 	switchedplanes: boolean
 	switchPlane(p: 0 | 1): void
+	voidsculpture: Entity | false
+	pinhole?: Entity | false
+	hollowSite: HollowSiteAccess | false
 }
 
 export function createEntityContext(host: EntityContextHost): EntityContext {
@@ -204,6 +207,17 @@ export function createEntityContext(host: EntityContextHost): EntityContext {
 			switchPlane: (p) => host.switchPlane(p),
 			activateBridge: () => { host.bridge = true },
 			markPlanesSwitched: () => { host.switchedplanes = true },
+		},
+		references: {
+			hasVoidsculpture: () => !!host.voidsculpture,
+			voidsculpturePosition: () => host.voidsculpture ? host.voidsculpture.position : undefined,
+			registerVoidsculpture: (entity) => { host.voidsculpture = entity },
+			clearVoidsculpture: () => { host.voidsculpture = false },
+			hasPinhole: () => !!host.pinhole,
+			registerPinhole: (entity) => { host.pinhole = entity },
+			hollowSite: () => host.hollowSite,
+			registerHollowSite: (access) => { host.hollowSite = access },
+			clearHollowSite: () => { host.hollowSite = false },
 		},
 	}
 }

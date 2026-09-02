@@ -48,7 +48,7 @@ export class Hollow extends Entity{
 	}
 
 	getOwner(){
-		return this.master.hollowSite
+		return this.context.references.hollowSite()
 	}
 
 	init(){
@@ -88,8 +88,7 @@ export class Hollow extends Entity{
 
 	onDelete(){
 		const hollowSite = this.getOwner()
-		const site = hollowSite as { spawnedHollows?: number } | undefined;
-		if (site && typeof site.spawnedHollows === "number") site.spawnedHollows--;
+		if (hollowSite) hollowSite.spawnedHollows--
 	}
 
 	render(dt?: number, vposition?: Vec2){

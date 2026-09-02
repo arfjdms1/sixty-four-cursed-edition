@@ -5,6 +5,25 @@ import type { GameEntity } from '../../../core/types.js'
 import type { Sprite } from '../../../sprites.js'
 import type { Entity } from '../Entity.js'
 
+export interface HollowSiteAccess {
+	spawnHollow(): void
+	spawnedHollows: number
+	readonly maxSpawnedHollows: number
+	spawnTimerBase: number
+}
+
+export interface EntityWorldReferenceContext {
+	hasVoidsculpture(): boolean
+	voidsculpturePosition(): Vec2 | undefined
+	registerVoidsculpture(entity: Entity): void
+	clearVoidsculpture(): void
+	hasPinhole(): boolean
+	registerPinhole(entity: Entity): void
+	hollowSite(): HollowSiteAccess | false
+	registerHollowSite(access: HollowSiteAccess): void
+	clearHollowSite(): void
+}
+
 export interface EntityAudioContext {
 	playSound(id: string | number, panning?: number, loudness?: number, dark?: boolean, forced?: boolean): void
 	stopSound(sfx: unknown, t?: number): void
@@ -132,4 +151,5 @@ export interface EntityContext {
 	readonly render: EntityRenderContext
 	readonly roles: EntityRoleContext
 	readonly plane: EntityPlaneContext
+	readonly references: EntityWorldReferenceContext
 }

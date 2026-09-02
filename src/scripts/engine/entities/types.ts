@@ -3,7 +3,7 @@ import type { LanguagePack } from '../../words.js'
 import type { CodexData } from '../../codex.js'
 import type { Sprite } from '../../sprites.js'
 import type { Entity } from './Entity.js'
-import type { EntityContext } from './context/types.js'
+import type { EntityContext, HollowSiteAccess } from './context/types.js'
 
 export interface EntityHost {
 	readonly entityContext: EntityContext
@@ -85,7 +85,7 @@ export interface EntityHost {
 	preGradient?: unknown
 	pinhole?: Entity | false
 	cookie?: unknown
-	voidsculpture?: Entity | false | { position: Vec2 }
+	voidsculpture?: Entity | false
 	generaldecay?: Entity | false
 	strange1?: unknown
 	strange2?: unknown
@@ -95,7 +95,7 @@ export interface EntityHost {
 	perpetum: boolean
 	got64kmphAchievement: boolean
 	rbrtimeup: boolean
-	hollowSite: unknown
+	hollowSite: HollowSiteAccess | false
 	hollowHardness: number
 	hellgemChunk: number
 	resourceTransferType: number

@@ -78,7 +78,7 @@ export class Strange3 extends Strange2{
 		this.context.audio.playSound(`horn`, pan, loudness)
 		this.master.stats.strangeRockPoked++
 
-		if (this.master.pinhole && this.context.spatial.entityCount() < 3){
+		if (this.context.references.hasPinhole() && this.context.spatial.entityCount() < 3){
 			this.master.watchCredits()
 		}
 	}

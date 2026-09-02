@@ -30,7 +30,7 @@ export class Flower extends Entity{
 	}
 
 	getOwner(){
-		return this.master.hollowSite
+		return this.context.references.hollowSite()
 	}
 
 	init(){

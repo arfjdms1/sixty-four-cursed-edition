@@ -2,8 +2,9 @@ import type { ColorTriplet, ResourceAmounts, Vec2 } from '../../../../../types/c
 import type { EntityHost } from '../../../../engine/entities/types.js'
 import { Entity } from '../../../../engine/entities/Entity.js'
 import { Sprite } from '../../../../sprites.js'
+import type { HollowSiteAccess } from '../../../../engine/entities/context/types.js'
 
-export class Strange1 extends Entity{
+export class Strange1 extends Entity implements HollowSiteAccess{
 
 	constructor(master: EntityHost){
 		super(master)
@@ -112,7 +113,7 @@ export class Strange1 extends Entity{
 
 	init(){
 		this.master.hellgemChunk = 512
-		this.master.hollowSite = this
+		this.context.references.registerHollowSite(this)
 	}
 
 	onDelete(){

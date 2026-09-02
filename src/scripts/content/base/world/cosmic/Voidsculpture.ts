@@ -60,7 +60,7 @@ export class Voidsculpture extends Entity{
 
 	init(){
 
-		this.master.voidsculpture = this
+		this.context.references.registerVoidsculpture(this)
 
 	}
 
@@ -73,7 +73,7 @@ export class Voidsculpture extends Entity{
 
 	onDelete(){
 
-		this.master.voidsculpture = false
+		this.context.references.clearVoidsculpture()
 
 	}
 

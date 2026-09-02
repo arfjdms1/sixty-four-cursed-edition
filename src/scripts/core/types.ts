@@ -23,7 +23,7 @@ import type { WorldEventSystem } from '../engine/events/WorldEventSystem.js'
 import type { HollowEvent } from '../engine/events/types.js'
 import type { EntityRegistry } from '../registry/EntityRegistry.js'
 import type { ResourceRegistry } from '../registry/ResourceRegistry.js'
-import type { EntityContext } from '../engine/entities/context/types.js'
+import type { EntityContext, HollowSiteAccess } from '../engine/entities/context/types.js'
 
 export type { PlayingSound, SoundState, AudioSample, MouseState, PointerInput }
 export type { AnalyticsGraph, AnalyticsState } from '../engine/resources/types.js'
@@ -121,7 +121,7 @@ export interface GameRuntimeState {
 	currentHint: { entity?: GameEntity; element?: HTMLDivElement }
 	canPlace: boolean | undefined
 	needNoHelp: boolean
-	hollowSite: unknown
+	hollowSite: HollowSiteAccess | false
 	hollowHardness: number
 	hollowEvents: HollowEvent[]
 	darkHollowEvents: HollowEvent[]

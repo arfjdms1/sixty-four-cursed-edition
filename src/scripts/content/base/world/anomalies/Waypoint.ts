@@ -56,13 +56,13 @@ export class Waypoint extends Entity{
 		const good = this.context.resources.requestResources([0,0,0,0,512],this.position)
 
 		if (good){
-			const prerequisites = this.master.voidsculpture && !this.context.plane.switchedplanes && (Math.random() < .5)
+			const prerequisites = this.context.references.hasVoidsculpture() && !this.context.plane.switchedplanes && (Math.random() < .5)
 			if (prerequisites){
 
 				this.context.plane.markPlanesSwitched()
 				this.context.plane.switchPlane(1)
 				this.context.audio.playSound(`teleport`,undefined,undefined,undefined,true)
-				this.master.createHollowEvent(`#000`, this.master.voidsculpture ? 1000 : 10000)
+				this.master.createHollowEvent(`#000`, this.context.references.hasVoidsculpture() ? 1000 : 10000)
 
 				//Gamepad
 				const gamepad = navigator.getGamepads()[0]
@@ -80,7 +80,7 @@ export class Waypoint extends Entity{
 
 				this.master.useWaypoint(this)
 				this.context.audio.playSound(`teleport`,undefined,undefined,undefined,true)
-				this.master.createHollowEvent(`#000`, this.master.voidsculpture ? 1000 : 10000)
+				this.master.createHollowEvent(`#000`, this.context.references.hasVoidsculpture() ? 1000 : 10000)
 				this.master.stats.timesTeleported++
 
 				//Gamepad
