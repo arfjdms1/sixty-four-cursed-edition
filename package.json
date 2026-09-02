@@ -15,6 +15,7 @@
     "preview:hosted": "vite preview --mode hosted",
     "preview:offline": "vite preview --mode offline",
     "typecheck": "tsc --noEmit",
+    "test:placement-preview": "node tests/placement_preview_regression.mjs",
     "validate:achievement-icons": "node tests/validate_achievement_icons.mjs"
   },
   "dependencies": {

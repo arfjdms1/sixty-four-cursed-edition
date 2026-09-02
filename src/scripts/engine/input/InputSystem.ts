@@ -76,8 +76,8 @@ export class InputSystem {
 
 			if (e.keyCode === 27){
 				if (this.host.itemInHand) {
-					delete this.host.itemInHand
-					delete this.host.transportedEntity
+					this.host.itemInHand = undefined
+					this.host.transportedEntity = undefined
 				} else {
 					this.host.toggleSplash()
 				}
@@ -177,8 +177,8 @@ export class InputSystem {
 
 		this.host.canvas.addEventListener(`mouseup`, e=>{
 			if (!this.mouse.positionChanged && e.button === 2 && this.host.itemInHand){
-				delete this.host.itemInHand
-				delete this.host.transportedEntity
+				this.host.itemInHand = undefined
+				this.host.transportedEntity = undefined
 			}
 			this.host.processMouseup()
 		})
