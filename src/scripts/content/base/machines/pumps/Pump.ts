@@ -165,8 +165,8 @@ export class Pump extends Entity{
 		canvas.style.left = `0`
 		canvas.style.width = innerWidth + `px`
 		canvas.style.height = innerHeight + `px`
-		const w = canvas.width = innerWidth * this.master.pixelRatio
-		const h = canvas.height = innerHeight * this.master.pixelRatio
+		const w = canvas.width = innerWidth * this.context.render.pixelRatio
+		const h = canvas.height = innerHeight * this.context.render.pixelRatio
 		const ctx = canvas.getContext(`2d`)
 		if (!ctx) return
 
@@ -177,7 +177,7 @@ export class Pump extends Entity{
 		const ddepth = depth[1] - depth[0]
 		const dx = w/ddepth
 
-		ctx.lineWidth = this.master.pixelRatio
+		ctx.lineWidth = this.context.render.pixelRatio
 
 		//AXES
 		ctx.strokeStyle = `#FFF2`

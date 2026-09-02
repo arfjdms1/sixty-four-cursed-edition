@@ -49,7 +49,7 @@ export class Auxpump2 extends Auxpump{
 
 		this.sprite.render(position)
 		if (this.fill){
-			this.master.drawPrism([position[0] - .42, position[1] + .50 - .42], .06, this.fill, this.master.codex.resources[3].triplet)
+			this.context.render.drawPrism([position[0] - .42, position[1] + .50 - .42], .06, this.fill, this.master.codex.resources[3].triplet)
 		}
 
 	}

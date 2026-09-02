@@ -117,8 +117,7 @@ export class Converter41 extends Entity{
 
 	render(dt?: number, vposition?: Vec2){
 
-		const ctx = this.master.ctx
-		const unit = this.master.unit
+		const ctx = this.context.render.ctx
 		const position = vposition ? vposition : this.position
 
 		this.sprite.renderState(position, 0)

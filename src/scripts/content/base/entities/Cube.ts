@@ -264,8 +264,8 @@ export class Cube extends Entity{
 				const dy = (Math.random() * 2 - 1) * this.broken * this.shakePower
 				const dz = (Math.random() * 2 - 1) * this.broken * this.shakePower + .125
 
-				const sprite = this.master.resourcesSprites[this.resources[i]];
-				const rc = this.resourceCoordinates[i];
+			const sprite = this.context.render.resourceSpriteByLegacyIndex(this.resources[i]);
+			const rc = this.resourceCoordinates[i];
 				const shift = (this.resourceShifts3d[i] || [0,0,0]) as [number, number, number];
 				if (sprite && rc) sprite.render([
 					rc[0] + shift[0] + dx - dz - (shift[2] || 0), 
@@ -278,20 +278,20 @@ export class Cube extends Entity{
 
 	render(){
 
-		const ctx = this.master.ctx
-		const unit = this.master.unit
+		const ctx = this.context.render.ctx
+		const unit = this.context.render.unit
 
 		ctx.strokeStyle = `#99A`
 		ctx.lineWidth = unit * .01
 
 		if (this.state === 0){
-			this.master.drawPrism(this.position, 1, this.fill / this.maxFill, this.colorBlank)
+			this.context.render.drawPrism(this.position, 1, this.fill / this.maxFill, this.colorBlank)
 		} else if (this.state === 1){
 			this.drawResources()
-			this.master.ctx.save()
-			this.master.ctx.globalAlpha = 1 - this.unveilProgress
-			this.master.drawPrism(this.position, 1, 1, this.colorBlank)
-			this.master.ctx.restore()
+			this.context.render.ctx.save()
+			this.context.render.ctx.globalAlpha = 1 - this.unveilProgress
+			this.context.render.drawPrism(this.position, 1, 1, this.colorBlank)
+			this.context.render.ctx.restore()
 		} else if (this.state === 2){
 			this.drawResources()
 		}

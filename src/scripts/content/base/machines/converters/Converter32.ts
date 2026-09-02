@@ -114,8 +114,8 @@ export class Converter32 extends Entity{
 
 	render(dt?: number, vposition?: Vec2){
 
-		const ctx = this.master.ctx
-		const unit = this.master.unit
+		const ctx = this.context.render.ctx
+		const unit = this.context.render.unit
 		const position = vposition ? vposition : this.position
 		const xy = this.context.coordinates.uvToXY(position)
 

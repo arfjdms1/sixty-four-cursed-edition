@@ -87,7 +87,7 @@ export class Auxpump extends Entity{
 
 		this.sprite.render(position, 0, true)
 		if (this.fill){
-			this.master.drawPrism([this.position[0] - .025 + .125, this.position[1] - .025 - .125], .5, .5 * this.fill, this.master.codex.resources[1].triplet)
+			this.context.render.drawPrism([this.position[0] - .025 + .125, this.position[1] - .025 - .125], .5, .5 * this.fill, this.master.codex.resources[1].triplet)
 		}
 		this.sprite.render(position)
 

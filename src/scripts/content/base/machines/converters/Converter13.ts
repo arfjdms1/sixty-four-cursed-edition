@@ -129,7 +129,7 @@ export class Converter13 extends Entity{
 		if (this.state === 2) this.sprite.render(position,dt,true)
 
 		if (this.fill){
-			this.master.drawPrism([position[0] - .26, position[1] + .26], .36, .28 * this.conversion, this.master.codex.resources[2].triplet)
+			this.context.render.drawPrism([position[0] - .26, position[1] + .26], .36, .28 * this.conversion, this.master.codex.resources[2].triplet)
 		}
 
 		this.sprite.render(position, dt)

@@ -1,9 +1,10 @@
-import type { Vec2 } from '../../../../types/core.js'
+import type { ColorTriplet, Vec2 } from '../../../../types/core.js'
 import type { EffectCompletion, EffectVisibility } from '../../effects/types.js'
 import type { ResourceTypeId } from '../../../registry/resource-types.js'
 import type { ResourceRegistry } from '../../../registry/ResourceRegistry.js'
 import type { ResourceSystem } from '../../resources/ResourceSystem.js'
 import type { GameEntity } from '../../../core/types.js'
+import type { Sprite } from '../../../sprites.js'
 import type { EntityContext } from './types.js'
 
 export interface EntityContextHost {
@@ -73,6 +74,12 @@ export interface EntityContextHost {
 		options?: { skipShopUpdate?: boolean },
 	): GameEntity | false
 	clearCell(uv: Vec2): void
+	readonly unit: number
+	readonly zoom: number
+	readonly pixelRatio: number
+	readonly ctx: CanvasRenderingContext2D
+	drawPrism(pos: Vec2, size: number, height: number, triplet?: ColorTriplet): void
+	resourcesSprites: Sprite[] & Record<string | number, Sprite>
 }
 
 export function createEntityContext(host: EntityContextHost): EntityContext {
@@ -149,6 +156,19 @@ export function createEntityContext(host: EntityContextHost): EntityContext {
 			entityCount: () => host.stuff.length,
 			addEntity: (name, position, misc, options) => host.addEntity(name, position, misc, options),
 			clearCell: (uv) => host.clearCell(uv),
+		},
+		render: {
+			get unit() { return host.unit },
+			get zoom() { return host.zoom },
+			get pixelRatio() { return host.pixelRatio },
+			drawPrism: (position, size, height, triplet) => host.drawPrism(position, size, height, triplet),
+			resourceSprite: (id) => {
+				const index = host.resourceRegistry.getLegacyIndex(id)
+				if (index === undefined) return undefined
+				return host.resourcesSprites[index]
+			},
+			resourceSpriteByLegacyIndex: (index) => host.resourcesSprites[index],
+			get ctx() { return host.ctx },
 		},
 	}
 }

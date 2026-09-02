@@ -51,12 +51,12 @@ export class Destabilizer2a extends Destabilizer{
 		if (this.fill){
 			const screen = this.context.coordinates.uvToXY([position[0] - .25, position[1] - .48])
 			const scale = .2 + this.fill * .8
-			this.master.ctx.save()
+			this.context.render.ctx.save()
 			const tr = this.context.coordinates.translation || [0, 0];
-			this.master.ctx.translate(screen[0] + (Math.random() * 2 - 1) * this.master.unit * .01 + tr[0] * scale * this.master.zoom, screen[1] + (Math.random() * 2 - 1) * this.master.unit * .01 + tr[1] * scale * this.master.zoom)
-			this.master.ctx.scale(scale,scale)
-			this.master.resourcesSprites[4].render([0,0])
-			this.master.ctx.restore()
+			this.context.render.ctx.translate(screen[0] + (Math.random() * 2 - 1) * this.context.render.unit * .01 + tr[0] * scale * this.context.render.zoom, screen[1] + (Math.random() * 2 - 1) * this.context.render.unit * .01 + tr[1] * scale * this.context.render.zoom)
+			this.context.render.ctx.scale(scale,scale)
+			this.context.render.resourceSprite(`hell-gem`)?.render([0,0])
+			this.context.render.ctx.restore()
 		}
 
 	}

@@ -81,7 +81,7 @@ export class Surge extends Entity{
 			const sp = Math.random() * 2 - 1
 
 			const p = this.context.coordinates.uvToXY(this.position)
-			const u = this.master.unit
+			const u = this.context.render.unit
 
 			this.rays.push({
 				originOffset: originOffset,
@@ -169,17 +169,17 @@ export class Surge extends Entity{
 
 	render(dt?: number, vposition?: Vec2){
 
-		const ctx = this.master.ctx
+		const ctx = this.context.render.ctx
 		const p = this.context.coordinates.uvToXY(this.position)
 
-		ctx.lineWidth = this.master.pixelRatio * 2
+		ctx.lineWidth = this.context.render.pixelRatio * 2
 
 		if (this.rays && !this.done){
 			const t = this.master.time.lt / 600
 			for (let i = 0; i < this.rays.length; i++){
 
 				const r = this.rays[i] as SurgeRay
-				const u = this.master.unit
+				const u = this.context.render.unit
 
 				ctx.strokeStyle = r.color
 				ctx.beginPath()

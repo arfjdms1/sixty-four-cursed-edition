@@ -42,9 +42,9 @@ export class Vault extends Entity{
 	render(dt?: number, vposition?: Vec2){
 
 		this.sprite.renderState(vposition ? vposition : this.position, 0)
-		this.master.ctx.globalAlpha = (this.excitement / this.maxExcitement) ** 2
+		this.context.render.ctx.globalAlpha = (this.excitement / this.maxExcitement) ** 2
 		this.sprite.renderState(vposition ? vposition : this.position, 1)
-		this.master.ctx.globalAlpha = 1
+		this.context.render.ctx.globalAlpha = 1
 
 	}
 

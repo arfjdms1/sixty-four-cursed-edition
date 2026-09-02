@@ -306,15 +306,15 @@ export class Stabilizer extends Entity{
 		if (this.power && typeof this.power === "object" && this.surge){
 			const timeFraction = Math.min(1, this.power.timer / this.power.maxTimer)
 			const f = Math.min(.9, Math.max(.04, (timeFraction ** .5) * .6 + (Math.random() * 2 - 1) * .04))
-			const delta = this.master.unit * 2
-			const gradient = this.master.ctx.createRadialGradient((axy as Vec2)[0],(axy as Vec2)[1],0,(axy as Vec2)[0],(axy as Vec2)[1],delta)
-			this.master.ctx.globalAlpha = (1 - timeFraction) * .8
+			const delta = this.context.render.unit * 2
+			const gradient = this.context.render.ctx.createRadialGradient((axy as Vec2)[0],(axy as Vec2)[1],0,(axy as Vec2)[0],(axy as Vec2)[1],delta)
+			this.context.render.ctx.globalAlpha = (1 - timeFraction) * .8
 			gradient.addColorStop(f-.04,`#FFF0`)
 			gradient.addColorStop(f, this.master.codex.resources[(this.surge as unknown as { type: number }).type].triplet[Math.floor(Math.random() * 2)])
 			gradient.addColorStop(f+.1,`#FFF0`)
-			this.master.ctx.fillStyle = gradient
-			this.master.ctx.fillRect((axy as Vec2)[0] - delta, (axy as Vec2)[1] - delta, delta*2, delta*2)
-			this.master.ctx.globalAlpha = 1
+			this.context.render.ctx.fillStyle = gradient
+			this.context.render.ctx.fillRect((axy as Vec2)[0] - delta, (axy as Vec2)[1] - delta, delta*2, delta*2)
+			this.context.render.ctx.globalAlpha = 1
 		}
 		
 

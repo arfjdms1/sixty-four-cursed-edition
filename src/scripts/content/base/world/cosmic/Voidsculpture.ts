@@ -126,14 +126,14 @@ export class Voidsculpture extends Entity{
 
 		if (this.master.bridge && !vposition){
 
-			const radius = this.master.unit * 1
+			const radius = this.context.render.unit * 1
 			const da = .05
 			const time = performance.now() / 1000
 
-			const ctx = this.master.ctx
+			const ctx = this.context.render.ctx
 			const xy = this.context.coordinates.uvToXY(this.position)
 			ctx.save()
-			ctx.translate(xy[0], xy[1] - this.master.unit * 3.6)
+			ctx.translate(xy[0], xy[1] - this.context.render.unit * 3.6)
 			ctx.fillStyle = `#000`
 
 			ctx.beginPath()
@@ -155,16 +155,16 @@ export class Voidsculpture extends Entity{
 	darkrender(dt?: number, vposition?: Vec2){
 
 		const position = vposition ? vposition : this.position
-		const radius = this.master.unit * (Math.min(1, this.context.resources.amount('reality') / this.threshold) + .01)
+		const radius = this.context.render.unit * (Math.min(1, this.context.resources.amount('reality') / this.threshold) + .01)
 		const da = .05
 		const time = performance.now() / 1000
 
 		this.darksprite.render(vposition ? vposition : this.position)
 
-		const ctx = this.master.ctx
+		const ctx = this.context.render.ctx
 		const xy = this.context.coordinates.uvToXY(position)
 		ctx.save()
-		ctx.translate(xy[0], xy[1] - this.master.unit)
+		ctx.translate(xy[0], xy[1] - this.context.render.unit)
 		ctx.fillStyle = `#FFF`
 
 		ctx.beginPath()
@@ -180,12 +180,12 @@ export class Voidsculpture extends Entity{
 		ctx.fill()
 
 		if (this.context.resources.amount('reality') >= this.threshold){
-			const gradient = ctx.createRadialGradient(0,0,0,0,0,this.master.unit * 8)
+			const gradient = ctx.createRadialGradient(0,0,0,0,0,this.context.render.unit * 8)
 			gradient.addColorStop(0,`#FFF9`)
 			gradient.addColorStop(1,`#FFF0`)
 			ctx.fillStyle = gradient
 			ctx.beginPath()
-			ctx.arc(0,0,this.master.unit * 8,0,Math.PI * 2)
+			ctx.arc(0,0,this.context.render.unit * 8,0,Math.PI * 2)
 			ctx.closePath()
 			ctx.fill()
 		}
@@ -195,17 +195,17 @@ export class Voidsculpture extends Entity{
 	}
 	renderDarkHint(){
 
-		const ctx = this.master.ctx
+		const ctx = this.context.render.ctx
 
 
 		const startAngle = -Math.PI / 2
 		const endAngle = Math.PI * 2 * Math.min(1, this.context.resources.amount('reality') / this.threshold) + startAngle
 		
-		const radius = this.master.pixelRatio * 10
+		const radius = this.context.render.pixelRatio * 10
 
 		ctx.lineCap = `round`
 
-		ctx.lineWidth = this.master.pixelRatio * 2
+		ctx.lineWidth = this.context.render.pixelRatio * 2
 		ctx.strokeStyle = `#fff`
 		ctx.beginPath()
 		ctx.arc(0, 0, radius, startAngle, endAngle)
@@ -214,7 +214,7 @@ export class Voidsculpture extends Entity{
 		if (this.context.resources.amount('reality') > this.threshold){
 			ctx.fillStyle = `#FFF`
 			ctx.beginPath()
-			ctx.arc(0, 0, this.master.unit * .06, 0, Math.PI * 2)
+			ctx.arc(0, 0, this.context.render.unit * .06, 0, Math.PI * 2)
 			ctx.closePath()
 			ctx.fill()
 
@@ -222,30 +222,32 @@ export class Voidsculpture extends Entity{
 			if (this.master.bigFont) ctx.font = this.master.bigFont
 			ctx.textAlign = `left`
 			ctx.save()
-			ctx.translate(this.master.unit / 2,0)
+			ctx.translate(this.context.render.unit / 2,0)
 			ctx.scale(.5, .5)
 
-			const sprite = this.master.resourcesSprites[9]
-			const p = [0, this.master.unit * .6]
-			ctx.fillRect(-this.master.unit / 3, -this.master.unit / 3 + p[1], this.master.unit * 1, this.master.unit * .65)
-			const mask = sprite.frames[sprite.sequences[sprite.currentSequence][sprite.currentFrame]]
-			const origin = sprite.origins[sprite.sequences[sprite.currentSequence][sprite.currentFrame]]
-			const scale = this.master.unit * 1.737 / mask[2] * sprite.scale
+			const sprite = this.context.render.resourceSprite(`reality`)
+			if (sprite){
+				const p = [0, this.context.render.unit * .6]
+				ctx.fillRect(-this.context.render.unit / 3, -this.context.render.unit / 3 + p[1], this.context.render.unit * 1, this.context.render.unit * .65)
+				const mask = sprite.frames[sprite.sequences[sprite.currentSequence][sprite.currentFrame]]
+				const origin = sprite.origins[sprite.sequences[sprite.currentSequence][sprite.currentFrame]]
+				const scale = this.context.render.unit * 1.737 / mask[2] * sprite.scale
 
-			ctx.drawImage(
-				sprite.img, 
-				mask[0], 
-				mask[1], 
-				mask[2], 
-				mask[3], 
-				p[0] - origin[0]*scale, 
-				p[1] - origin[1]*scale, 
-				mask[2]*scale, 
-				mask[3]*scale
-			)
+				ctx.drawImage(
+					sprite.img,
+					mask[0],
+					mask[1],
+					mask[2],
+					mask[3],
+					p[0] - origin[0]*scale,
+					p[1] - origin[1]*scale,
+					mask[2]*scale,
+					mask[3]*scale
+				)
 
-			ctx.fillStyle = `#FFF`
-			ctx.fillText("1", p[0] + this.master.unit/3, p[1])
+				ctx.fillStyle = `#FFF`
+				ctx.fillText("1", p[0] + this.context.render.unit/3, p[1])
+			}
 			ctx.restore()
 
 

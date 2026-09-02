@@ -1,7 +1,8 @@
-import type { Vec2 } from '../../../../types/core.js'
+import type { ColorTriplet, Vec2 } from '../../../../types/core.js'
 import type { EffectCompletion, EffectVisibility } from '../../effects/types.js'
 import type { ResourceTypeId } from '../../../registry/resource-types.js'
 import type { GameEntity } from '../../../core/types.js'
+import type { Sprite } from '../../../sprites.js'
 
 export interface EntityAudioContext {
 	playSound(id: string | number, panning?: number, loudness?: number, dark?: boolean, forced?: boolean): void
@@ -88,10 +89,21 @@ export interface EntitySpatialContext {
 	clearCell(uv: Vec2): void
 }
 
+export interface EntityRenderContext {
+	readonly unit: number
+	readonly zoom: number
+	readonly pixelRatio: number
+	drawPrism(position: Vec2, size: number, height: number, triplet?: ColorTriplet): void
+	resourceSprite(id: ResourceTypeId): Sprite | undefined
+	resourceSpriteByLegacyIndex(index: number): Sprite | undefined
+	readonly ctx: CanvasRenderingContext2D
+}
+
 export interface EntityContext {
 	readonly audio: EntityAudioContext
 	readonly effects: EntityEffectContext
 	readonly coordinates: EntityCoordinateContext
 	readonly resources: EntityResourceContext
 	readonly spatial: EntitySpatialContext
+	readonly render: EntityRenderContext
 }

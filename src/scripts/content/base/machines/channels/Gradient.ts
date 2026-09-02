@@ -118,12 +118,12 @@ export class Gradient extends Entity{
 	darkrender(dt?: number, vposition?: Vec2){
 
 		// this.sprite.render(vposition ? vposition : this.position)
-		const ctx = this.master.ctx
+		const ctx = this.context.render.ctx
 
 		const height = 3
-		const hy = height * this.master.unit
-		const dx = 1 * .866 * this.master.unit
-		const dy = 1 * .5 * this.master.unit
+		const hy = height * this.context.render.unit
+		const dx = 1 * .866 * this.context.render.unit
+		const dy = 1 * .5 * this.context.render.unit
 
 		const color = ctx.createLinearGradient(0,-dy,0,-hy)
 		color.addColorStop(0, `#FFF`)
@@ -144,12 +144,12 @@ export class Gradient extends Entity{
 		ctx.closePath()
 		ctx.fill()
 
-		const gradient = ctx.createRadialGradient(0,0,0,0,0,this.master.unit * 2)
+		const gradient = ctx.createRadialGradient(0,0,0,0,0,this.context.render.unit * 2)
 		gradient.addColorStop(0,`#FFF9`)
 		gradient.addColorStop(1,`#FFF0`)
 		ctx.fillStyle = gradient
 		ctx.beginPath()
-		ctx.arc(0,0,this.master.unit * 2,0,Math.PI * 2)
+		ctx.arc(0,0,this.context.render.unit * 2,0,Math.PI * 2)
 		ctx.closePath()
 		ctx.fill()
 

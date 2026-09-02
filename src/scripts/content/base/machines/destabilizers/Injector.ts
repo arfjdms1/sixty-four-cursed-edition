@@ -100,8 +100,8 @@ export class Injector extends Entity{
 
 	render(dt?: number, vposition?: Vec2){
 
-		const ctx = this.master.ctx
-		const unit = this.master.unit
+		const ctx = this.context.render.ctx
+		const unit = this.context.render.unit
 		const position = vposition ? vposition : this.position
 
 		this.sprite.render(position, dt)
@@ -110,9 +110,9 @@ export class Injector extends Entity{
 			const screen = this.context.coordinates.uvToXY([position[0] - .6, position[1] - .6])
 			const scale = .2 + this.fill * .8
 			ctx.save()
-			ctx.translate(screen[0] + (Math.random() * 2 - 1) * unit * .01 + (this.context.coordinates.translation || [0,0])[0] * scale * this.master.zoom, screen[1] + (Math.random() * 2 - 1) * unit * .01 + (this.context.coordinates.translation || [0,0])[1] * scale * this.master.zoom)
+			ctx.translate(screen[0] + (Math.random() * 2 - 1) * unit * .01 + (this.context.coordinates.translation || [0,0])[0] * scale * this.context.render.zoom, screen[1] + (Math.random() * 2 - 1) * unit * .01 + (this.context.coordinates.translation || [0,0])[1] * scale * this.context.render.zoom)
 			ctx.scale(scale,scale)
-			this.master.resourcesSprites[4].render([0,0])
+			this.context.render.resourceSprite(`hell-gem`)?.render([0,0])
 			ctx.restore()
 		}
 

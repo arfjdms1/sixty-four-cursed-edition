@@ -275,7 +275,7 @@ export class Entity {
 
 	darkrender(dt?: number, vposition?: Vec2): void {
 		const position = vposition ? vposition : this.position
-		const ctx = this.master.ctx
+		const ctx = this.context.render.ctx
 		// const xy = this.context.coordinates.uvToXY(position)
 		ctx.save()
 		// ctx.translate(xy[0], xy[1])

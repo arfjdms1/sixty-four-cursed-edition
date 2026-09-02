@@ -91,7 +91,7 @@ export class Destabilizer extends Entity{
 		this.sprite.render(position, 0, true)
 
 		if (this.fill){
-			this.master.drawPrism([position[0] - .025 + .27, position[1] - .025 + .02], .25, .25 * this.fill, this.master.codex.resources[1].triplet)
+			this.context.render.drawPrism([position[0] - .025 + .27, position[1] - .025 + .02], .25, .25 * this.fill, this.master.codex.resources[1].triplet)
 		}
 
 		this.sprite.render(position, 0)

@@ -45,7 +45,7 @@ export class Destabilizer2 extends Destabilizer{
 		this.sprite.render(position, this.fill ? dt : 0)
 
 		if (this.fill){
-			this.master.drawPrism([position[0] - .44, position[1] - .34 - .44], .06, this.fill, this.master.codex.resources[1].triplet)
+			this.context.render.drawPrism([position[0] - .44, position[1] - .34 - .44], .06, this.fill, this.master.codex.resources[1].triplet)
 		}
 
 		// this.puff.render([position[0] - .4, position[1] - .76], dt)

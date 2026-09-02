@@ -117,7 +117,7 @@ export class Entropic3 extends Entity{
 			this.sprite.renderState(position, this.fill ? 1 : 0, true)
 
 			if (this.fill){
-				this.master.drawPrism([position[0] - .48, position[1] - .48], .25, .25 * this.fill, this.master.codex.resources[8].triplet)
+				this.context.render.drawPrism([position[0] - .48, position[1] - .48], .25, .25 * this.fill, this.master.codex.resources[8].triplet)
 			}
 
 			this.sprite.renderState(position, this.fill ? 1 : 0)
