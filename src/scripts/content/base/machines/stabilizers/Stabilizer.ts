@@ -148,7 +148,7 @@ export class Stabilizer extends Entity{
 						const screenxy = this.context.coordinates.uvToXYUntranslated((this.attractorPosition || [0, 0]) as Vec2)
 						const pan = this.context.audio.getPanValueFromX(screenxy[0])
 						const loudness = this.context.audio.getLoudnessFromXY(screenxy)
-						this.context.audio.playSound(`lightning`, pan, loudness, this.master.plane ? true : false)
+						this.context.audio.playSound(`lightning`, pan, loudness, this.context.plane.plane ? true : false)
 						this.context.effects.createLightning([], screenxy, this.context.coordinates.uvToXYUntranslated(pumps[dice].position), (_?: unknown) => {}, [1,0], `#112`)
 					}
 
@@ -161,7 +161,7 @@ export class Stabilizer extends Entity{
 						const screenxy = this.context.coordinates.uvToXYUntranslated((this.attractorPosition || [0, 0]) as Vec2)
 						const pan = this.context.audio.getPanValueFromX(screenxy[0])
 						const loudness = this.context.audio.getLoudnessFromXY(screenxy)
-						this.context.audio.playSound(`lightning`, pan, loudness, this.master.plane ? true : false)
+						this.context.audio.playSound(`lightning`, pan, loudness, this.context.plane.plane ? true : false)
 						this.context.effects.createLightning([], screenxy, this.context.coordinates.uvToXYUntranslated(unfilled[dice].position), (_?: unknown) => {}, [1,0], `#FA3`)
 					}
 				},
@@ -173,7 +173,7 @@ export class Stabilizer extends Entity{
 						const screenxy = this.context.coordinates.uvToXYUntranslated((this.attractorPosition || [0, 0]) as Vec2)
 						const pan = this.context.audio.getPanValueFromX(screenxy[0])
 						const loudness = this.context.audio.getLoudnessFromXY(screenxy)
-						this.context.audio.playSound(`lightning`, pan, loudness, this.master.plane ? true : false)
+						this.context.audio.playSound(`lightning`, pan, loudness, this.context.plane.plane ? true : false)
 						this.context.effects.createLightning([], screenxy, this.context.coordinates.uvToXYUntranslated(cubes[dice].position), (_?: unknown) => {}, [1,0], `#863DFF`)
 					}
 				},
@@ -200,7 +200,7 @@ export class Stabilizer extends Entity{
 						const cubeScreenxy = this.context.coordinates.uvToXYUntranslated(cubes[dice].position)
 						const pan = this.context.audio.getPanValueFromX(screenxy[0])
 						const loudness = this.context.audio.getLoudnessFromXY(screenxy)
-						this.context.audio.playSound(`lightning`, pan, loudness, this.master.plane ? true : false)
+						this.context.audio.playSound(`lightning`, pan, loudness, this.context.plane.plane ? true : false)
 						this.context.effects.createLightning([], screenxy, cubeScreenxy, (_?: unknown) => {}, [1,0], `#F26F67`)
 
 						if (swapped){
@@ -219,7 +219,7 @@ export class Stabilizer extends Entity{
 						const screenxy = this.context.coordinates.uvToXYUntranslated((this.attractorPosition || [0, 0]) as Vec2)
 						const pan = this.context.audio.getPanValueFromX(screenxy[0])
 						const loudness = this.context.audio.getLoudnessFromXY(screenxy)
-						this.context.audio.playSound(`lightning`, pan, loudness, this.master.plane ? true : false)
+						this.context.audio.playSound(`lightning`, pan, loudness, this.context.plane.plane ? true : false)
 						this.context.effects.createLightning([], screenxy, this.context.coordinates.uvToXYUntranslated(converters[dice].position), (_?: unknown) => {}, [1,0], `#A6F246`)
 					}
 				},
@@ -265,7 +265,7 @@ export class Stabilizer extends Entity{
 						const screenxy = this.context.coordinates.uvToXYUntranslated((this.attractorPosition || [0, 0]) as Vec2)
 						const pan = this.context.audio.getPanValueFromX(screenxy[0])
 						const loudness = this.context.audio.getLoudnessFromXY(screenxy)
-						this.context.audio.playSound(`lightning`, pan, loudness, this.master.plane ? true : false)
+						this.context.audio.playSound(`lightning`, pan, loudness, this.context.plane.plane ? true : false)
 						this.context.effects.createLightning([], screenxy, this.context.coordinates.uvToXYUntranslated((one as { position: Vec2 }).position), (_?: unknown) => {}, [1,0], `#000`)
 					}
 				},

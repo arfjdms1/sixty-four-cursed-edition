@@ -85,8 +85,8 @@ export class Pinhole extends Entity{
 			const exy = this.context.coordinates.uvToXYUntranslated(entity.position)
 			const gxy = this.context.coordinates.uvToXYUntranslated([this.position[0] - 1, this.position[1] - 1])
 
-			this.context.audio.playSound(`lightning`, undefined, undefined, this.master.plane ? true : false)
-			this.context.effects.createLightning([], exy, gxy, (_?: unknown) => {}, [1,1], this.master.plane ? `#FFF` : `#112`)
+			this.context.audio.playSound(`lightning`, undefined, undefined, this.context.plane.plane ? true : false)
+			this.context.effects.createLightning([], exy, gxy, (_?: unknown) => {}, [1,1], this.context.plane.plane ? `#FFF` : `#112`)
 
 			//Gamepad
 			const gamepad = navigator.getGamepads()[0]
@@ -112,8 +112,8 @@ export class Pinhole extends Entity{
 
 		if (this.switchTimer <= 0){
 			this.switchTimer = this.maxSwitchTimer
-			this.context.audio.playSound(`teleport`,undefined,undefined, this.master.plane ? true : false,true)
-			this.master.switchPlane(this.master.plane ? 0 : 1)
+			this.context.audio.playSound(`teleport`,undefined,undefined, this.context.plane.plane ? true : false,true)
+			this.context.plane.switchPlane(this.context.plane.plane ? 0 : 1)
 		}
 
 		this.f = 1 - ((this.context.spatial.entityCount() - 2) / this.totalCount)

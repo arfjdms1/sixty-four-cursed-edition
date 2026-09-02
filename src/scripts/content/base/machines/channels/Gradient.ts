@@ -71,7 +71,7 @@ export class Gradient extends Entity{
 				const exy = this.context.coordinates.uvToXYUntranslated(entity.position)
 				const gxy = this.context.coordinates.uvToXYUntranslated(this.position)
 
-				if (this.master.plane){
+				if (this.context.plane.plane){
 					const pan = this.context.audio.getPanValueFromX(gxy[0])
 					const loudness = Math.max(this.context.audio.getLoudnessFromXY(exy), this.context.audio.getLoudnessFromXY(gxy))
 					this.context.audio.playSound(`lightning`, pan, loudness, true)

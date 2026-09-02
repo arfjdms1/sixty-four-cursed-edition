@@ -90,6 +90,10 @@ export interface EntityContextHost {
 	annihilators: Set<Entity>
 	annihilationMachines: Set<Entity>
 	fruits: Set<Entity>
+	readonly plane: 0 | 1
+	bridge: boolean
+	switchedplanes: boolean
+	switchPlane(p: 0 | 1): void
 }
 
 export function createEntityContext(host: EntityContextHost): EntityContext {
@@ -192,6 +196,14 @@ export function createEntityContext(host: EntityContextHost): EntityContext {
 			get fruits() { return host.fruits },
 			vaultCount: () => host.vaults.size,
 			hasPump: (entity) => host.pumps.has(entity),
+		},
+		plane: {
+			get plane() { return host.plane },
+			get bridge() { return host.bridge },
+			get switchedplanes() { return host.switchedplanes },
+			switchPlane: (p) => host.switchPlane(p),
+			activateBridge: () => { host.bridge = true },
+			markPlanesSwitched: () => { host.switchedplanes = true },
 		},
 	}
 }

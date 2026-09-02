@@ -114,6 +114,15 @@ export interface EntityRoleContext {
 	hasPump(entity: Entity): boolean
 }
 
+export interface EntityPlaneContext {
+	readonly plane: 0 | 1
+	readonly bridge: boolean
+	readonly switchedplanes: boolean
+	switchPlane(p: 0 | 1): void
+	activateBridge(): void
+	markPlanesSwitched(): void
+}
+
 export interface EntityContext {
 	readonly audio: EntityAudioContext
 	readonly effects: EntityEffectContext
@@ -122,4 +131,5 @@ export interface EntityContext {
 	readonly spatial: EntitySpatialContext
 	readonly render: EntityRenderContext
 	readonly roles: EntityRoleContext
+	readonly plane: EntityPlaneContext
 }

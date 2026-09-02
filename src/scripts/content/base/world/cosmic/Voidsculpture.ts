@@ -40,7 +40,7 @@ export class Voidsculpture extends Entity{
 	}
 
 	getHint(){
-		return (this.master.plane === 0 && this.master.bridge) ? this.hints[0] : false
+		return (this.context.plane.plane === 0 && this.context.plane.bridge) ? this.hints[0] : false
 	}
 	getDarkHint(){
 		return this.context.resources.amount('reality') >= this.threshold ? this.hints[1] : false
@@ -65,7 +65,7 @@ export class Voidsculpture extends Entity{
 	}
 
 	canHit(){
-		return (this.master.plane === 0 && this.master.bridge && this.context.resources.amount('void') >= 1) || (this.master.plane === 1)
+		return (this.context.plane.plane === 0 && this.context.plane.bridge && this.context.resources.amount('void') >= 1) || (this.context.plane.plane === 1)
 	}
 	canDarkHit(){
 		return this.context.resources.amount('reality') >= this.threshold
@@ -79,9 +79,9 @@ export class Voidsculpture extends Entity{
 
 	ondarkmousedown(){
 		if (this.context.resources.amount('reality') >= this.threshold){
-			this.master.bridge = true
+			this.context.plane.activateBridge()
 			this.context.resources.subtractResourcesFromArray([0,0,0,0,0,0,0,0,0,1])
-			this.master.switchPlane(0)
+			this.context.plane.switchPlane(0)
 			this.context.audio.playSound(`teleport`,undefined,undefined,undefined,true)
 			this.master.createHollowEvent(`#FFF`, 20000)
 
@@ -100,9 +100,9 @@ export class Voidsculpture extends Entity{
 	}
 
 	onmousedown(){
-		if (this.master.bridge && this.context.resources.amount('void') >= 1){
+		if (this.context.plane.bridge && this.context.resources.amount('void') >= 1){
 			this.context.resources.subtractResourcesFromArray([0,0,0,0,0,0,0,0,1])
-			this.master.switchPlane(1)
+			this.context.plane.switchPlane(1)
 			this.context.audio.playSound(`teleport`,undefined,undefined,undefined,true)
 
 			//Gamepad
@@ -124,7 +124,7 @@ export class Voidsculpture extends Entity{
 
 		this.sprite.render(vposition ? vposition : this.position)
 
-		if (this.master.bridge && !vposition){
+		if (this.context.plane.bridge && !vposition){
 
 			const radius = this.context.render.unit * 1
 			const da = .05

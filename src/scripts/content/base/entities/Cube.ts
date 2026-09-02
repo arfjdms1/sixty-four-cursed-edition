@@ -89,7 +89,7 @@ export class Cube extends Entity{
 				this.broken = 1
 				this.state = 3
 			this.context.roles.activeCubes.delete(this)
-			if (this.master.plane === 1) {
+			if (this.context.plane.plane === 1) {
 					this.context.effects.createExhaust(this.position, `#FFF`)
 				}
 

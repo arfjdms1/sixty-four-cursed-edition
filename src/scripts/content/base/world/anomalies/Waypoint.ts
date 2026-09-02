@@ -56,11 +56,11 @@ export class Waypoint extends Entity{
 		const good = this.context.resources.requestResources([0,0,0,0,512],this.position)
 
 		if (good){
-			const prerequisites = this.master.voidsculpture && !this.master.switchedplanes && (Math.random() < .5)
+			const prerequisites = this.master.voidsculpture && !this.context.plane.switchedplanes && (Math.random() < .5)
 			if (prerequisites){
 
-				this.master.switchedplanes = true
-				this.master.switchPlane(1)
+				this.context.plane.markPlanesSwitched()
+				this.context.plane.switchPlane(1)
 				this.context.audio.playSound(`teleport`,undefined,undefined,undefined,true)
 				this.master.createHollowEvent(`#000`, this.master.voidsculpture ? 1000 : 10000)
 
