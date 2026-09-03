@@ -46,7 +46,7 @@ The startup composition pipeline loads internal bundled mods before content fina
 
 Bundled mods are trusted application code compiled by Vite. The internal loader validates manifests and isolates lifecycle errors, but it does not sandbox JavaScript or provide a security boundary. User-installed or downloaded code requires a separate trust and security design.
 
-API v0 mod entry points must access application behavior through their lifecycle context rather than importing runtime modules from the main application entry. Mod-local JavaScript dependencies are supported. CSS imports are not yet supported; the offline build rejects them rather than producing an incomplete single-file bundle. Top-level module evaluation should remain side-effect free.
+Bundled entry modules are static trusted ESM and must keep top-level evaluation side-effect free. Per-mod isolation begins when the loader validates the exported definition and continues through lifecycle setup.
 
 ```text
 const builder = new ContentBuilder()

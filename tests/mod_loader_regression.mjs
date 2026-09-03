@@ -1,5 +1,4 @@
 import assert from 'node:assert/strict'
-import { Buffer } from 'node:buffer'
 import { execFileSync } from 'node:child_process'
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { pathToFileURL } from 'node:url'
@@ -75,24 +74,14 @@ try {
 		assert.match(loader.diagnostics()[0].error.message, /Duplicate mod ID/)
 		assert.equal(loader.diagnostics()[0].source, '/a.ts, /z.ts')
 	})
-	await test('discovery ordering is source deterministic', async () => {
+	await test('discovery ordering is source deterministic', () => {
 		assert.deepEqual(
-			(await discoverBundledMods({
-				'/z.ts': async () => definition('example:z'),
-				'/a.ts': async () => definition('example:a'),
-			})).map(entry => entry.source),
+			discoverBundledMods({
+				'/z.ts': definition('example:z'),
+				'/a.ts': definition('example:a'),
+			}).map(entry => entry.source),
 			['/a.ts', '/z.ts'],
 		)
-	})
-	await test('failed module import is isolated during discovery', async () => {
-		const discovered = await discoverBundledMods({
-			'/bad.ts': async () => { throw new Error('import failed') },
-			'/good.ts': async () => definition('example:good'),
-		})
-		const loader = createLoader()
-		loader.discover(discovered)
-		assert.equal(loader.mods()[0].manifest.id, 'example:good')
-		assert.equal(loader.diagnostics()[0].phase, 'discovery')
 	})
 	await test('activation ordering is ModId deterministic', async () => {
 		const calls = []
@@ -264,7 +253,7 @@ try {
 			.join('\n')
 		assert.match(bundledCode, /builtin:loader-fixture/)
 	})
-	await test('offline build keeps bundled fixture in a deferred data module', async () => {
+	await test('offline build includes bundled fixture without dynamic module loading', async () => {
 		const offlineConfig = createViteConfig({ mode: 'offline' })
 		offlineConfig.plugins = offlineConfig.plugins.filter(plugin => plugin.name !== 'copy-static-assets')
 		offlineConfig.build = {
@@ -281,11 +270,8 @@ try {
 		assert.ok(html)
 		const htmlSource = String(html.source)
 		assert.doesNotMatch(htmlSource, /import\(["']\.\/[^"']+\.js["']\)/)
-		const dataUrls = [...htmlSource.matchAll(/data:text\/javascript;base64,[A-Za-z0-9+/=]+/g)].map(match => match[0])
-		const fixtureUrl = dataUrls.find(url => Buffer.from(url.split(',')[1], 'base64').includes('builtin:loader-fixture'))
-		assert.ok(fixtureUrl)
-		const fixtureModule = await import(fixtureUrl)
-		assert.equal(fixtureModule.default.manifest.id, 'builtin:loader-fixture')
+		assert.doesNotMatch(htmlSource, /data:text\/javascript/)
+		assert.match(htmlSource, /builtin:loader-fixture/)
 	})
 
 	console.log(`mod loader regression passed (${passed} tests)`)

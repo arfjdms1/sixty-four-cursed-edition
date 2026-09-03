@@ -62,10 +62,6 @@ export class ModLoader {
 
 		const definitions = new Map<ModId, Array<{ definition: ModDefinition; source: string }>>()
 		for (const candidate of [...candidates].sort((left, right) => compareText(left.source, right.source))) {
-			if (candidate.error) {
-				this.addDiagnostic({ source: candidate.source, phase: 'discovery', error: candidate.error })
-				continue
-			}
 			try {
 				const definition = validateModDefinition(candidate.definition)
 				const entries = definitions.get(definition.manifest.id) ?? []

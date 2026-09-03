@@ -33,8 +33,7 @@ export interface ModDefinition {
 
 export interface BundledModCandidate {
 	readonly source: string
-	readonly definition?: unknown
-	readonly error?: Error
+	readonly definition: unknown
 }
 
 export interface ModDiagnostic {
