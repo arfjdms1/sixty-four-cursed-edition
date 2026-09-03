@@ -135,7 +135,7 @@ export class ModLoader {
 				apiVersion: record.definition.manifest.apiVersion,
 			})
 			const logger = this.loggerFactory(id)
-			const staged = this.contentBuilder ? new StagedModContent(id, this.contentBuilder) : new ThrowingModContent()
+			const staged = this.contentBuilder ? new StagedModContent(id, this.contentBuilder, logger) : new ThrowingModContent()
 			const context: ModContext = Object.freeze({
 				mod: modInfo,
 				logger,

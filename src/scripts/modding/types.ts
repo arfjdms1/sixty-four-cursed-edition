@@ -33,6 +33,36 @@ export interface ModLifecycleContext {
 	readonly logger: ModLogger
 }
 
+export interface ModEntitySelf {
+	readonly typeId: string
+	readonly position: import('../../types/core.js').Vec2
+}
+
+export interface ModEntityRef {
+	readonly typeId: string
+	readonly position: import('../../types/core.js').Vec2
+}
+
+export interface ModEntityResources {
+	amount(id: import('../registry/resource-types.js').ResourceTypeId): number
+}
+
+export interface ModEntitySpatial {
+	entityAt(position: import('../../types/core.js').Vec2): ModEntityRef | undefined
+}
+
+export interface ModEntityContext {
+	readonly self: ModEntitySelf
+	readonly logger: ModLogger
+	readonly resources: ModEntityResources
+	readonly spatial: ModEntitySpatial
+}
+
+export interface ModEntityBehavior {
+	init?(context: ModEntityContext): void
+	update?(dt: number, context: ModEntityContext): void
+}
+
 export interface ModEntityDefinition {
 	readonly id: string
 	readonly kind?: import('../registry/types.js').EntityKind
@@ -41,6 +71,7 @@ export interface ModEntityDefinition {
 	readonly isUpgradeTo?: string
 	readonly onlyone?: boolean
 	readonly canPurchase?: boolean
+	readonly createBehavior?: () => ModEntityBehavior
 }
 
 export interface ModResourceDefinition {

@@ -81,13 +81,33 @@ interface ModEntityDefinition {
   readonly isUpgradeTo?: string
   readonly onlyone?: boolean
   readonly canPurchase?: boolean
-  // custom constructors are deferred in API v0; entities use an inert default behavior
+  readonly createBehavior?: () => ModEntityBehavior // per-instance factory, optional
+}
+interface ModEntityBehavior {
+  init?(context: ModEntityContext): void
+  update?(dt: number, context: ModEntityContext): void
+}
+interface ModEntitySelf {
+  readonly typeId: string
+  readonly position: Vec2 // live copy of entity position
+}
+interface ModEntityContext {
+  readonly self: ModEntitySelf // stable identity per entity instance
+  readonly logger: ModLogger
+  readonly resources: { amount(id: ResourceTypeId): number }
+  readonly spatial: { entityAt(position: Vec2): ModEntityRef | undefined }
+}
+interface ModEntityRef {
+  readonly typeId: string
+  readonly position: Vec2
 }
 ```
 
 - IDs are open-ended; base IDs remain lowercase strings like `pump`, `vault`. Namespaced IDs are recommended for mods.
-- API v0 does **not** expose `Entity` for subclassing; `Entity.master`/`Entity.context` remain inaccessible to mods. Custom behavioral entities are deferred to a future safe `ModEntity` base.
-- Mod entities are registered as inert metadata and use an internal default `Entity` implementation.
+- API v0 does **not** expose `Entity` for subclassing; `Entity.master`/`Entity.context` remain inaccessible. Behavioral entities use a **safe facade**: public `ModEntityBehavior` does **not** extend `Entity`; an internal adapter `Entity` owns the runtime constructor.
+- `createBehavior` is a **per-instance factory**: invoked once per runtime entity via `new Entity(host)`; returning a shared object would be incorrect. Two instances get separate behavior objects (tested).
+- If `createBehavior` is omitted, the entity uses an internal inert `Entity` implementation (metadata-only, backward compatible).
+- Custom `constructor: ModEntityConstructor` is **not supported**; use `createBehavior`.
 - Base-game order is preserved; mod entities are appended in deterministic activation order (sorted `ModId`, then registration order).
 - Duplicate entity IDs (including collisions with base content or between mods) are rejected.
 
@@ -143,10 +163,20 @@ Per-mod diagnostics are queryable via `ModLoader.mods()` and `diagnostics()` wit
 
 Bundled/internal mods are trusted ESM compiled by Vite. Top-level module evaluation should remain side-effect free; per-mod isolation for exported definitions and `setup` is guaranteed, but top-level evaluation failures are static ESM failures.
 
+## Behavioral Notes
+
+- **Lifecycle:** `createBehavior()` → `init(context)` (after `setPosition`) → `update(dt, context)` each `EntityManager.updateEntities` tick (stage 7 of `Game.updateLoop`). Ordering is deterministic per `ModId` and registration order.
+- **Self facade:** `context.self` is stable per entity instance (`same object ===`), `position` is a live copy, `typeId` is the definition `id`.
+- **Resources:** `context.resources.amount(id: ResourceTypeId)` uses stable string IDs, not legacy indexes.
+- **Spatial:** `context.spatial.entityAt(pos)` returns `ModEntityRef | undefined` with `typeId`/`position`, never raw `Entity`.
+- **Errors:** `init`/`update`/`factory` throws are caught per-entity, logged as `[modId entity:entityId hook]` via `logger.error`, and do not crash the game. Factory throws are attributed as `factory` and cause `addEntity` to return `false`.
+- **No Canvas2D:** Raw `CanvasRenderingContext2D` is **not** exposed in v0; rendering is deferred. Behavioral proof uses inert rendering.
+- **Save:** Persistent custom state is **deferred**; `ModEntityBehavior` state is ephemeral and not serialized. Disabled fixtures do not affect saves.
+
 ## Deferred for later steps
 
 - Full Mods UI / marketplace / ZIP install / networking / dependency solver / permissions / Workshop
-- Generic update/tick, render, UI, or event hooks (entity-owned `update`/`render` via custom `ModEntity` — deferred until safe base exists)
-- Read-only runtime queries beyond `ModInfo`/`logger`; resource/metadata queries via new resources only
+- Generic render hooks, UI, audio/effects, plane/references/world, input, progression/codex/shop
+- Persistent custom `ModEntity` state via save hooks
+- Read-only runtime queries beyond `resources`/`spatial`/`self`/`logger`
 - Broad gameplay APIs; `Codex`/shop automation
-- Custom behavioral `Entity` subclasses (requires safe `ModEntity` facade)

@@ -5,8 +5,8 @@
  * Bundled mods are trusted application code; this API is an API boundary, not a sandbox.
  */
 
-export type { ModId, ModManifest, ModInfo, ModLogger, ModContext, ModContentApi, ModEntityDefinition, ModResourceDefinition, ModDefinition } from '../types.js'
+export type { ModId, ModManifest, ModInfo, ModLogger, ModContext, ModContentApi, ModEntityDefinition, ModResourceDefinition, ModDefinition, ModEntitySelf, ModEntityRef, ModEntityResources, ModEntitySpatial, ModEntityContext, ModEntityBehavior } from '../types.js'
 
 export type { EntityKind, EntityFamilyId, EntityCapability } from '../../registry/types.js'
 export type { ResourceTypeId, ResourceChance, ResourceProbability } from '../../registry/resource-types.js'
-export type { ColorTriplet } from '../../../types/core.js'
+export type { ColorTriplet, Vec2 } from '../../../types/core.js'

@@ -16,6 +16,22 @@ const contextFixture: ModDefinition = {
 			kind: 'machine',
 			family: 'industrial',
 			capabilities: ['relocatable'],
+			createBehavior: () => {
+				let updates = 0
+				return {
+					init(ctx) {
+						ctx.logger.info(`init ${ctx.self.typeId} at ${ctx.self.position}`)
+						// safe context use: resources and spatial are available without leaking master
+						void ctx.resources.amount('charonite')
+						void ctx.spatial.entityAt([0, 0])
+					},
+					update(dt, ctx) {
+						updates++
+						// per-instance state: updates is closed over per behavior instance
+						if (updates === 1) ctx.logger.info(`first update ${ctx.self.typeId}`)
+					},
+				}
+			},
 		})
 		content.registerResource({
 			id: 'builtin:context-fixture-resource',
