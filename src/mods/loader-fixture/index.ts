@@ -9,6 +9,7 @@ const loaderFixture: ModDefinition = {
 		apiVersion: 0,
 		description: 'Inert bundled module used to verify Vite mod discovery.',
 		enabledByDefault: false,
+		internal: true,
 	},
 	setup({ logger }) {
 		logger.info(`Internal loader fixture activated`)

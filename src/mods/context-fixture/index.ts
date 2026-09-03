@@ -8,6 +8,7 @@ const contextFixture: ModDefinition = {
 		apiVersion: 0,
 		description: 'Proves ModContext content registration is staged and deterministic.',
 		enabledByDefault: false,
+		internal: true,
 	},
 	setup({ content, logger }) {
 		logger.info(`Context fixture registering synthetic content`)

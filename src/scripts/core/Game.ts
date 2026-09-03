@@ -39,6 +39,7 @@ import { EntityRegistry } from '../registry/EntityRegistry.js'
 import { ResourceRegistry } from '../registry/ResourceRegistry.js'
 import type { ContentContext } from '../content/types.js'
 import { createEntityContext } from '../engine/entities/context/EntityContext.js'
+import type { ModManagementApi } from '../modding/ModManagement.js'
 
 export { VFX, Exhaust, ResourceExplosion, ResourceSpark, ResourceTransfer, ChasmTransfer, Lightning }
 
@@ -101,8 +102,9 @@ function installEventAccessor<K extends EventOwnedField>(game: Game, property: K
 }
 
 export class Game implements SaveHost, AudioHost, EffectHost, InputHost, RenderHost, ResourceHost, EntityManagerHost, InteractionHost, AutonomyHost, WorldEventHost {
+	declare modManagementApi?: ModManagementApi
 
-	constructor(canvas: HTMLCanvasElement, preload: GameStartupPayload, content: ContentContext){
+	constructor(canvas: HTMLCanvasElement, preload: GameStartupPayload, content: ContentContext, modManagementApi?: ModManagementApi){
 
 		this.canvas = canvas
 		this.ctx = this.canvas.getContext(`2d`) as CanvasRenderingContext2D
@@ -114,6 +116,7 @@ export class Game implements SaveHost, AudioHost, EffectHost, InputHost, RenderH
 		if (this.languageId === null) this.languageId = (preload && preload.languageId !== null) ? preload.languageId : 0
 		this.language = this.languages[this.languageId]
 		this.hasSteam = this.steamId ? true : false
+		this.modManagementApi = modManagementApi
 		this.entityRegistry = new EntityRegistry(content.entityDefinitions)
 		this.resourceRegistry = new ResourceRegistry(content.resourceDefinitions)
 		this.codex = abstract_getCodex(this.entityRegistry, this.resourceRegistry)
@@ -575,12 +578,27 @@ export class Game implements SaveHost, AudioHost, EffectHost, InputHost, RenderH
 		return this.saves.exportSave()
 	}
 
+	exportSaveToken(): string | undefined {
+		return this.saves.assembleSave(true) as string | undefined
+	}
+
 	async loadSaveFromClipboard(): Promise<void> {
 		return this.saves.loadSaveFromClipboard()
 	}
 
 	importSave(data: EncodedSave | undefined){
 		return this.saves.importSave(data)
+	}
+
+	importSaveToken(token: string): boolean {
+		const trimmed = token.trim()
+		if (!trimmed) return false
+		const state = this.saves.decodeSave(trimmed)
+		if (!state) return false
+		const encoded = this.saves.encodeSave(JSON.stringify(state))
+		if (!encoded) return false
+		this.saves.importSave(encoded)
+		return true
 	}
 
 	loadSave( manual: LoadableSaveState | 0 = this.saves.decodeSave(localStorage.getItem(`abstractv03${this.steamId}`)) ): boolean {

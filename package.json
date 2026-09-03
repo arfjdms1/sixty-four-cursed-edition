@@ -18,6 +18,7 @@
     "test:mod-loader": "node tests/mod_loader_regression.mjs",
     "test:mod-context": "node tests/mod_context_regression.mjs",
     "test:mod-entity": "node tests/mod_entity_regression.mjs",
+    "test:mod-menu": "node tests/mod_menu_regression.mjs",
     "test:placement-preview": "node tests/placement_preview_regression.mjs",
     "validate:achievement-icons": "node tests/validate_achievement_icons.mjs"
   },
@@ -27,6 +28,7 @@
     "trackjs-node": "1.0.1"
   },
   "devDependencies": {
+    "jsdom": "^30.0.1",
     "typescript": "^7.0.2",
     "vite": "^6.2.0",
     "vite-plugin-singlefile": "2.3.3"

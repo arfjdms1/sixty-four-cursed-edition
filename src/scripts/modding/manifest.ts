@@ -45,6 +45,9 @@ export function validateModManifest(value: unknown): ModManifest {
 	const author = optionalString(value, 'author')
 	const description = optionalString(value, 'description')
 	const homepage = optionalString(value, 'homepage')
+	if (value.internal !== undefined && typeof value.internal !== 'boolean') {
+		throw new Error(`Invalid mod manifest: internal must be a boolean`)
+	}
 
 	return Object.freeze({
 		id,
@@ -55,6 +58,7 @@ export function validateModManifest(value: unknown): ModManifest {
 		...(description === undefined ? {} : { description }),
 		...(homepage === undefined ? {} : { homepage }),
 		...(value.enabledByDefault === undefined ? {} : { enabledByDefault: value.enabledByDefault }),
+		...(value.internal === undefined ? {} : { internal: value.internal as boolean }),
 	})
 }
 

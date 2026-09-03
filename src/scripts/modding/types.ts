@@ -13,6 +13,7 @@ export interface ModManifest {
 	readonly description?: string
 	readonly homepage?: string
 	readonly enabledByDefault?: boolean
+	readonly internal?: boolean
 }
 
 export interface ModLogger {

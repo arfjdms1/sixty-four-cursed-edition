@@ -3,6 +3,8 @@ import type { LanguageCode, LanguagePack } from './words.js'
 import type { ColorTriplet, ResourceAmounts, Vec2 } from '../types/core.js'
 import type { GameSpaceport } from '../types/platform.js'
 import type { SaveBackup } from '../types/save.js'
+import type { ModManagementApi } from './modding/ModManagement.js'
+import { ModsPanel } from './ui/ModsPanel.js'
 
 type AchievementState = boolean | 0 | 1
 type MessageEventState = boolean | null
@@ -114,6 +116,9 @@ interface SplashHost {
 	togglePhotofobia: () => void
 	toggleChill: () => void
 	restoreBackup: (id: number) => void
+	modManagementApi?: ModManagementApi
+	exportSaveToken?: () => string | undefined
+	importSaveToken?: (token: string) => boolean
 }
 
 interface CloudHost {
@@ -493,6 +498,9 @@ export class Splash {
 	declare deGloryButton: HTMLDivElement
 	declare achievements: SplashAchievementElements[]
 	declare words: LanguagePack | undefined
+	declare modsIcon: HTMLDivElement
+	declare modsElement: HTMLDivElement
+	declare modsPanel: ModsPanel | null
 
 	constructor(master: SplashHost){
 		this.master = master
@@ -506,6 +514,12 @@ export class Splash {
 
 		this.glory = document.createElement(`div`)
 		this.glory.classList.add(`achievementSplash`)
+
+		const saveApi = this.master.exportSaveToken && this.master.importSaveToken ? {
+			exportSaveToken: () => this.master.exportSaveToken!(),
+			importSaveToken: (token: string) => this.master.importSaveToken!(token),
+		} : null
+		this.modsPanel = this.master.modManagementApi ? new ModsPanel(this.master.modManagementApi, saveApi) : null
 
 		this.selected = false
 		this.selectedId = 0
@@ -574,9 +588,10 @@ export class Splash {
 	}
 	close(){
 		this.isShown = false
+		this.modsPanel?.hide()
 		if (!this.gameIsMute) this.master.mute(false)
-		document.body.removeChild(this.element)
-		document.body.removeChild(this.glory)
+		if (document.body.contains(this.element)) document.body.removeChild(this.element)
+		if (document.body.contains(this.glory)) document.body.removeChild(this.glory)
 		this.deGloryButton.style.display = `none`
 		this.playElement.innerHTML = this.texts.continue
 		this.glory.style.left = `100%`
@@ -645,6 +660,8 @@ export class Splash {
 		const language = document.createElement(`div`)
 		language.classList.add(`menuItem`)
 		language.innerHTML = this.texts.language
+		language.tabIndex = 0
+		language.setAttribute('role', 'button')
 		menu.append(language)
 
 		const reset = document.createElement(`div`)
@@ -681,6 +698,24 @@ export class Splash {
 		const publisher = document.createElement(`div`)
 		publisher.classList.add(`publisher`)
 		this.element.append(publisher)
+
+		if (this.modsPanel) {
+			this.modsIcon = document.createElement(`div`)
+			this.modsIcon.classList.add(`modsIcon`)
+			this.modsIcon.setAttribute(`role`, `button`)
+			this.modsIcon.setAttribute(`aria-label`, `Mods`)
+			this.modsIcon.title = `Mods`
+			this.modsIcon.tabIndex = 0
+			this.element.append(this.modsIcon)
+			this.modsElement = this.modsIcon
+			this.modsIcon.addEventListener(`click`, () => this.modsPanel?.show())
+			this.modsIcon.addEventListener(`keydown`, (e: KeyboardEvent) => {
+				if (e.key === `Enter` || e.key === ` `) {
+					e.preventDefault()
+					this.modsPanel?.show()
+				}
+			})
+		}
 
 		const flashlight = document.createElement(`div`)
 		flashlight.classList.add(`flashlight`)

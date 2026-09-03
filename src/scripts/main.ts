@@ -4,6 +4,7 @@ import { registerBaseContent } from './content/registerBaseContent.js'
 import { discoverBundledMods } from './modding/discoverBundledMods.js'
 import { DEFAULT_MOD_STATE_KEY, LocalStorageModStateStorage } from './modding/ModEnabledState.js'
 import { ModLoader } from './modding/ModLoader.js'
+import { createModManagementApi } from './modding/ModManagement.js'
 import { setCurrentModLoader } from './modding/runtime.js'
 import * as BezierModule from './bezier.js'
 import * as UiModule from './ui.js'
@@ -170,7 +171,8 @@ async function initializeGame(preload?: GameStartupPayload): Promise<void> {
 		await modLoader.activateEnabled(contentBuilder)
 		setCurrentModLoader(modLoader)
 		const content = contentBuilder.finalize()
-		game = new Game(canvas, preload, content)
+		const modManagementApi = createModManagementApi(modLoader)
+		game = new Game(canvas, preload, content, modManagementApi)
 		globalThis.game = game
 	}
 }
