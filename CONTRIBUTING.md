@@ -77,17 +77,18 @@ npm run preview:offline
 npm run validate:achievement-icons
 ```
 
-Validates that all 33 achievement icons and locked placeholders exist on disk and resolve with HTTP 200 OK responses on build artifacts.
+Validates that all 34 achievement icon assets exist on disk and resolve with HTTP 200 OK responses on build artifacts.
 
 ---
 
 ## 4. Architectural Boundaries
 
-- **`src/core/`**: Top-level game coordinator (`Game.ts`) and core state contracts.
-- **`src/engine/`**: 10 decomposed runtime subsystems (`audio`, `autonomy`, `effects`, `entities`, `events`, `input`, `interaction`, `rendering`, `resources`, `save`).
-- **`src/content/`**: Content composition infrastructure (`ContentBuilder`, `ContentContext`, `registerBaseContent`).
-- **`src/content/base/`**: 58 concrete base entity classes and 10 base resource definitions.
-- **`src/registry/`**: Generic, content-agnostic registries (`EntityRegistry`, `ResourceRegistry`).
+- **`src/scripts/core/`**: Top-level game coordinator (`Game.ts`) and core state contracts.
+- **`src/scripts/engine/`**: 10 decomposed runtime subsystems (`audio`, `autonomy`, `effects`, `entities`, `events`, `input`, `interaction`, `rendering`, `resources`, `save`).
+- **`src/scripts/content/`**: Content composition infrastructure (`ContentBuilder`, `ContentContext`, `registerBaseContent`).
+- **`src/scripts/content/base/`**: 58 concrete base entity classes and 10 base resource definitions.
+- **`src/scripts/registry/`**: Generic, content-agnostic registries (`EntityRegistry`, `ResourceRegistry`).
+- **`src/scripts/modding/`**: Bundled loader, management API, safe UI state, and experimental public v0 types.
 - **`src/resources/`**: Static runtime media assets (`audio/`, `fonts/`, `images/`, `video/`).
 
 `Game.ts` and generic registries must **never** import concrete base content classes directly; all content enters through explicit composition in `registerBaseContent()`.

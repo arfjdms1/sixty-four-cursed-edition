@@ -93,10 +93,21 @@ export interface ModContentApi {
 	registerResource(definition: ModResourceDefinition): void
 }
 
+export type ModUiTargetId = 'steam-warning'
+
+export interface ModUiApi {
+	setVisible(target: ModUiTargetId, visible: boolean): void
+}
+
+export interface ModUiHost {
+	setVisible(modId: ModId, target: ModUiTargetId, visible: boolean): void
+}
+
 export interface ModContext {
 	readonly mod: ModInfo
 	readonly logger: ModLogger
 	readonly content: ModContentApi
+	readonly ui: ModUiApi
 }
 
 export interface ModDefinition {
@@ -134,4 +145,5 @@ export interface ModLoaderOptions {
 	readonly storageKey?: string
 	readonly loggerFactory?: (id: ModId) => ModLogger
 	readonly onDiagnostic?: (diagnostic: ModDiagnostic) => void
+	readonly uiHost?: ModUiHost
 }

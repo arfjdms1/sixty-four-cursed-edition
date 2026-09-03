@@ -1,182 +1,95 @@
 # Architecture Overview
 
-This document describes the architectural layout, composition pipeline, and system boundaries in **Sixty Four: Cursed Edition**.
+This document describes the final Sixty Four: Cursed Edition architecture and the experimental Modding v0 boundary.
 
----
-
-## 1. System Topology & Composition Pipeline
-
-The project cleanly separates startup composition, generic registries, runtime engine subsystems, and base game content:
+## Composition Pipeline
 
 ```mermaid
 flowchart TD
-    subgraph Composition["Content Composition Layer"]
-        Builder[ContentBuilder]
-        RBE[registerBaseEntities] -->|58 EntityDefinitions| Builder
-        RBR[registerBaseResources] -->|10 ResourceDefinitions| Builder
-        Builder -->|finalize| Ctx[ContentContext]
-    end
-
-    subgraph Registries["Registry Layer"]
-        Ctx -->|entityDefinitions| ER[EntityRegistry]
-        Ctx -->|resourceDefinitions| RR[ResourceRegistry]
-    end
-
-    subgraph Runtime["Runtime Core & Engine Systems"]
-        Main[main.ts] -->|Bootstrap| Game[Game Coordinator]
-        ER --> Game
-        RR --> Game
-        Game --> Codex[Codex]
-        Game --> EM[EntityManager]
-        Game --> RS[ResourceSystem]
-        Game --> IS[InteractionSystem]
-        Game --> AS[AutonomySystem]
-        Game --> WES[WorldEventSystem]
-        Game --> Audio[AudioSystem]
-        Game --> Effects[EffectSystem]
-        Game --> Input[InputSystem]
-        Game --> Render[RenderSystem]
-        Game --> Save[SaveSystem]
-    end
+    Main[src/scripts/main.ts] --> Builder[ContentBuilder]
+    Base[registerBaseContent] -->|58 entities / 10 resources| Builder
+    Discovery[discoverBundledMods] --> Loader[ModLoader]
+    UiState[ModUiState] --> Loader
+    Loader -->|staged successful registrations| Builder
+    Builder -->|finalize| Content[ContentContext]
+    Content --> Game[Game]
+    UiState -->|effective steam-warning boolean| Game
+    Game --> Registries[EntityRegistry / ResourceRegistry]
+    Game --> Systems[10 engine subsystems]
 ```
 
-### Bundled Mod Loading Seam
+Startup registers base content, discovers source-tree mods, activates enabled mods in deterministic `ModId` order, finalizes immutable content, and only then constructs `Game`.
 
-The startup composition pipeline loads internal bundled mods before content finalization without requiring global monkey-patching. The current lifecycle context intentionally exposes only the mod ID and logger; content registration remains reserved for a future API version.
+Bundled modules are trusted eager ESM. Top-level evaluation must remain side-effect free. Setup errors are isolated per mod, but this API is not a JavaScript sandbox.
 
-Bundled mods are trusted application code compiled by Vite. The internal loader validates manifests and isolates lifecycle errors, but it does not sandbox JavaScript or provide a security boundary. User-installed or downloaded code requires a separate trust and security design.
+## Modding Boundary
 
-Bundled entry modules are static trusted ESM and must keep top-level evaluation side-effect free. Per-mod isolation begins when the loader validates the exported definition and continues through lifecycle setup.
+`ModContext` exposes only immutable mod information, an attributed logger, staged content registration, and a narrow semantic UI visibility API. It exposes no `Game`, engine host, subsystem, registry, raw entity, rendering context, or DOM object.
 
-```text
-const builder = new ContentBuilder()
+Behavioral entities run through an internal adapter. Their context is narrower than setup context: `self`, logger, resource reads, and spatial snapshots only. Setup UI capabilities are not available per entity.
 
-// 1. Explicit base content registration
-registerBaseContent(builder)
+`ModUiState` in `src/scripts/modding/ModUi.ts` is DOM-neutral. Owner-attributed hide requests compose as a set, and failed setup requests are discarded. `Game` receives only the final startup boolean for the Steam warning, so generic modding infrastructure does not import `Game`, `Splash`, or DOM implementation classes.
 
-// 2. Deterministic bundled mod discovery and activation
-await loadBundledMods()
+## Startup Presentation
 
-// 3. Finalization into immutable runtime context
-const content = builder.finalize()
+The home-screen logo is a 4-by-2 sprite sheet at `src/resources/images/logo/sheet.png`, yielding eight variants. `src/scripts/startupPresentation.ts` selects one row-major variant once in the guarded startup path. The same variant identity supplies both the Splash background position and its matching small console preview.
 
-// 4. Game initialization with registered content
-new Game(canvas, preload, content)
-```
+The console preview files are 1:1 crops under `src/resources/images/logo/console/`. They remain below Vite's hosted inline threshold, allowing DevTools CSS to use data images without embedding the full 529 KB sprite sheet in application JavaScript. The startup console splash is one call per document startup.
 
----
-
-## 2. Directory Structure
+## Directory Structure
 
 ```text
 src/
-├── core/                       # Top-level runtime coordinator
-│   ├── Game.ts                 # Central Game coordinator & façade
-│   └── types.ts                # Core runtime state types
-│
-├── engine/                     # Decomposed runtime engine subsystems
-│   ├── audio/                  # AudioSystem & Web Audio decoding
-│   ├── autonomy/               # AutonomySystem (automation network simulation)
-│   ├── effects/                # EffectSystem, VFX, explosions, sparks, transfers
-│   ├── entities/               # Entity base class, EntityManager, lifecycle
-│   ├── events/                 # WorldEventSystem (hollow events, surge timer, slowdown)
-│   ├── input/                  # InputSystem (mouse, pointer, gamepad)
-│   ├── interaction/            # InteractionSystem (selection, placement, relocation)
-│   ├── rendering/              # RenderSystem (Canvas2D + WebGL2 pipeline)
-│   ├── resources/              # ResourceSystem (balances, analytics, pops, rates)
-│   └── save/                   # SaveSystem, SaveCodec, LocalStorage storage
-│
-├── content/                    # Content infrastructure and base definitions
-│   ├── ContentContext.ts       # ContentBuilder & finalized ContentContext
-│   ├── registerBaseContent.ts  # Master base content composition
-│   ├── types.ts                # Content registration contracts
-│   └── base/                   # Concrete base content
-│       ├── baseEntityMetadata.ts
-│       ├── registerBaseEntities.ts
-│       ├── entities/           # Dynamic entities (Cube, Eye, Surge)
-│       ├── machines/           # 42 machines categorized into 10 families
-│       │   ├── channels/
-│       │   ├── clickers/
-│       │   ├── converters/
-│       │   ├── destabilizers/
-│       │   ├── entropics/
-│       │   ├── industrial/
-│       │   ├── megas/
-│       │   ├── pumps/
-│       │   ├── stabilizers/
-│       │   └── storage/
-│       ├── world/              # 13 world entities (anomalies, botanicals, cosmic, monoliths)
-│       └── resources/          # 10 base legacy resource definitions
-│
-├── registry/                   # Generic content-agnostic registries
-│   ├── EntityRegistry.ts       # O(1) definition and constructor lookup
-│   ├── ResourceRegistry.ts     # String ID & legacy numeric index mapping
-│   ├── resource-types.ts       # Resource definition types
-│   └── types.ts                # Entity definition types
-│
-├── resources/                  # Static runtime binary/media assets
-│   ├── audio/sfx/              # 26 sound effects
-│   ├── fonts/                  # Montserrat fonts & font stylesheet
-│   ├── images/                 # Sprites, UI icons, glory achievement icons, shop art
-│   └── video/                  # Credits background video
-│
-├── codex.ts                    # Compatibility progression & shop unlock metadata
-├── words.ts                    # Multi-language localization dictionary
-├── sprites.ts                  # Canvas sprite rendering helper
-├── ui.ts                       # DOM UI (Shop, Splash, Messenger, Achiever, Explainer)
-├── bezier.ts                   # Cubic bezier animation curve math
-├── clock.ts                    # Web Worker tick interval (5ms)
-└── main.ts                     # Application entry point & global legacy compatibility
+├── mods/                         # Bundled source mods and internal fixtures
+├── resources/                    # Images, audio, fonts, and video
+└── scripts/
+    ├── content/                  # ContentBuilder and 58/10 base definitions
+    ├── core/                     # Game coordinator and host contracts
+    ├── engine/                   # Runtime subsystems
+    │   ├── audio/
+    │   ├── autonomy/
+    │   ├── effects/
+    │   ├── entities/
+    │   ├── events/
+    │   ├── input/
+    │   ├── interaction/
+    │   ├── rendering/
+    │   ├── resources/
+    │   └── save/
+    ├── modding/                  # Loader, desired UI state, management, API types
+    │   └── api/index.ts          # Supported source-local public mod entry
+    ├── registry/                 # Generic entity/resource lookup
+    ├── ui/ModsPanel.ts           # Bundled mod management UI
+    ├── startupPresentation.ts    # Shared home/console variant identity
+    ├── ui.ts                     # Legacy-compatible DOM UI
+    └── main.ts                   # Composition and runtime bootstrap
+examples/
+└── mod-template/                 # Copyable bundled source-mod starter
 ```
 
----
+## Runtime Subsystems
 
-## 3. Core Engine Subsystems
+The game coordinator delegates to 10 focused systems:
 
-Each subsystem is isolated under `src/engine/` and communicates with the game coordinator through explicit host interfaces:
+1. `SaveSystem`
+2. `AudioSystem`
+3. `EffectSystem`
+4. `InputSystem`
+5. `RenderSystem`
+6. `ResourceSystem`
+7. `EntityManager`
+8. `InteractionSystem`
+9. `AutonomySystem`
+10. `WorldEventSystem`
 
-1. **`SaveSystem`**: Handles encoding/decoding via `SaveCodec`, local backup slots, and auto-saving.
-2. **`AudioSystem`**: Decodes Web Audio buffers, calculates positional panning and distance loudness.
-3. **`EffectSystem`**: Coordinates floating VFX, resource transfer arcs, sparks, and particle explosions.
-4. **`InputSystem`**: Manages pointer capture, touch events, auto-clicker timers, and gamepad axes/buttons.
-5. **`RenderSystem`**: Renders Canvas 2D scene, WebGL particle/grid backgrounds, and resource HUD homes.
-6. **`ResourceSystem`**: Maintains mutable resource amounts, popup animations, analytics graph frames, and rate measurements.
-7. **`EntityManager`**: Manages spatial coordinate lookup map (`stuffMap`), sorting, entity instantiation, and neighbor auto-initialization.
-8. **`InteractionSystem`**: Handles cell selection, entity picking/placing, machine upgrading, and relocation logic.
-9. **`AutonomySystem`**: Simulates the automated chasm-conductor-silo-aux-pump network.
-10. **`WorldEventSystem`**: Manages surge spawning, slowdown events, and hollow stone site timers.
+They communicate through explicit host interfaces. Generic registries are initialized from finalized content and preserve the base game's semantic IDs and legacy resource indexes.
 
----
+## Scheduler
 
-## 4. 18-Stage Game Scheduler
+`Game.updateLoop()` preserves the characterized 18-stage simulation order: gamepad, messages, achievements, tutorial, slowdown, fuel checks, entity updates, resource interactions, effects, hollow events, visibility, camera, resource pops, auto-clickers, surge spawning, analytics, pinhole clamp, then clock-worker trigger.
 
-The simulation tick in `Game.updateLoop()` executes in an exact 18-stage deterministic order:
+## Immutability And Transactions
 
-```text
-1. Gamepad polling
-2. Messenger queue update
-3. Achiever milestone evaluation
-4. Explainer tutorial hints
-5. Slowdown event timer update
-6. Unfilled machine fuel checks
-7. Entity simulation updates (stuff iteration)
-8. Resource halflife/crusade interactions
-9. VFX animation updates
-10. Hollow event timers
-11. World visibility range calculation
-12. Camera translation smoothing
-13. Resource pop animation decay
-14. Auto-clicker activation
-15. Surge entity spawn checks
-16. Analytics frame collection
-17. Pinhole resource limit clamp
-18. Clock worker next-tick trigger
-```
+`ContentBuilder.finalize()` freezes definitions into `ContentContext`. Per-mod content and UI changes are staged and committed only after successful setup. Base registration order is preserved; successful mod registrations append in deterministic activation order.
 
----
-
-## 5. Registries & Content Immutability
-
-- **`EntityRegistry`**: Provides read-only `get(id)`, `has(id)`, and `getConstructor(id)` lookups. Initialized with 58 base entities.
-- **`ResourceRegistry`**: Maps string IDs (`charonite`, `elmerine`, etc.) to legacy positional indexes (`0..9`). Validates syntax, prevents duplicate IDs and duplicate legacy indexes, and shallow-freezes definitions.
-- **`ContentContext`**: Produced by `ContentBuilder.finalize()`. Both definition arrays and individual definitions are `Object.freeze`d to prevent accidental runtime mutation.
+Enable/disable changes persist through the Mods panel and require reload. Hot unload and rollback of a running game are intentionally outside v0.

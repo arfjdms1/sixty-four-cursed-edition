@@ -5,6 +5,7 @@ import { pathToFileURL } from 'node:url'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { build as viteBuild } from 'vite'
+import { runInNewContext } from 'node:vm'
 import createViteConfig from '../vite.config.mjs'
 
 const root = new URL('../', import.meta.url)
@@ -152,6 +153,16 @@ try {
 		await loader.activateEnabled()
 		assert.deepEqual(calls, ['a:start', 'a:end', 'b'])
 	})
+	await test('cross-realm async setup remains sequential', async () => {
+		const calls = []
+		const loader = createLoader()
+		loader.discover([
+			candidate('/a.ts', definition('example:a', () => runInNewContext('Promise.resolve()').then(() => calls.push('a')), { enabledByDefault: true })),
+			candidate('/b.ts', definition('example:b', () => calls.push('b'), { enabledByDefault: true })),
+		])
+		await loader.activateEnabled()
+		assert.deepEqual(calls, ['a', 'b'])
+	})
 	await test('failed mod does not block following mods', async () => {
 		const calls = []
 		const loader = createLoader()
@@ -254,6 +265,7 @@ try {
 		assert.match(bundledCode, /builtin:loader-fixture/)
 		assert.match(bundledCode, /builtin:hello-world/)
 		assert.match(bundledCode, /builtin:behavior-demo/)
+		assert.match(bundledCode, /builtin:hide-banner/)
 	})
 	await test('offline build includes bundled fixture without dynamic module loading', async () => {
 		const offlineConfig = createViteConfig({ mode: 'offline' })
@@ -276,6 +288,7 @@ try {
 		assert.match(htmlSource, /builtin:loader-fixture/)
 		assert.match(htmlSource, /builtin:hello-world/)
 		assert.match(htmlSource, /builtin:behavior-demo/)
+		assert.match(htmlSource, /builtin:hide-banner/)
 	})
 
 	console.log(`mod loader regression passed (${passed} tests)`)

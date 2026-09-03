@@ -1,8 +1,8 @@
 # Sixty Four: Cursed Edition
 
-> A browser-native modernization and future modding platform for [Sixty Four](https://store.steampowered.com/app/2659900/Sixty_Four/).
+> A browser-native modernization with an experimental bundled Mod API v0 for [Sixty Four](https://store.steampowered.com/app/2659900/Sixty_Four/).
 
-![TypeScript](https://img.shields.io/badge/TypeScript-Strict%205.x-blue?style=flat-square&logo=typescript)
+![TypeScript](https://img.shields.io/badge/TypeScript-Strict-blue?style=flat-square&logo=typescript)
 ![Vite](https://img.shields.io/badge/Vite-6.x-646CFF?style=flat-square&logo=vite)
 ![Build](https://img.shields.io/badge/Targets-Hosted%20%7C%20Offline-success?style=flat-square)
 ![Status](https://img.shields.io/badge/Architecture-Normalized-brightgreen?style=flat-square)
@@ -14,7 +14,7 @@
 - **What is this?** A fully decompiled, modernized, strictly typed TypeScript codebase for the automation game *Sixty Four*.
 - **Does it work?** Yes. 100% gameplay, simulation, rendering, audio, and save compatibility with the desktop release.
 - **Where does it run?** Natively in any modern web browser without Electron or Steam requirements.
-- **What is the goal?** Clean architectural decomposition, robust hosted/offline build pipelines, and an internal content composition seam for future modding support.
+- **What is the goal?** Preserve the game while providing clean architecture, hosted/offline builds, and a narrow experimental bundled-mod API.
 
 ```bash
 # Clone and run locally in under 30 seconds
@@ -39,7 +39,6 @@ Open `http://127.0.0.1:6464` in your browser.
   - [Content Composition & Modding Seam](#content-composition--modding-seam)
   - [Engine Subsystems](#engine-subsystems)
   - [Base Game Content](#base-game-content)
-- [Roadmap](#-roadmap)
 - [Modding & Modernization](#-modding--modernization)
 - [Validation & Regression Testing](#-validation--regression-testing)
 - [Legal & Upstream Notice](#-legal--upstream-notice)
@@ -69,7 +68,7 @@ The game loaded. The cubes destabilized. The saves persisted. The audio played. 
 
 At that point, the name chose itself.
 
-Rather than a simple wrapper, **Cursed Edition** evolved into a complete modernization effort: converting thousands of lines of monolithic legacy JavaScript into strict TypeScript, extracting 10 decoupled runtime subsystems, creating content-agnostic registries, and establishing an explicit content composition architecture for future mods.
+Rather than a simple wrapper, **Cursed Edition** evolved into a complete modernization effort: converting thousands of lines of monolithic legacy JavaScript into strict TypeScript, extracting 10 decoupled runtime subsystems, creating content-agnostic registries, and establishing an explicit content composition architecture for bundled mods.
 
 ---
 
@@ -82,16 +81,19 @@ Rather than a simple wrapper, **Cursed Edition** evolved into a complete moderni
 - [x] **10 Decomposed Engine Subsystems**: `Save`, `Audio`, `Effects`, `Input`, `Rendering`, `Resources`, `Entities`, `Interaction`, `Autonomy`, `World Events`.
 - [x] **Generic Content Registries**: Content-agnostic `EntityRegistry` (58 base entities) and `ResourceRegistry` (10 base resources).
 - [x] **Unified Content Composition**: Two-phase `ContentBuilder` -> `ContentContext` pipeline with explicit base registration.
-- [x] **Normalized Source Tree**: Clean `src/core/`, `src/engine/`, `src/content/`, `src/registry/`, and `src/resources/` directories with zero architectural cycles.
+- [x] **Normalized Source Tree**: Runtime code organized under `src/scripts/core/`, `engine/`, `content/`, `registry/`, and `modding/`, with assets under `src/resources/`.
 - [x] **Dual Build Targets**: Production-ready hosted web target (`dist/hosted/`) and self-contained offline distribution target (`dist/offline/`).
 - [x] **Deterministic Semantic Regression Suite**: Comprehensive test fixtures verifying exact entity simulation, save compatibility, and 100% behavioral parity against the original game.
+- [x] **Experimental Mod API v0**: Deterministic bundled discovery, attributed logging, staged content registration, safe behavioral entities, and named UI visibility.
+- [x] **Mods Menu**: Persistent enable/disable configuration with explicit reload-required behavior.
+- [x] **Bundled Examples**: `hello-world`, `behavior-demo`, and `hide-banner`, all disabled by default.
 
 ### What Does NOT Exist Yet (Future Work)
 
-- [ ] Public Mod API (`ModContext` / public package schema).
-- [ ] External `.64mod` discovery and runtime archive loader.
+- [ ] Stable Mod API v1 and published package/import schema.
+- [ ] External/drop-in mod discovery and installer.
 - [ ] IndexedDB save provider and multi-slot cloud sync.
-- [ ] Modernized UI framework (TSX / React / Svelte migration).
+- [ ] Optional broader render, save-state, shop/Codex, and hot-unload capabilities.
 
 ---
 
@@ -108,6 +110,17 @@ All development and build operations use standard `npm` scripts:
 | `npm run build` | Default build command (delegates to `build:hosted`) |
 | `npm run preview:hosted` | Runs local HTTP preview server for `dist/hosted/` |
 | `npm run preview:offline` | Runs local HTTP preview server for `dist/offline/` |
+| `npm run test:mod-loader` | Validates deterministic bundled discovery and lifecycle behavior |
+| `npm run test:mod-context` | Validates the public context/content boundary |
+| `npm run test:mod-entity` | Validates safe behavioral entities |
+| `npm run test:mod-menu` | Validates mod management and reload behavior |
+| `npm run test:base-mods` | Validates the visible bundled mod set |
+| `npm run test:mod-ui` | Validates named UI visibility composition |
+| `npm run test:fullscreen` | Validates browser and Electron fullscreen paths |
+| `npm run test:startup-splash` | Validates shared home/console startup artwork |
+| `npm run test:mod-template` | Copies and typechecks the starter template |
+| `npm run test:right-click` | Validates browser context-menu suppression |
+| `npm run test:placement-preview` | Validates building placement previews |
 | `npm run validate:achievement-icons` | Validates all 34 achievement icons resolve to HTTP 200 OK |
 
 ---
@@ -154,30 +167,19 @@ The source tree is organized into clearly defined architectural layers:
 
 ```text
 src/
-├── core/                       # Top-level runtime coordinator (Game.ts)
-├── engine/                     # 10 decoupled runtime subsystems
-│   ├── audio/                  # AudioSystem & Web Audio decoding
-│   ├── autonomy/               # AutonomySystem (chasm network simulation)
-│   ├── effects/                # EffectSystem, particles, and animations
-│   ├── entities/               # Entity base class & EntityManager
-│   ├── events/                 # WorldEventSystem (surge, hollows, slowdown)
-│   ├── input/                  # InputSystem (mouse, pointer, gamepad)
-│   ├── interaction/            # InteractionSystem (placement, relocation)
-│   ├── rendering/              # RenderSystem (Canvas 2D + WebGL2)
-│   ├── resources/              # ResourceSystem (balances, analytics, rates)
-│   └── save/                   # SaveSystem, SaveCodec, persistence
-├── content/                    # Content composition & base definitions
-│   ├── ContentContext.ts       # ContentBuilder & finalized ContentContext
-│   ├── registerBaseContent.ts  # Master base content composition
-│   └── base/                   # Concrete 58 entities & 10 resources
-├── registry/                   # Generic content-agnostic registries
-│   ├── EntityRegistry.ts       # O(1) definition & constructor lookup
-│   └── ResourceRegistry.ts     # String ID & legacy index mapping
-└── resources/                  # Consolidated static media assets
-    ├── audio/sfx/              # Sound effects
-    ├── fonts/                  # Montserrat fonts & CSS
-    ├── images/                 # Sprites, UI icons, glory achievement icons
-    └── video/                  # Credits video
+├── mods/                       # Bundled source mods
+├── resources/                  # Consolidated static media assets
+└── scripts/
+    ├── core/                   # Top-level Game coordinator
+    ├── engine/                 # 10 decoupled runtime subsystems
+    ├── content/                # ContentBuilder and base definitions
+    ├── registry/               # Generic entity/resource registries
+    ├── modding/                # Loader, management, UI state, API types
+    │   └── api/index.ts        # Supported source-local public entry
+    ├── ui/ModsPanel.ts         # Bundled mod management panel
+    └── main.ts                 # Composition and startup
+examples/
+└── mod-template/               # Copyable bundled-mod starter
 ```
 
 ### Content Composition & Modding Seam
@@ -190,7 +192,7 @@ flowchart TD
         Builder[ContentBuilder]
         RBE[registerBaseEntities] -->|58 Entities| Builder
         RBR[registerBaseResources] -->|10 Resources| Builder
-        ModSeam["[Future loadMods(builder)]"] -.-> Builder
+        Mods["Bundled ModLoader"] -->|Enabled staged content| Builder
         Builder -->|finalize| Ctx[ContentContext]
     end
 
@@ -221,10 +223,14 @@ Base content is categorized according to verified structural metadata:
 
 ### Modding Architecture
 
-1. **Current State**: The internal content composition layer (`ContentBuilder` -> `ContentContext`) is fully extensible. Synthetic tests verify that additional entities and resources can be registered alongside base content without altering existing mechanics.
-2. **Future State**: An internal mod loader will hook into the composition seam before `builder.finalize()`, allowing external mods to supply entity classes, custom sprites, machine upgrades, and resource types via a structured API.
+The experimental Mod API v0 is implemented. Bundled TypeScript mods under `src/mods/` are discovered by Vite, activated deterministically before content finalization, and managed through the home-screen **Mods** panel.
 
-### Modernization Roadmap
+Current safe capabilities include attributed logging, staged entity/resource registration, per-instance behavioral entities, and one named UI visibility target (`'steam-warning'`). The API exposes neither `Game` nor raw DOM. Source-tree mods require a rebuild; there is no drop-in external installer or stable package API yet.
+
+- [Beginner bundled-mod guide](docs/modding.md)
+- [Exact experimental API v0 reference](docs/modding-api-v0.md)
+
+### Milestone Status
 
 ```text
 ✓ Phase 1: Browser-native execution & baseline characterization
@@ -233,9 +239,10 @@ Base content is categorized according to verified structural metadata:
 ✓ Phase 4: Explicit content composition (ContentBuilder / ContentContext)
 ✓ Phase 5: Normalized source tree (src/) & consolidated asset tree (src/resources/)
 ✓ Phase 6: Dual build targets (hosted web & offline distribution)
-→ Phase 7: Modernized UI layer & internal mod loader
-→ Phase 8: Public Mod API & package manifest format
+✓ Phase 7: Bundled loader, Mods menu, and experimental Mod API v0
 ```
+
+The planned experimental Modding v0 milestone is complete. External loading, safe rendering, behavior deletion/save hooks, dynamic resource balances, Codex/shop integration, hot unload, a possible `builtin:vanilla` conversion, and remaining internal modernization are optional future work rather than release blockers.
 
 ---
 
@@ -244,14 +251,22 @@ Base content is categorized according to verified structural metadata:
 To guarantee zero behavioral regression during extensive refactoring, all architectural milestones are validated against frozen semantic fixtures:
 
 ```bash
-# Validate achievement icon assets
+# Core modding and browser regressions
+npm run test:mod-loader
+npm run test:mod-context
+npm run test:mod-entity
+npm run test:mod-menu
+npm run test:base-mods
+npm run test:mod-ui
+npm run test:fullscreen
+npm run test:startup-splash
+npm run test:mod-template
+npm run test:right-click
+npm run test:placement-preview
 npm run validate:achievement-icons
-
-# Full test suite (executed in CI / local test harness)
-node tests/validate_achievement_icons.mjs
 ```
 
-All 10 internal regression test suites verify:
+The permanent regression scripts verify:
 - Exact 58-entity constructor and class reference identities.
 - Exact 10-resource legacy index mapping and metadata preservation.
 - Byte-for-byte identical 676-byte and 804-byte save serialization.
@@ -272,4 +287,4 @@ All 10 internal regression test suites verify:
 
 ## License
 
-Modernization code and architectural infrastructure are provided for educational and community development purposes. Original Sixty Four assets and intellectual property remain subject to their original copyright and commercial licensing. See [LICENSE](LICENSE) (or upstream distribution terms) for details.
+`package.json` currently declares ISC for the package metadata, but this repository contains no standalone license file and that declaration does not automatically cover upstream Sixty Four code or assets. Modernization code and infrastructure are provided for educational and community development; original material remains subject to its original copyright and commercial terms. Do not publish downloadable playable builds unless you have the necessary distribution rights.

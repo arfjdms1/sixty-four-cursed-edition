@@ -47,12 +47,14 @@ try {
 	const { registerBaseContent } = await import(pathToFileURL(join(contentRoot, 'registerBaseContent.js')))
 	const { createModManagementApi } = await import(pathToFileURL(join(moddingRoot, 'ModManagement.js')))
 	const { validateModManifest } = await import(pathToFileURL(join(moddingRoot, 'manifest.js')))
+	const { ModUiState } = await import(pathToFileURL(join(moddingRoot, 'ModUi.js')))
 
 	// Import the bundled mods
 	const helloWorldMod = (await import(pathToFileURL(join(modsRoot, 'hello-world/index.js')))).default
 	const behaviorDemoMod = (await import(pathToFileURL(join(modsRoot, 'behavior-demo/index.js')))).default
 	const contextFixtureMod = (await import(pathToFileURL(join(modsRoot, 'context-fixture/index.js')))).default
 	const loaderFixtureMod = (await import(pathToFileURL(join(modsRoot, 'loader-fixture/index.js')))).default
+	const hideBannerMod = (await import(pathToFileURL(join(modsRoot, 'hide-banner/index.js')))).default
 
 	class MemoryStorage {
 		values = new Map()
@@ -108,6 +110,7 @@ try {
 		{ source: 'src/mods/context-fixture/index.ts', definition: contextFixtureMod },
 		{ source: 'src/mods/hello-world/index.ts', definition: helloWorldMod },
 		{ source: 'src/mods/behavior-demo/index.ts', definition: behaviorDemoMod },
+		{ source: 'src/mods/hide-banner/index.ts', definition: hideBannerMod },
 	]
 
 	let passed = 0
@@ -246,7 +249,12 @@ try {
 	// 11. createBehavior creates independent state per entity
 	await test('createBehavior creates independent state per entity', async () => {
 		const storage = new MemoryStorage()
-		const loader = new ModLoader({ storage, onDiagnostic() {} })
+		const messages = []
+		const loader = new ModLoader({
+			storage,
+			loggerFactory: () => ({ info(message) { messages.push(message) }, warn() {}, error() {} }),
+			onDiagnostic() {},
+		})
 		loader.discover(bundledCandidates)
 		loader.enable('builtin:behavior-demo')
 		const builder = new ContentBuilder()
@@ -268,9 +276,7 @@ try {
 		entityA.update(16)
 		entityB.update(16)
 
-		// They should not share closure state; verify both updated without throw
-		assert.equal(entityA.name, 'builtin:behavior-demo-entity')
-		assert.equal(entityB.name, 'builtin:behavior-demo-entity')
+		assert.equal(messages.filter(message => message.includes('initial update tick')).length, 2)
 	})
 
 	// 12. init hook works
@@ -459,7 +465,7 @@ try {
 		loader.discover(bundledCandidates)
 		const api = createModManagementApi(loader)
 		const visibleIds = api.mods().map(m => m.manifest.id)
-		assert.deepEqual(visibleIds, ['builtin:behavior-demo', 'builtin:hello-world'])
+		assert.deepEqual(visibleIds, ['builtin:behavior-demo', 'builtin:hello-world', 'builtin:hide-banner'])
 	})
 
 	// 20. visible ordering deterministic
@@ -471,6 +477,7 @@ try {
 		// sorted lexicographically by ModId
 		assert.equal(visibleIds[0], 'builtin:behavior-demo')
 		assert.equal(visibleIds[1], 'builtin:hello-world')
+		assert.equal(visibleIds[2], 'builtin:hide-banner')
 	})
 
 	// 21. all bundled mods use only supported public API imports
@@ -484,7 +491,7 @@ try {
 			for (const line of importLines) {
 				assert.match(
 					line,
-					/from ['"](\.\.\/)+scripts\/modding\/(api\/index|types)\.js['"]/,
+					/from ['"](\.\.\/)+scripts\/modding\/api\/index\.js['"]/,
 					`Mod ${dir} must only import from public modding API, found: ${line}`,
 				)
 			}
@@ -509,7 +516,7 @@ try {
 	// 23. no Game/master/global escape
 	await test('no Game/master/global escape', () => {
 		const srcModsDir = join(new URL('.', root).pathname, 'src/mods')
-		for (const modName of ['hello-world', 'behavior-demo']) {
+		for (const modName of ['hello-world', 'behavior-demo', 'hide-banner']) {
 			const modFile = join(srcModsDir, modName, 'index.ts')
 			const content = readFileSync(modFile, 'utf8')
 			assert.doesNotMatch(content, /\bwindow\b/, `Mod ${modName} must not access window`)
@@ -532,11 +539,77 @@ try {
 		assert.equal(content.resourceDefinitions.length, 10, 'Default game must have 10 resources')
 	})
 
-	// 25. hide-banner either exists cleanly or is explicitly absent/deferred
-	await test('hide-banner is explicitly deferred because Mod API v0 has no UI capability', () => {
-		const srcModsDir = join(new URL('.', root).pathname, 'src/mods')
-		const modDirs = readdirSync(srcModsDir)
-		assert.equal(modDirs.includes('hide-banner'), false, 'builtin:hide-banner must be deferred in API v0')
+	// 25-34. hide-banner
+	await test('hide-banner discovered', () => {
+		const loader = new ModLoader({ storage: new MemoryStorage(), onDiagnostic() {} })
+		loader.discover(bundledCandidates)
+		assert.ok(loader.mods().find(mod => mod.manifest.id === 'builtin:hide-banner'))
+	})
+
+	await test('hide-banner visible in Mods menu', () => {
+		const loader = new ModLoader({ storage: new MemoryStorage(), onDiagnostic() {} })
+		loader.discover(bundledCandidates)
+		assert.ok(createModManagementApi(loader).mods().find(mod => mod.manifest.id === 'builtin:hide-banner'))
+	})
+
+	await test('hide-banner disabled by default', () => {
+		const loader = new ModLoader({ storage: new MemoryStorage(), onDiagnostic() {} })
+		loader.discover(bundledCandidates)
+		assert.equal(hideBannerMod.manifest.enabledByDefault, false)
+		assert.equal(loader.isEnabled('builtin:hide-banner'), false)
+	})
+
+	await test('hide-banner manifest valid', () => {
+		const manifest = validateModManifest(hideBannerMod.manifest)
+		assert.equal(manifest.id, 'builtin:hide-banner')
+		assert.equal(manifest.name, 'Hide Banner')
+		assert.equal(manifest.version, '1.0.0')
+		assert.equal(manifest.apiVersion, 0)
+	})
+
+	await test('hide-banner author is arfjdms1', () => {
+		assert.equal(hideBannerMod.manifest.author, 'arfjdms1')
+		assert.equal(helloWorldMod.manifest.author, 'arfjdms1')
+		assert.equal(behaviorDemoMod.manifest.author, 'arfjdms1')
+	})
+
+	await test('hide-banner setup uses public semantic UI API', () => {
+		const source = readFileSync(join(new URL('.', root).pathname, 'src/mods/hide-banner/index.ts'), 'utf8')
+		assert.match(source, /ui\.setVisible\(['"]steam-warning['"], false\)/)
+	})
+
+	await test('hide-banner has no deep imports', () => {
+		const source = readFileSync(join(new URL('.', root).pathname, 'src/mods/hide-banner/index.ts'), 'utf8')
+		assert.match(source, /from ['"]\.\.\/\.\.\/scripts\/modding\/api\/index\.js['"]/)
+		assert.doesNotMatch(source, /scripts\/(?:core|engine|content|registry)\//)
+	})
+
+	await test('hide-banner has no raw DOM escape', () => {
+		const source = readFileSync(join(new URL('.', root).pathname, 'src/mods/hide-banner/index.ts'), 'utf8')
+		assert.doesNotMatch(source, /\b(?:document|window|querySelector|HTMLElement|innerHTML|Game|master)\b/)
+	})
+
+	await test('enabled hide-banner suppresses steam warning', async () => {
+		const uiState = new ModUiState()
+		const loader = new ModLoader({ storage: new MemoryStorage(), uiHost: uiState, onDiagnostic() {} })
+		loader.discover(bundledCandidates)
+		loader.enable('builtin:hide-banner')
+		await loader.activateEnabled(new ContentBuilder())
+		assert.equal(uiState.isVisible('steam-warning'), false)
+		assert.deepEqual(uiState.hiddenBy('steam-warning'), ['builtin:hide-banner'])
+	})
+
+	await test('disabled hide-banner restores default visibility on reload', async () => {
+		const storage = new MemoryStorage()
+		const configured = new ModLoader({ storage, onDiagnostic() {} })
+		configured.discover(bundledCandidates)
+		configured.enable('builtin:hide-banner')
+		configured.disable('builtin:hide-banner')
+		const uiState = new ModUiState()
+		const loader = new ModLoader({ storage, uiHost: uiState, onDiagnostic() {} })
+		loader.discover(bundledCandidates)
+		await loader.activateEnabled(new ContentBuilder())
+		assert.equal(uiState.isVisible('steam-warning'), true)
 	})
 
 	console.log(`base mods regression passed (${passed} tests)`)

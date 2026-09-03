@@ -6,7 +6,7 @@ const behaviorDemoMod: ModDefinition = {
 		name: 'Behavior Demo',
 		version: '1.0.0',
 		apiVersion: 0,
-		author: 'Sixty Four Cursed Edition',
+		author: 'arfjdms1',
 		description: 'Demonstrates safe custom behavioral entities with isolated per-instance state, init, and throttled update hooks.',
 		enabledByDefault: false,
 	},

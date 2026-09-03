@@ -1,6 +1,7 @@
 import { ModEnabledState } from './ModEnabledState.js'
 import { validateModDefinition } from './manifest.js'
 import { StagedModContent, ThrowingModContent } from './ModContent.js'
+import { StagedModUi } from './ModUi.js'
 import type { ContentBuilder } from '../content/ContentContext.js'
 import type {
 	BundledModCandidate,
@@ -38,10 +39,16 @@ function toError(error: unknown): Error {
 	return error instanceof Error ? error : new Error(String(error))
 }
 
+function isPromiseLike(value: unknown): value is PromiseLike<unknown> {
+	if (value === null || (typeof value !== 'object' && typeof value !== 'function')) return false
+	return typeof Reflect.get(value, 'then') === 'function'
+}
+
 export class ModLoader {
 	private readonly enabledState: ModEnabledState
 	private readonly loggerFactory: (id: ModId) => ModLogger
 	private readonly onDiagnostic: (diagnostic: ModDiagnostic) => void
+	private readonly uiHost: ModLoaderOptions['uiHost']
 	private readonly records = new Map<ModId, ModRecord>()
 	private readonly diagnosticEntries: ModDiagnostic[] = []
 	private activationStarted = false
@@ -57,6 +64,7 @@ export class ModLoader {
 			this.addDiagnostic({ phase: 'persistence', error })
 		})
 		this.loggerFactory = options.loggerFactory ?? defaultLoggerFactory
+		this.uiHost = options.uiHost
 	}
 
 	discover(candidates: readonly BundledModCandidate[]): void {
@@ -136,17 +144,22 @@ export class ModLoader {
 			})
 			const logger = this.loggerFactory(id)
 			const staged = this.contentBuilder ? new StagedModContent(id, this.contentBuilder, logger) : new ThrowingModContent()
+			const stagedUi = new StagedModUi(id, this.uiHost)
 			const context: ModContext = Object.freeze({
 				mod: modInfo,
 				logger,
 				content: staged,
+				ui: stagedUi.api,
 			})
 			try {
-				await record.definition.setup(context)
+				const setupResult = record.definition.setup(context)
+				if (isPromiseLike(setupResult)) await setupResult
 				if (staged instanceof StagedModContent) staged.commit()
+				stagedUi.commit()
 				record.status = 'active'
 			} catch (error) {
 				if (staged instanceof StagedModContent) staged.discard()
+				stagedUi.discard()
 				const diagnostic = this.addDiagnostic({
 					modId: id,
 					source: record.source,

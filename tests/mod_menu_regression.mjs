@@ -44,6 +44,7 @@ try {
 	const { createModManagementApi } = await import(pathToFileURL(join(moddingRoot, 'ModManagement.js')))
 	const { ModsPanel } = await import(pathToFileURL(join(uiRoot, 'ModsPanel.js')))
 	const { Splash } = await import(pathToFileURL(join(output, 'scripts/ui.js')))
+	const { HOME_SCREEN_VARIANTS } = await import(pathToFileURL(join(output, 'scripts/startupPresentation.js')))
 
 	class MemoryStorage {
 		values = new Map()
@@ -117,7 +118,7 @@ try {
 			restoreBackup: () => {},
 			modManagementApi: api,
 		}
-		const splash = new Splash(splashHost)
+		const splash = new Splash(splashHost, HOME_SCREEN_VARIANTS[0])
 		assert.ok(splash.modsIcon, 'modsIcon should exist')
 		assert.ok(splash.modsIcon.classList.contains('modsIcon'))
 		assert.equal(splash.modsIcon.getAttribute('aria-label'), 'Mods')
@@ -811,7 +812,7 @@ try {
 			modManagementApi: api,
 			toggleSplash: () => { toggled = true },
 		}
-		const splash = new Splash(splashHost)
+		const splash = new Splash(splashHost, HOME_SCREEN_VARIANTS[0])
 		// Simulate InputSystem's escape handler that would call toggleSplash
 		const inputHandler = (e) => {
 			if (e.key === 'Escape' || e.keyCode === 27) {

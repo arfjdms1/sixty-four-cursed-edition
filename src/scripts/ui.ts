@@ -5,6 +5,8 @@ import type { GameSpaceport } from '../types/platform.js'
 import type { SaveBackup } from '../types/save.js'
 import type { ModManagementApi } from './modding/ModManagement.js'
 import { ModsPanel } from './ui/ModsPanel.js'
+import { toggleFullscreen } from './ui/fullscreen.js'
+import { HOME_SCREEN_VARIANTS, type HomeScreenVariant } from './startupPresentation.js'
 
 type AchievementState = boolean | 0 | 1
 type MessageEventState = boolean | null
@@ -501,9 +503,11 @@ export class Splash {
 	declare modsIcon: HTMLDivElement
 	declare modsElement: HTMLDivElement
 	declare modsPanel: ModsPanel | null
+	declare homeScreenVariant: HomeScreenVariant
 
-	constructor(master: SplashHost){
+	constructor(master: SplashHost, homeScreenVariant: HomeScreenVariant = HOME_SCREEN_VARIANTS[0]){
 		this.master = master
+		this.homeScreenVariant = homeScreenVariant
 
 		this.gameIsMute = this.master.isMute
 		this.isShown = true
@@ -575,11 +579,6 @@ export class Splash {
 	}
 
 	show(){
-
-		const rx = Math.floor(Math.random() * 4)
-		const ry = Math.floor(Math.random() * 2)
-		this.sf.style.backgroundPosition = `${100 / 3 * rx}% ${100 * ry}%`;
-
 		this.isShown = true
 		this.master.mute(true)
 		document.body.appendChild(this.element)
@@ -618,6 +617,8 @@ export class Splash {
 
 		this.sf = document.createElement(`div`)
 		this.sf.classList.add(`sixtyFour`)
+		this.sf.style.backgroundImage = `url('${this.homeScreenVariant.imagePath}')`
+		this.sf.style.backgroundPosition = this.homeScreenVariant.backgroundPosition
 		this.element.append(this.sf)
 
 		const menu = document.createElement(`div`)
@@ -837,7 +838,7 @@ export class Splash {
 		}
 
 		fullscreen.onclick = _=>{
-			this.master.spaceport?.send(`toggleFullscreen`,``)
+			void toggleFullscreen(this.master.spaceport)
 		}
 
 		discord.onclick = _=>{

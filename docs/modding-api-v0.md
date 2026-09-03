@@ -1,31 +1,29 @@
-# Modding API v0 — Experimental
+# Modding API v0 - Experimental
 
-> **Experimental — API version 0**
-> This API is experimental and will change without notice before v1.
-> No semantic stability is promised. Breaking changes may occur.
+> **Experimental API version 0:** no semantic stability is promised. Additive and breaking changes may occur before v1.
 
-Bundled mods are **trusted application code** compiled by Vite.
-`ModContext` is an API boundary, not a sandbox boundary.
-No isolation from JavaScript is provided.
+Bundled mods are trusted application code compiled eagerly by Vite. `ModContext` is an API boundary, not a sandbox or permissions boundary.
 
-## Entry Point
+## Public Entry
+
+For `src/mods/<name>/index.ts`:
 
 ```ts
-import type { ModDefinition } from '../scripts/modding/api/index.js'
+import type { ModDefinition } from '../../scripts/modding/api/index.js'
 ```
 
-Use the single public entry `src/scripts/modding/api/index.ts` for all mod-facing imports.
-Do not import `Game`, `EntityHost`, `EntityManager`, `Entity`, `RenderSystem`, `ResourceSystem`, or raw `EntityContext`.
+`src/scripts/modding/api/index.ts` is the only supported source-local mod import. It is not yet a published package entry. Do not import `Game`, `Entity`, hosts, managers, systems, registries, base content, UI internals, or raw DOM types.
 
-## ModDefinition
+## Definition And Manifest
 
 ```ts
 interface ModDefinition {
   readonly manifest: ModManifest
   setup(context: ModContext): void | Promise<void>
 }
+
 interface ModManifest {
-  readonly id: `${string}:${string}` // lowercase namespace:name, e.g. example:my-mod
+  readonly id: ModId
   readonly name: string
   readonly version: string
   readonly apiVersion: 0
@@ -33,33 +31,36 @@ interface ModManifest {
   readonly description?: string
   readonly homepage?: string
   readonly enabledByDefault?: boolean
+  readonly internal?: boolean
 }
 ```
 
-Unsupported `apiVersion` values are rejected during discovery. Duplicate IDs are rejected deterministically.
+IDs are runtime-validated lowercase `namespace:name` strings. `internal` is reserved for application fixtures hidden from the Mods menu. Unsupported API versions and duplicate IDs are rejected deterministically.
 
 ## ModContext
 
 ```ts
 interface ModContext {
-  readonly mod: ModInfo      // { id, name, version, apiVersion }
-  readonly logger: ModLogger // info/warn/error attributed to ModId
+  readonly mod: ModInfo
+  readonly logger: ModLogger
   readonly content: ModContentApi
+  readonly ui: ModUiApi
 }
 ```
 
-`ModContext` is provided only as the argument to `setup`. It is not exposed via `window` or `globalThis`.
+The context is created for the current mod and provided only to `setup`. It exposes no `Game`, `master`, host, manager, system, role collection, rendering context, DOM object, or global escape hatch.
 
-### Why ModContext is small
+### Logger
 
-`ModContext` deliberately does **not** expose:
+```ts
+interface ModLogger {
+  info(message: string): void
+  warn(message: string): void
+  error(message: string, error?: unknown): void
+}
+```
 
-- `Game` / `master`
-- `EntityHost` / `EntityManager` / `EntityContext`
-- `RenderSystem` / `ResourceSystem` / `AudioSystem` / `SaveSystem`
-- `stats`, `shop`, role `Sets`, spatial `stuffMap`, raw `CanvasRenderingContext2D`
-
-Custom behavior is expressed through **registered content** (entities/resources) rather than direct engine mutation.
+Messages are attributed to the current `ModId`.
 
 ## Content API
 
@@ -70,113 +71,119 @@ interface ModContentApi {
 }
 ```
 
-### Entity registration
+Content changes are staged per mod and commit only when setup completes successfully. Calls retained past setup are rejected.
+
+### Entities
 
 ```ts
 interface ModEntityDefinition {
-  readonly id: string                    // open-ended, e.g. example:my-machine
-  readonly kind?: EntityKind             // default: 'machine'
-  readonly family?: EntityFamilyId       // default: 'industrial'
-  readonly capabilities?: EntityCapability[]
+  readonly id: string
+  readonly kind?: EntityKind
+  readonly family?: EntityFamilyId
+  readonly capabilities?: readonly EntityCapability[]
   readonly isUpgradeTo?: string
   readonly onlyone?: boolean
   readonly canPurchase?: boolean
-  readonly createBehavior?: () => ModEntityBehavior // per-instance factory, optional
+  readonly createBehavior?: () => ModEntityBehavior
 }
+
 interface ModEntityBehavior {
   init?(context: ModEntityContext): void
   update?(dt: number, context: ModEntityContext): void
 }
-interface ModEntitySelf {
-  readonly typeId: string
-  readonly position: Vec2 // live copy of entity position
-}
+
 interface ModEntityContext {
-  readonly self: ModEntitySelf // stable identity per entity instance
+  readonly self: ModEntitySelf
   readonly logger: ModLogger
-  readonly resources: { amount(id: ResourceTypeId): number }
-  readonly spatial: { entityAt(position: Vec2): ModEntityRef | undefined }
-}
-interface ModEntityRef {
-  readonly typeId: string
-  readonly position: Vec2
+  readonly resources: ModEntityResources
+  readonly spatial: ModEntitySpatial
 }
 ```
 
-- IDs are open-ended; base IDs remain lowercase strings like `pump`, `vault`. Namespaced IDs are recommended for mods.
-- API v0 does **not** expose `Entity` for subclassing; `Entity.master`/`Entity.context` remain inaccessible. Behavioral entities use a **safe facade**: public `ModEntityBehavior` does **not** extend `Entity`; an internal adapter `Entity` owns the runtime constructor.
-- `createBehavior` is a **per-instance factory**: invoked once per runtime entity via `new Entity(host)`; returning a shared object would be incorrect. Two instances get separate behavior objects (tested).
-- If `createBehavior` is omitted, the entity uses an internal inert `Entity` implementation (metadata-only, backward compatible).
-- Custom `constructor: ModEntityConstructor` is **not supported**; use `createBehavior`.
-- Base-game order is preserved; mod entities are appended in deterministic activation order (sorted `ModId`, then registration order).
-- Duplicate entity IDs (including collisions with base content or between mods) are rejected.
+Defaults are `kind: 'machine'`, `family: 'industrial'`, and capabilities `['relocatable', 'soulProducer']`. `createBehavior` runs once per runtime entity. Return a new behavior object so closure state is instance-local.
 
-The 58 base entities remain; a bundled mod can add the 59th, 60th, … entity. Synthetic entity registration order is deterministic.
+`self` provides a stable facade with `typeId` and a live position copy. Resource reads use stable string IDs. Spatial lookups return `{ typeId, position }` snapshots, never raw entities. `ModEntityContext` intentionally does not expose the setup-time UI API.
 
-### Resource registration
+Factory, `init`, and `update` errors are caught and attributed per entity. There is no public entity subclass constructor, render hook, `onDelete` hook, or persistent custom behavior state in v0.
+
+### Resources
 
 ```ts
 interface ModResourceDefinition {
-  readonly id: ResourceTypeId // open-ended string, e.g. example:my-resource
+  readonly id: ResourceTypeId
   readonly name: string
   readonly sfx: string
   readonly triplet: ColorTriplet
   readonly surgeTriplet?: ColorTriplet
-  // optional generation metadata: chances, probabilities, mean, stdev, base
+  readonly chances?: readonly ResourceChance[]
+  readonly probabilities?: readonly ResourceProbability[]
+  readonly mean?: number
+  readonly stdev?: number
+  readonly base?: number
 }
 ```
 
-- `legacyIndex` must **not** be set for mod resources; resource order is deterministic and base resources (0..9) remain in base order.
-- Duplicate resource IDs are rejected.
-- **Limitation:** Resource metadata registration is supported, but runtime resource balance vectors (`resources`, `resourcePops`, `resourceRates`, analytics) remain length 10 for base resources. Custom resources are metadata-only in v0.
+Base legacy indexes remain reserved and deterministic. Mod resource metadata can be registered, but runtime balances, rates, pops, and analytics still have 10 base-resource slots. Custom resources are metadata-only in v0.
 
-### Codex
+Entity registration does not create Codex, shop, unlock, pricing, or progression entries.
 
-`Codex` is not yet public. Entity registration does not automatically produce a shop/Codex entry; this remains a deferred capability.
+## Safe UI API
 
-## Setup Timing
+```ts
+type ModUiTargetId = 'steam-warning'
 
-1. `ContentBuilder` is created
-2. `registerBaseContent(builder)` — 58 entities, 10 resources
-3. `ModLoader.discover` + `activateEnabled(builder)` — staged `registerEntity`/`registerResource` per mod
-4. `builder.finalize()` — freeze; further registration throws `Cannot register content after finalization`
-5. `new Game(canvas, preload, content)` — `EntityRegistry`/`ResourceRegistry` constructed from finalized content
+interface ModUiApi {
+  setVisible(target: ModUiTargetId, visible: boolean): void
+}
+```
 
-`setup` may be synchronous or `async`. Activation order is deterministic (sorted `ModId`). Async setups remain sequential: the next mod does not start until the previous `setup` resolves.
+`'steam-warning'` is the sole API v0 target. It refers semantically to the warning shown when Steam integration is unavailable. It is not `.steamWarning` and cannot be replaced with a selector.
 
-## Failure Semantics
+The API exposes no `document`, `window`, `Document`, `Window`, `Element`, `HTMLElement`, selectors, nodes, arbitrary HTML, or internal UI objects.
 
-- **Validation/discovery failures** (malformed manifest, unsupported `apiVersion`, duplicate mod ID) — mod is `failed`, other mods continue.
-- **Setup failures** (thrown inside `setup`, or `registerEntity`/`registerResource` validation such as duplicate entity/resource ID) — that mod is marked `failed` and a diagnostic `{ modId, phase: 'setup', error }` is recorded. Unrelated mods are unaffected.
-- **Per-mod transaction:** Content registrations are staged per mod and committed only if that mod’s `setup` completes without throwing. A failed setup discards that mod’s pending entities/resources; registrations completed by earlier successful mods remain.
-- **Post-finalize:** Calling `content.registerEntity` after `finalize()` throws. Calls after a mod’s setup has completed also throw `Cannot register content after mod setup has completed`.
+### Desired-state semantics
 
-Per-mod diagnostics are queryable via `ModLoader.mods()` and `diagnostics()` without DOM coupling.
+Mod setup occurs before `ContentBuilder.finalize()`, `Game` construction, and warning creation. `setVisible` therefore records desired semantic state rather than touching an element. Later UI construction observes the effective state.
 
-## Enabled State & Reload
+Requests are automatically attributed to the current mod. Visibility is suppressive and order-independent: the target is visible only when no successfully activated mod requests it hidden. `setVisible(target, true)` releases only the calling mod's hide request. Failed setup discards staged UI requests.
 
-- Persisted key: `abstractv03_modState_v0${accountId}` with `{ version: 0, enabled: Record<ModId, boolean> }`
-- Default is disabled unless `manifest.enabledByDefault === true`. The proof fixture `builtin:context-fixture` is disabled by default.
-- `enable(id)`/`disable(id)` persist immediately. After activation has completed, they set `reloadRequired: true`; hot disable of active mods is not supported in v0.
+Hot unload is not supported. Persisted Mods-menu configuration is applied on the next reload.
 
-## Trust
+## Startup Order
 
-Bundled/internal mods are trusted ESM compiled by Vite. Top-level module evaluation should remain side-effect free; per-mod isolation for exported definitions and `setup` is guaranteed, but top-level evaluation failures are static ESM failures.
+1. Create `ContentBuilder` and register 58 base entities plus 10 base resources.
+2. Create neutral mod UI desired state.
+3. Discover bundled entries and activate enabled mods in sorted `ModId` order.
+4. Commit each successful mod's staged content and UI requests.
+5. Finalize immutable content.
+6. Construct `Game`; normal UI creation observes effective named visibility.
 
-## Behavioral Notes
+Setup may be synchronous or asynchronous. Async setups remain sequential. Disabled mods receive no context.
 
-- **Lifecycle:** `createBehavior()` → `init(context)` (after `setPosition`) → `update(dt, context)` each `EntityManager.updateEntities` tick (stage 7 of `Game.updateLoop`). Ordering is deterministic per `ModId` and registration order.
-- **Self facade:** `context.self` is stable per entity instance (`same object ===`), `position` is a live copy, `typeId` is the definition `id`.
-- **Resources:** `context.resources.amount(id: ResourceTypeId)` uses stable string IDs, not legacy indexes.
-- **Spatial:** `context.spatial.entityAt(pos)` returns `ModEntityRef | undefined` with `typeId`/`position`, never raw `Entity`.
-- **Errors:** `init`/`update`/`factory` throws are caught per-entity, logged as `[modId entity:entityId hook]` via `logger.error`, and do not crash the game. Factory throws are attributed as `factory` and cause `addEntity` to return `false`.
-- **No Canvas2D:** Raw `CanvasRenderingContext2D` is **not** exposed in v0; rendering is deferred. Behavioral proof uses inert rendering.
-- **Save:** Persistent custom state is **deferred**; `ModEntityBehavior` state is ephemeral and not serialized. Disabled fixtures do not affect saves.
+## Failures And Diagnostics
 
-## Deferred for later steps
+- Malformed or unsupported candidates create validation diagnostics and are omitted.
+- Duplicate IDs create deterministic failed records.
+- Setup failures mark only that mod failed and discard its staged content and UI requests.
+- Other mods continue activating.
+- Registration or UI calls after setup are rejected.
 
-- Full Mods UI / marketplace / ZIP install / networking / dependency solver / permissions / Workshop
-- Generic render hooks, UI, audio/effects, plane/references/world, input, progression/codex/shop
-- Persistent custom `ModEntity` state via save hooks
-- Read-only runtime queries beyond `resources`/`spatial`/`self`/`logger`
-- Broad gameplay APIs; `Codex`/shop automation
+## Discovery, Mods Menu, And Reload
+
+Vite eagerly discovers `src/mods/*/index.ts`. Top-level module evaluation must remain side-effect free because an eager ESM evaluation failure occurs outside setup isolation.
+
+Visible bundled mods appear in the home-screen **Mods** panel. Enable/disable choices persist under the account-specific v0 state key. Changes made after activation report that a reload is required; v0 does not hot-load or hot-unload code.
+
+## Optional Future Work
+
+- External/drop-in package discovery and installation.
+- A safe render API.
+- An `onDelete` behavior hook.
+- Save-backed persistent mod-entity state.
+- Codex and shop integration.
+- Fully dynamic custom resource balances.
+- Hot unload.
+- Optional conversion of base content into `builtin:vanilla`.
+- Remaining internal modernization.
+
+See [the beginner guide](modding.md) for a copy workflow and examples.

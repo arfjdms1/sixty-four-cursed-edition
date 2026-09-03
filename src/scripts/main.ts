@@ -6,6 +6,8 @@ import { DEFAULT_MOD_STATE_KEY, LocalStorageModStateStorage } from './modding/Mo
 import { ModLoader } from './modding/ModLoader.js'
 import { createModManagementApi } from './modding/ModManagement.js'
 import { setCurrentModLoader } from './modding/runtime.js'
+import { ModUiState } from './modding/ModUi.js'
+import { printStartupConsoleSplash, selectHomeScreenVariant } from './startupPresentation.js'
 import * as BezierModule from './bezier.js'
 import * as UiModule from './ui.js'
 import * as SpritesModule from './sprites.js'
@@ -160,19 +162,23 @@ function startGame(preload?: GameStartupPayload): Promise<void> {
 async function initializeGame(preload?: GameStartupPayload): Promise<void> {
 	const canvas = document.querySelector<HTMLCanvasElement>(`.canvas`)
 	if (canvas) {
+		const selectedHomeVariant = selectHomeScreenVariant()
+		printStartupConsoleSplash(selectedHomeVariant)
 		const contentBuilder = new ContentBuilder()
 		registerBaseContent(contentBuilder)
 		const accountId = preload?.steamId ?? ``
+		const modUi = new ModUiState()
 		const modLoader = new ModLoader({
 			storage: new LocalStorageModStateStorage(),
 			storageKey: `${DEFAULT_MOD_STATE_KEY}${accountId}`,
+			uiHost: modUi,
 		})
 		modLoader.discover(discoverBundledMods())
 		await modLoader.activateEnabled(contentBuilder)
 		setCurrentModLoader(modLoader)
 		const content = contentBuilder.finalize()
 		const modManagementApi = createModManagementApi(modLoader)
-		game = new Game(canvas, preload, content, modManagementApi)
+		game = new Game(canvas, preload, content, modManagementApi, selectedHomeVariant, modUi.isVisible('steam-warning'))
 		globalThis.game = game
 	}
 }

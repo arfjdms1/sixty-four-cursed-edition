@@ -6,7 +6,7 @@ const helloWorldMod: ModDefinition = {
 		name: 'Hello World',
 		version: '1.0.0',
 		apiVersion: 0,
-		author: 'Sixty Four Cursed Edition',
+		author: 'arfjdms1',
 		description: 'Minimal example demonstrating Mod API v0 setup and logging.',
 		enabledByDefault: false,
 	},

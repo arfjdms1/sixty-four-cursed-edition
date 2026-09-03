@@ -258,6 +258,7 @@ try {
 		assert.equal(typeof ctxSeen.logger.info, 'function')
 		assert.equal(typeof ctxSeen.content.registerEntity, 'function')
 		assert.equal(typeof ctxSeen.content.registerResource, 'function')
+		assert.equal(typeof ctxSeen.ui.setVisible, 'function')
 	})
 
 	await test('async setup still works', async () => {
@@ -326,6 +327,7 @@ try {
 		assert.match(bundledCode, /builtin:context-fixture/)
 		assert.match(bundledCode, /builtin:hello-world/)
 		assert.match(bundledCode, /builtin:behavior-demo/)
+		assert.match(bundledCode, /builtin:hide-banner/)
 	})
 
 	await test('default fixture remains behaviorally inert', async () => {
@@ -377,6 +379,9 @@ try {
 		assert.equal('entityContext' in seen, false)
 		assert.equal('EntityManager' in seen, false)
 		assert.equal('context' in seen.content, false)
+		assert.equal('document' in seen.ui, false)
+		assert.equal('window' in seen.ui, false)
+		assert.equal('querySelector' in seen.ui, false)
 		assert.equal(typeof seen.content.registerEntity, 'function')
 	})
 
@@ -387,7 +392,10 @@ try {
 import type { ModDefinition } from '../../src/scripts/modding/api/index.ts'
 const mod: ModDefinition = {
   manifest: { id: 'test:good', name: 'good', version: '1.0.0', apiVersion: 0 },
-  setup(ctx) { ctx.content.registerEntity({ id: 'test:good-entity' }) }
+  setup(ctx) {
+    ctx.content.registerEntity({ id: 'test:good-entity' })
+    ctx.ui.setVisible('steam-warning', false)
+  }
 }
 export default mod
 `
@@ -404,9 +412,18 @@ class Evil extends Entity {
   probe() { return this.master }
 }
 `
+			const badUi = `
+import type { ModDefinition } from '../../src/scripts/modding/api/index.ts'
+const mod: ModDefinition = {
+  manifest: { id: 'test:bad-ui', name: 'bad ui', version: '1.0.0', apiVersion: 0 },
+  setup(ctx) { ctx.ui.setVisible('.steamWarning', false) }
+}
+export default mod
+`
 			writeFileSync(join(fixtureDir, 'good.ts'), good)
 			writeFileSync(join(fixtureDir, 'bad.ts'), bad)
 			writeFileSync(join(fixtureDir, 'badMaster.ts'), badMaster)
+			writeFileSync(join(fixtureDir, 'badUi.ts'), badUi)
 			writeFileSync(join(fixtureDir, 'tsconfig.good.json'), JSON.stringify({
 				extends: '../../tsconfig.json',
 				include: ['good.ts'],
@@ -441,6 +458,20 @@ class Evil extends Entity {
 				failed = true
 				const out = (e.stdout?.toString() ?? '') + (e.stderr?.toString() ?? '')
 				assert.match(out, /has no exported member .Entity.|master/)
+			}
+			assert.equal(failed, true)
+			writeFileSync(join(fixtureDir, 'tsconfig.badUi.json'), JSON.stringify({
+				extends: '../../tsconfig.json',
+				include: ['badUi.ts'],
+				compilerOptions: { noEmit: true, skipLibCheck: true },
+			}))
+			failed = false
+			try {
+				execFileSync(process.execPath, [join(new URL('.', root).pathname, 'node_modules/typescript/bin/tsc'), '--p', join(fixtureDir, 'tsconfig.badUi.json')], { cwd: new URL('.', root), stdio: 'pipe' })
+			} catch (e) {
+				failed = true
+				const out = (e.stdout?.toString() ?? '') + (e.stderr?.toString() ?? '')
+				assert.match(out, /not assignable to parameter of type/)
 			}
 			assert.equal(failed, true)
 		} finally {

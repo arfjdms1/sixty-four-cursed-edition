@@ -40,6 +40,7 @@ import { ResourceRegistry } from '../registry/ResourceRegistry.js'
 import type { ContentContext } from '../content/types.js'
 import { createEntityContext } from '../engine/entities/context/EntityContext.js'
 import type { ModManagementApi } from '../modding/ModManagement.js'
+import { HOME_SCREEN_VARIANTS, type HomeScreenVariant } from '../startupPresentation.js'
 
 export { VFX, Exhaust, ResourceExplosion, ResourceSpark, ResourceTransfer, ChasmTransfer, Lightning }
 
@@ -104,7 +105,7 @@ function installEventAccessor<K extends EventOwnedField>(game: Game, property: K
 export class Game implements SaveHost, AudioHost, EffectHost, InputHost, RenderHost, ResourceHost, EntityManagerHost, InteractionHost, AutonomyHost, WorldEventHost {
 	declare modManagementApi?: ModManagementApi
 
-	constructor(canvas: HTMLCanvasElement, preload: GameStartupPayload, content: ContentContext, modManagementApi?: ModManagementApi){
+	constructor(canvas: HTMLCanvasElement, preload: GameStartupPayload, content: ContentContext, modManagementApi?: ModManagementApi, homeScreenVariant: HomeScreenVariant = HOME_SCREEN_VARIANTS[0], steamWarningVisible = true){
 
 		this.canvas = canvas
 		this.ctx = this.canvas.getContext(`2d`) as CanvasRenderingContext2D
@@ -241,13 +242,13 @@ export class Game implements SaveHost, AudioHost, EffectHost, InputHost, RenderH
 		this.initScreenSize()
 		
 		this.shop = new Shop(document.querySelector(`.shop`) as HTMLDivElement, this as ConstructorParameters<typeof Shop>[1])
-		this.splash = new Splash(this as unknown as ConstructorParameters<typeof Splash>[0])
+		this.splash = new Splash(this as unknown as ConstructorParameters<typeof Splash>[0], homeScreenVariant)
 		this.messenger = new Messenger(this as unknown as ConstructorParameters<typeof Messenger>[0])
 		this.steamAchievements = preload?.steamAchievements
 		this.achiever = new Achiever(this as unknown as ConstructorParameters<typeof Achiever>[0])
 		this.explainer = new Explainer(this as ConstructorParameters<typeof Explainer>[0],localStorage.getItem(`abstractv03_helpIsNeeded${this.steamId}`))
 
-		if (!this.hasSteam) this.showSteamWarning()
+		if (!this.hasSteam && steamWarningVisible) this.showSteamWarning()
 		this.setListeners()
 
 		this.updateLoop()

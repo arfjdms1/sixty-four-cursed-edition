@@ -20,6 +20,10 @@
     "test:mod-entity": "node tests/mod_entity_regression.mjs",
     "test:mod-menu": "node tests/mod_menu_regression.mjs",
     "test:base-mods": "node tests/base_mods_regression.mjs",
+    "test:mod-ui": "node tests/mod_ui_regression.mjs",
+    "test:fullscreen": "node tests/fullscreen_regression.mjs",
+    "test:startup-splash": "node tests/startup_splash_regression.mjs",
+    "test:mod-template": "node tests/mod_template_regression.mjs",
     "test:right-click": "node tests/right_click_regression.mjs",
     "test:placement-preview": "node tests/placement_preview_regression.mjs",
     "validate:achievement-icons": "node tests/validate_achievement_icons.mjs"

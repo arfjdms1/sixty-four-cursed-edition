@@ -1,4 +1,4 @@
-import type { ModDefinition } from '../../scripts/modding/types.js'
+import type { ModDefinition } from '../../scripts/modding/api/index.js'
 
 // Bundled mods are trusted code and must keep top-level module evaluation side-effect free.
 const loaderFixture: ModDefinition = {
