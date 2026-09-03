@@ -11,6 +11,7 @@ export class InputSystem {
 	zoomWhenShiftPressed?: number
 	shiftPressed?: boolean
 	resizeAnimationFrame?: number
+	private listenersSet = false
 
 	constructor(host: InputHost){
 		this.host = host
@@ -41,6 +42,13 @@ export class InputSystem {
 	}
 
 	setListeners(): void {
+		if (this.listenersSet) return
+		this.listenersSet = true
+
+		addEventListener(`contextmenu`, (e: MouseEvent) => {
+			e.preventDefault()
+		})
+
 		if (this.host.spaceport && !this.host.spaceport.isPlaceholder){
 			this.host.spaceport.on(`windowState`, (_e, d)=>{
 				console.log(d)

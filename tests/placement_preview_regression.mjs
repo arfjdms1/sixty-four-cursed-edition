@@ -97,4 +97,12 @@ assert.ok(Object.getOwnPropertyDescriptor(host, 'itemInHand')?.get, 'right-click
 assert.ok(Object.getOwnPropertyDescriptor(host, 'transportedEntity')?.get, 'right-click must preserve the transport forwarding accessor')
 assert.equal(mouseupCalls, 1)
 
+let contextmenuPrevented = false
+const contextmenuEvent = {
+	preventDefault() { contextmenuPrevented = true },
+}
+assert.ok(windowListeners.has('contextmenu'), 'contextmenu listener must be registered')
+windowListeners.get('contextmenu')(contextmenuEvent)
+assert.equal(contextmenuPrevented, true, 'browser contextmenu event must be prevented')
+
 console.log('placement preview regression passed')
