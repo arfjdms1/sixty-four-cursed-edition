@@ -40,9 +40,13 @@ flowchart TD
     end
 ```
 
-### Future Mod Loading Seam
+### Bundled Mod Loading Seam
 
-The content composition pipeline provides an explicit, non-invasive seam for future mod loading without requiring global monkey-patching:
+The startup composition pipeline loads internal bundled mods before content finalization without requiring global monkey-patching. The current lifecycle context intentionally exposes only the mod ID and logger; content registration remains reserved for a future API version.
+
+Bundled mods are trusted application code compiled by Vite. The internal loader validates manifests and isolates lifecycle errors, but it does not sandbox JavaScript or provide a security boundary. User-installed or downloaded code requires a separate trust and security design.
+
+API v0 mod entry points must access application behavior through their lifecycle context rather than importing runtime modules from the main application entry. Mod-local JavaScript dependencies are supported. CSS imports are not yet supported; the offline build rejects them rather than producing an incomplete single-file bundle. Top-level module evaluation should remain side-effect free.
 
 ```text
 const builder = new ContentBuilder()
@@ -50,8 +54,8 @@ const builder = new ContentBuilder()
 // 1. Explicit base content registration
 registerBaseContent(builder)
 
-// 2. Future mod discovery and registration seam
-// loadMods(builder)
+// 2. Deterministic bundled mod discovery and activation
+await loadBundledMods()
 
 // 3. Finalization into immutable runtime context
 const content = builder.finalize()

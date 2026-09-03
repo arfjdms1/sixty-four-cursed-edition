@@ -1,6 +1,10 @@
 import type { GameStartupPayload } from '../types/platform.js'
 import { ContentBuilder } from './content/ContentContext.js'
 import { registerBaseContent } from './content/registerBaseContent.js'
+import { discoverBundledMods } from './modding/discoverBundledMods.js'
+import { DEFAULT_MOD_STATE_KEY, LocalStorageModStateStorage } from './modding/ModEnabledState.js'
+import { ModLoader } from './modding/ModLoader.js'
+import { setCurrentModLoader } from './modding/runtime.js'
 import * as BezierModule from './bezier.js'
 import * as UiModule from './ui.js'
 import * as SpritesModule from './sprites.js'
@@ -145,15 +149,36 @@ Object.assign(
 let game: Game | undefined
 globalThis.game = game
 
-function startGame(preload?: GameStartupPayload){
+let startPromise: Promise<void> | undefined
+
+function startGame(preload?: GameStartupPayload): Promise<void> {
+	if (!startPromise) startPromise = initializeGame(preload)
+	return startPromise
+}
+
+async function initializeGame(preload?: GameStartupPayload): Promise<void> {
 	const canvas = document.querySelector<HTMLCanvasElement>(`.canvas`)
 	if (canvas) {
 		const contentBuilder = new ContentBuilder()
 		registerBaseContent(contentBuilder)
+		const accountId = preload?.steamId ?? ``
+		const modLoader = new ModLoader({
+			storage: new LocalStorageModStateStorage(),
+			storageKey: `${DEFAULT_MOD_STATE_KEY}${accountId}`,
+		})
+		modLoader.discover(await discoverBundledMods())
+		await modLoader.activateEnabled()
+		setCurrentModLoader(modLoader)
 		const content = contentBuilder.finalize()
 		game = new Game(canvas, preload, content)
 		globalThis.game = game
 	}
+}
+
+function launchGame(preload?: GameStartupPayload): void {
+	void startGame(preload).catch(error => {
+		setTimeout(() => { throw error }, 0)
+	})
 }
 
 window.onload = () => {
@@ -165,11 +190,11 @@ window.onload = () => {
 				spaceport.send(`gameError`, er)
 			}
 			spaceport.on(`hereYouGoSir`, (_e, d) => {
-				startGame(d)
+				launchGame(d)
 			})
 			spaceport.send(`getMyStuff`, `please`)
 		}
 	} catch (_e){
-		startGame()
+		launchGame()
 	}
 }
