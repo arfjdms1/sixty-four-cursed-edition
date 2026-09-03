@@ -324,6 +324,8 @@ try {
 			.join('\n')
 		assert.match(bundledCode, /builtin:loader-fixture/)
 		assert.match(bundledCode, /builtin:context-fixture/)
+		assert.match(bundledCode, /builtin:hello-world/)
+		assert.match(bundledCode, /builtin:behavior-demo/)
 	})
 
 	await test('default fixture remains behaviorally inert', async () => {

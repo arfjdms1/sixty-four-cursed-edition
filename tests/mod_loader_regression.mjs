@@ -252,6 +252,8 @@ try {
 			.map(file => file.code)
 			.join('\n')
 		assert.match(bundledCode, /builtin:loader-fixture/)
+		assert.match(bundledCode, /builtin:hello-world/)
+		assert.match(bundledCode, /builtin:behavior-demo/)
 	})
 	await test('offline build includes bundled fixture without dynamic module loading', async () => {
 		const offlineConfig = createViteConfig({ mode: 'offline' })
@@ -272,6 +274,8 @@ try {
 		assert.doesNotMatch(htmlSource, /import\(["']\.\/[^"']+\.js["']\)/)
 		assert.doesNotMatch(htmlSource, /data:text\/javascript/)
 		assert.match(htmlSource, /builtin:loader-fixture/)
+		assert.match(htmlSource, /builtin:hello-world/)
+		assert.match(htmlSource, /builtin:behavior-demo/)
 	})
 
 	console.log(`mod loader regression passed (${passed} tests)`)
