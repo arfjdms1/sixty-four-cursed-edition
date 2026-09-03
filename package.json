@@ -16,6 +16,7 @@
     "preview:offline": "vite preview --mode offline",
     "typecheck": "tsc --noEmit",
     "test:mod-loader": "node tests/mod_loader_regression.mjs",
+    "test:mod-context": "node tests/mod_context_regression.mjs",
     "test:placement-preview": "node tests/placement_preview_regression.mjs",
     "validate:achievement-icons": "node tests/validate_achievement_icons.mjs"
   },

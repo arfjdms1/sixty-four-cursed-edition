@@ -167,7 +167,7 @@ async function initializeGame(preload?: GameStartupPayload): Promise<void> {
 			storageKey: `${DEFAULT_MOD_STATE_KEY}${accountId}`,
 		})
 		modLoader.discover(discoverBundledMods())
-		await modLoader.activateEnabled()
+		await modLoader.activateEnabled(contentBuilder)
 		setCurrentModLoader(modLoader)
 		const content = contentBuilder.finalize()
 		game = new Game(canvas, preload, content)

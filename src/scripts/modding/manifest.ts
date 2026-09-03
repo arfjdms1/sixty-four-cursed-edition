@@ -1,4 +1,4 @@
-import type { ModDefinition, ModLifecycleContext, ModManifest } from './types.js'
+import type { ModContext, ModDefinition, ModManifest } from './types.js'
 
 export const SUPPORTED_MOD_API_VERSION = 0 as const
 
@@ -66,6 +66,6 @@ export function validateModDefinition(value: unknown): ModDefinition {
 
 	return Object.freeze({
 		manifest,
-		setup: (context: ModLifecycleContext) => setup(context),
+		setup: (context: ModContext) => setup(context),
 	})
 }

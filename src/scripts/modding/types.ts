@@ -21,14 +21,55 @@ export interface ModLogger {
 	error(message: string, error?: unknown): void
 }
 
+export interface ModInfo {
+	readonly id: ModId
+	readonly name: string
+	readonly version: string
+	readonly apiVersion: 0
+}
+
 export interface ModLifecycleContext {
 	readonly id: ModId
 	readonly logger: ModLogger
 }
 
+export interface ModEntityDefinition {
+	readonly id: string
+	readonly kind?: import('../registry/types.js').EntityKind
+	readonly family?: import('../registry/types.js').EntityFamilyId
+	readonly capabilities?: readonly import('../registry/types.js').EntityCapability[]
+	readonly isUpgradeTo?: string
+	readonly onlyone?: boolean
+	readonly canPurchase?: boolean
+}
+
+export interface ModResourceDefinition {
+	readonly id: import('../registry/resource-types.js').ResourceTypeId
+	readonly name: string
+	readonly sfx: string
+	readonly triplet: import('../../types/core.js').ColorTriplet
+	readonly surgeTriplet?: import('../../types/core.js').ColorTriplet
+	readonly chances?: readonly import('../registry/resource-types.js').ResourceChance[]
+	readonly probabilities?: readonly import('../registry/resource-types.js').ResourceProbability[]
+	readonly mean?: number
+	readonly stdev?: number
+	readonly base?: number
+}
+
+export interface ModContentApi {
+	registerEntity(definition: ModEntityDefinition): void
+	registerResource(definition: ModResourceDefinition): void
+}
+
+export interface ModContext {
+	readonly mod: ModInfo
+	readonly logger: ModLogger
+	readonly content: ModContentApi
+}
+
 export interface ModDefinition {
 	readonly manifest: ModManifest
-	setup(context: ModLifecycleContext): void | Promise<void>
+	setup(context: ModContext): void | Promise<void>
 }
 
 export interface BundledModCandidate {

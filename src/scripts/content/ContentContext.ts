@@ -46,6 +46,18 @@ export class ContentBuilder implements ContentRegistration {
 		return this.finalized
 	}
 
+	hasEntityId(id: string): boolean {
+		return this.entityIds.has(id)
+	}
+
+	hasResourceId(id: string): boolean {
+		return this.resourceIds.has(id)
+	}
+
+	isFinalized(): boolean {
+		return this.finalized !== undefined
+	}
+
 	private ensureMutable(): void {
 		if (this.finalized) throw new Error(`Cannot register content after finalization`)
 	}

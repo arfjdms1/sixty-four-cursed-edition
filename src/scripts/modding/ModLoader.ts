@@ -1,11 +1,14 @@
 import { ModEnabledState } from './ModEnabledState.js'
 import { validateModDefinition } from './manifest.js'
+import { StagedModContent, ThrowingModContent } from './ModContent.js'
+import type { ContentBuilder } from '../content/ContentContext.js'
 import type {
 	BundledModCandidate,
+	ModContext,
 	ModDefinition,
 	ModDiagnostic,
 	ModId,
-	ModLifecycleContext,
+	ModInfo,
 	ModLoaderOptions,
 	ModLogger,
 	ModSnapshot,
@@ -44,6 +47,7 @@ export class ModLoader {
 	private activationStarted = false
 	private activationComplete = false
 	private activationPromise?: Promise<void>
+	private contentBuilder?: ContentBuilder
 
 	constructor(options: ModLoaderOptions) {
 		this.onDiagnostic = options.onDiagnostic ?? (diagnostic => {
@@ -109,7 +113,8 @@ export class ModLoader {
 		}
 	}
 
-	async activateEnabled(): Promise<void> {
+	async activateEnabled(contentBuilder?: ContentBuilder): Promise<void> {
+		if (contentBuilder) this.contentBuilder = contentBuilder
 		if (this.activationPromise) return this.activationPromise
 		this.activationPromise = this.activateSequentially()
 		return this.activationPromise
@@ -123,11 +128,25 @@ export class ModLoader {
 			if (!record.enabled || record.status === 'failed') continue
 
 			record.status = 'loading'
+			const modInfo: ModInfo = Object.freeze({
+				id: record.definition.manifest.id,
+				name: record.definition.manifest.name,
+				version: record.definition.manifest.version,
+				apiVersion: record.definition.manifest.apiVersion,
+			})
+			const logger = this.loggerFactory(id)
+			const staged = this.contentBuilder ? new StagedModContent(id, this.contentBuilder) : new ThrowingModContent()
+			const context: ModContext = Object.freeze({
+				mod: modInfo,
+				logger,
+				content: staged,
+			})
 			try {
-				const context: ModLifecycleContext = Object.freeze({ id, logger: this.loggerFactory(id) })
 				await record.definition.setup(context)
+				if (staged instanceof StagedModContent) staged.commit()
 				record.status = 'active'
 			} catch (error) {
+				if (staged instanceof StagedModContent) staged.discard()
 				const diagnostic = this.addDiagnostic({
 					modId: id,
 					source: record.source,
